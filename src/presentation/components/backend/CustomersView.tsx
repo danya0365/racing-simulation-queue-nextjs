@@ -5,6 +5,7 @@ import { MockCustomerRepository } from '@/src/infrastructure/repositories/mock/M
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { Portal } from '@/src/presentation/components/ui/Portal';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -178,26 +179,30 @@ export function CustomersView() {
 
       {/* Customer Detail Modal */}
       {isModalOpen && selectedCustomer && (
-        <CustomerDetailModal
-          customer={selectedCustomer}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedCustomer(null);
-          }}
-          formatDate={formatDate}
-        />
+        <Portal>
+          <CustomerDetailModal
+            customer={selectedCustomer}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedCustomer(null);
+            }}
+            formatDate={formatDate}
+          />
+        </Portal>
       )}
 
       {/* Add Customer Modal */}
       {isAddModalOpen && (
-        <AddCustomerModal
-          onClose={() => setIsAddModalOpen(false)}
-          onSave={async (data) => {
-            await customerRepository.create(data);
-            await loadData();
-            setIsAddModalOpen(false);
-          }}
-        />
+        <Portal>
+          <AddCustomerModal
+            onClose={() => setIsAddModalOpen(false)}
+            onSave={async (data) => {
+              await customerRepository.create(data);
+              await loadData();
+              setIsAddModalOpen(false);
+            }}
+          />
+        </Portal>
       )}
     </animated.div>
   );

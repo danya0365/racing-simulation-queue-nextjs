@@ -7,6 +7,7 @@ import { MockCustomerRepository } from '@/src/infrastructure/repositories/mock/M
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { Portal } from '@/src/presentation/components/ui/Portal';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { animated, config, useSpring } from '@react-spring/web';
@@ -660,14 +661,16 @@ function CustomersTab() {
 
       {/* Add Modal */}
       {isAddModalOpen && (
-        <AddCustomerModal 
-          onClose={() => setIsAddModalOpen(false)}
-          onSave={async (data) => {
-            await customerRepository.create(data);
-            await loadData();
-            setIsAddModalOpen(false);
-          }}
-        />
+        <Portal>
+          <AddCustomerModal 
+            onClose={() => setIsAddModalOpen(false)}
+            onSave={async (data) => {
+              await customerRepository.create(data);
+              await loadData();
+              setIsAddModalOpen(false);
+            }}
+          />
+        </Portal>
       )}
     </div>
   );

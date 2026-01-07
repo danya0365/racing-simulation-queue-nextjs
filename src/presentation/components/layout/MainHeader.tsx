@@ -3,6 +3,7 @@
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Portal } from '../ui/Portal';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { MobileMenu } from './MobileMenu';
 
@@ -73,10 +74,12 @@ export function MainHeader() {
       </header>
 
       {/* Mobile Menu */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-      />
+      <Portal>
+        <MobileMenu 
+          isOpen={isMobileMenuOpen} 
+          onClose={() => setIsMobileMenuOpen(false)} 
+        />
+      </Portal>
     </>
   );
 }
