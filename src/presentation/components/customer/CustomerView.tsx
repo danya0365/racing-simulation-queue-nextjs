@@ -3,7 +3,7 @@
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
-import { BookingFormData, CustomerViewModel } from '@/src/presentation/presenters/customer/CustomerPresenter';
+import { BookingFormData, CustomerViewModel, MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
@@ -106,10 +106,11 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
           <h2 className="text-xl font-bold mb-6 text-foreground">เลือกเครื่องเล่น</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {viewModel.machines.map((machine, index) => (
+            {viewModel.machines.filter(m => m.isActive && m.status !== 'maintenance').map((machine, index) => (
               <MachineBookingCard
                 key={machine.id}
                 machine={machine}
+                queueInfo={viewModel.machineQueueInfo[machine.id]}
                 index={index}
                 onBook={() => actions.openBookingModal(machine)}
               />
@@ -157,6 +158,7 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
 }
 
 // Machine Booking Card
+
 interface MachineBookingCardProps {
   machine: {
     id: string;
@@ -166,11 +168,12 @@ interface MachineBookingCardProps {
     position: number;
     isActive: boolean;
   };
+  queueInfo?: MachineQueueInfo;
   index: number;
   onBook: () => void;
 }
 
-function MachineBookingCard({ machine, index, onBook }: MachineBookingCardProps) {
+function MachineBookingCard({ machine, queueInfo, index, onBook }: MachineBookingCardProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -184,49 +187,69 @@ function MachineBookingCard({ machine, index, onBook }: MachineBookingCardProps)
     config: config.gentle,
   });
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'available':
-        return {
-          label: 'ว่าง',
-          color: 'bg-emerald-500',
-          textColor: 'text-emerald-400',
-          icon: '✅',
-          canBook: true,
-        };
-      case 'occupied':
-        return {
-          label: 'กำลังใช้งาน',
-          color: 'bg-orange-500',
-          textColor: 'text-orange-400',
-          icon: '🏁',
-          canBook: false,
-        };
-      case 'maintenance':
-        return {
-          label: 'ซ่อมบำรุง',
-          color: 'bg-gray-500',
-          textColor: 'text-gray-400',
-          icon: '🔧',
-          canBook: false,
-        };
-      default:
-        return {
-          label: status,
-          color: 'bg-gray-500',
-          textColor: 'text-gray-400',
-          icon: '❓',
-          canBook: false,
-        };
+  // Get status based on queue info
+  const getStatusConfig = () => {
+    const totalInQueue = queueInfo ? queueInfo.waitingCount + queueInfo.playingCount : 0;
+    const waitMinutes = queueInfo?.estimatedWaitMinutes || 0;
+
+    if (machine.status === 'maintenance') {
+      return {
+        label: 'ซ่อมบำรุง',
+        color: 'bg-gray-500',
+        textColor: 'text-gray-400',
+        icon: '🔧',
+        canBook: false,
+        sublabel: null,
+      };
     }
+
+    if (totalInQueue === 0 && machine.status === 'available') {
+      return {
+        label: 'พร้อมเล่นทันที!',
+        color: 'bg-emerald-500',
+        textColor: 'text-emerald-400',
+        icon: '✅',
+        canBook: true,
+        sublabel: null,
+      };
+    } else if (machine.status === 'occupied' || (queueInfo?.playingCount || 0) > 0) {
+      return {
+        label: 'กำลังใช้งาน',
+        color: 'bg-orange-500',
+        textColor: 'text-orange-400',
+        icon: '🏁',
+        canBook: true, // FIXED: Allow booking even when occupied
+        sublabel: (queueInfo?.waitingCount || 0) > 0 
+          ? `รอ ${queueInfo!.waitingCount} คน (~${waitMinutes} นาที)`
+          : `รอ ~${waitMinutes} นาที`,
+      };
+    } else if ((queueInfo?.waitingCount || 0) > 0) {
+      return {
+        label: `รอ ${queueInfo!.waitingCount} คน`,
+        color: 'bg-amber-500',
+        textColor: 'text-amber-400',
+        icon: '⏳',
+        canBook: true,
+        sublabel: `~${waitMinutes} นาที`,
+      };
+    }
+    
+    return {
+      label: 'พร้อมเล่น',
+      color: 'bg-emerald-500',
+      textColor: 'text-emerald-400',
+      icon: '✅',
+      canBook: true,
+      sublabel: null,
+    };
   };
 
-  const statusConfig = getStatusConfig(machine.status);
+  const statusConfig = getStatusConfig();
 
   return (
     <animated.div style={spring}>
       <AnimatedCard
-        glowColor={statusConfig.canBook ? 'rgba(0, 212, 255, 0.3)' : 'rgba(107, 114, 128, 0.2)'}
+        glowColor="rgba(0, 212, 255, 0.3)"
         disabled={!statusConfig.canBook}
         className="p-6"
       >
@@ -250,17 +273,28 @@ function MachineBookingCard({ machine, index, onBook }: MachineBookingCardProps)
         </div>
 
         {/* Description */}
-        <p className="text-sm text-muted mb-6 line-clamp-2">{machine.description}</p>
+        <p className="text-sm text-muted mb-4 line-clamp-2">{machine.description}</p>
+
+        {/* Queue Info */}
+        {statusConfig.sublabel && (
+          <div className="text-xs text-muted bg-background px-3 py-2 rounded-lg mb-4">
+            ⏱️ {statusConfig.sublabel}
+          </div>
+        )}
+        {queueInfo && queueInfo.nextPosition > 1 && (
+          <div className="text-xs text-purple-400 mb-4">
+            📋 คิวถัดไป: ลำดับที่ #{queueInfo.nextPosition}
+          </div>
+        )}
 
         {/* Action */}
-        {statusConfig.canBook && machine.isActive ? (
+        {statusConfig.canBook ? (
           <GlowButton color="cyan" size="md" onClick={onBook} className="w-full">
             🎯 จองคิวเครื่องนี้
           </GlowButton>
         ) : (
           <div className={`text-center py-3 ${statusConfig.textColor} text-sm rounded-xl bg-surface`}>
-            {machine.status === 'occupied' && '⏳ มีคนกำลังใช้งาน'}
-            {machine.status === 'maintenance' && '🔧 ปิดปรับปรุงชั่วคราว'}
+            🔧 ปิดปรับปรุงชั่วคราว
           </div>
         )}
       </AnimatedCard>

@@ -8,11 +8,20 @@ import { IMachineRepository, Machine, MachineStats } from '@/src/application/rep
 import { CreateQueueData, IQueueRepository, Queue } from '@/src/application/repositories/IQueueRepository';
 import { Metadata } from 'next';
 
+export interface MachineQueueInfo {
+  machineId: string;
+  waitingCount: number;
+  playingCount: number;
+  estimatedWaitMinutes: number;
+  nextPosition: number;
+}
+
 export interface CustomerViewModel {
   machines: Machine[];
   availableMachines: Machine[];
   machineStats: MachineStats;
   userQueues: Queue[];
+  machineQueueInfo: Record<string, MachineQueueInfo>;
 }
 
 export interface BookingFormData {
@@ -39,17 +48,45 @@ export class CustomerPresenter {
    */
   async getViewModel(): Promise<CustomerViewModel> {
     try {
-      const [machines, availableMachines, machineStats] = await Promise.all([
+      const [machines, availableMachines, machineStats, allQueues] = await Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getAvailable(),
         this.machineRepository.getStats(),
+        this.queueRepository.getAll(),
       ]);
+
+      // Calculate queue info for each machine
+      const machineQueueInfo: Record<string, MachineQueueInfo> = {};
+      
+      for (const machine of machines) {
+        const machineQueues = allQueues.filter(q => q.machineId === machine.id);
+        const waitingQueues = machineQueues.filter(q => q.status === 'waiting');
+        const playingQueues = machineQueues.filter(q => q.status === 'playing');
+        
+        // Calculate estimated wait time (sum of remaining duration for playing + all waiting)
+        let estimatedWaitMinutes = 0;
+        for (const q of playingQueues) {
+          estimatedWaitMinutes += q.duration; // Assume just started for simplicity
+        }
+        for (const q of waitingQueues) {
+          estimatedWaitMinutes += q.duration;
+        }
+
+        machineQueueInfo[machine.id] = {
+          machineId: machine.id,
+          waitingCount: waitingQueues.length,
+          playingCount: playingQueues.length,
+          estimatedWaitMinutes,
+          nextPosition: waitingQueues.length + playingQueues.length + 1,
+        };
+      }
 
       return {
         machines,
         availableMachines,
         machineStats,
-        userQueues: [], // Will be populated when user auth is implemented
+        userQueues: [],
+        machineQueueInfo,
       };
     } catch (error) {
       console.error('Error getting customer view model:', error);

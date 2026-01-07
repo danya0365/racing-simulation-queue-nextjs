@@ -4,8 +4,9 @@ import type { Machine } from '@/src/application/repositories/IMachineRepository'
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import type { MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { createClientCustomerPresenter } from '@/src/presentation/presenters/customer/CustomerPresenterClientFactory';
-import { animated, config, useSpring } from '@react-spring/web';
+import { animated } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -19,6 +20,8 @@ interface BookingData {
   machineName: string;
   duration: number;
   isExistingCustomer: boolean;
+  estimatedWait: number;
+  queuePosition: number;
 }
 
 export function BookingWizard() {
@@ -30,8 +33,11 @@ export function BookingWizard() {
     machineName: '',
     duration: 30,
     isExistingCustomer: false,
+    estimatedWait: 0,
+    queuePosition: 1,
   });
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [machineQueueInfo, setMachineQueueInfo] = useState<Record<string, MachineQueueInfo>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ queueId: string; position: number } | null>(null);
@@ -39,12 +45,14 @@ export function BookingWizard() {
 
   const presenter = createClientCustomerPresenter();
 
-  // Load machines
+  // Load machines - ALL machines, not just available
   useEffect(() => {
     const loadMachines = async () => {
       try {
         const viewModel = await presenter.getViewModel();
-        setMachines(viewModel.availableMachines);
+        // FIXED: Use ALL machines, not just available
+        setMachines(viewModel.machines.filter(m => m.isActive && m.status !== 'maintenance'));
+        setMachineQueueInfo(viewModel.machineQueueInfo);
       } catch (err) {
         console.error('Error loading machines:', err);
       } finally {
@@ -53,15 +61,6 @@ export function BookingWizard() {
     };
     loadMachines();
   }, [presenter]);
-
-  // Step animation
-  const stepSpring = useSpring({
-    opacity: 1,
-    transform: 'translateX(0)',
-    from: { opacity: 0, transform: 'translateX(50px)' },
-    reset: true,
-    config: config.gentle,
-  });
 
   // Progress calculation
   const steps: BookingStep[] = ['phone', 'machine', 'duration', 'confirm'];
@@ -113,7 +112,7 @@ export function BookingWizard() {
   if (success) {
     return (
       <div className="min-h-full flex items-center justify-center p-4 bg-racing-gradient">
-        <animated.div style={stepSpring} className="w-full max-w-md">
+        <animated.div className="w-full max-w-md">
           <AnimatedCard className="p-8 text-center">
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-5xl shadow-lg shadow-emerald-500/30 animate-float">
               ✅
@@ -181,7 +180,7 @@ export function BookingWizard() {
 
       {/* Content */}
       <main className="flex-1 flex items-center justify-center p-4">
-        <animated.div style={stepSpring} className="w-full max-w-lg">
+        <animated.div className="w-full max-w-lg">
           {currentStep === 'phone' && (
             <PhoneStep
               value={bookingData.customerPhone}
@@ -196,9 +195,16 @@ export function BookingWizard() {
           {currentStep === 'machine' && (
             <MachineStep
               machines={machines}
+              machineQueueInfo={machineQueueInfo}
               loading={loading}
               selectedId={bookingData.machineId}
-              onSelect={(id, name) => setBookingData({ ...bookingData, machineId: id, machineName: name })}
+              onSelect={(id, name, waitTime, position) => setBookingData({ 
+                ...bookingData, 
+                machineId: id, 
+                machineName: name,
+                estimatedWait: waitTime,
+                queuePosition: position 
+              })}
               onNext={goNext}
               onBack={goBack}
             />
@@ -319,14 +325,15 @@ function PhoneStep({ value, name, onChange, onNext }: PhoneStepProps) {
 // Step 2: Machine Selection
 interface MachineStepProps {
   machines: Machine[];
+  machineQueueInfo: Record<string, MachineQueueInfo>;
   loading: boolean;
   selectedId: string;
-  onSelect: (id: string, name: string) => void;
+  onSelect: (id: string, name: string, waitTime: number, position: number) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-function MachineStep({ machines, loading, selectedId, onSelect, onNext, onBack }: MachineStepProps) {
+function MachineStep({ machines, machineQueueInfo, loading, selectedId, onSelect, onNext, onBack }: MachineStepProps) {
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -336,6 +343,40 @@ function MachineStep({ machines, loading, selectedId, onSelect, onNext, onBack }
     );
   }
 
+  const getMachineStatus = (machine: Machine) => {
+    const queueInfo = machineQueueInfo[machine.id];
+    const totalInQueue = queueInfo ? queueInfo.waitingCount + queueInfo.playingCount : 0;
+    const waitMinutes = queueInfo?.estimatedWaitMinutes || 0;
+
+    if (totalInQueue === 0 && machine.status === 'available') {
+      return { 
+        label: '✅ พร้อมเล่นทันที!', 
+        color: 'text-emerald-400',
+        sublabel: null 
+      };
+    } else if (machine.status === 'occupied' || queueInfo?.playingCount > 0) {
+      return { 
+        label: '🏁 กำลังใช้งาน', 
+        color: 'text-orange-400',
+        sublabel: queueInfo.waitingCount > 0 
+          ? `รอ ${queueInfo.waitingCount} คน (~${waitMinutes} นาที)`
+          : `รอ ~${waitMinutes} นาที`
+      };
+    } else if (queueInfo?.waitingCount > 0) {
+      return { 
+        label: `⏳ รอ ${queueInfo.waitingCount} คน`, 
+        color: 'text-amber-400',
+        sublabel: `~${waitMinutes} นาที`
+      };
+    }
+    
+    return { 
+      label: '✅ พร้อมเล่น', 
+      color: 'text-emerald-400',
+      sublabel: null 
+    };
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -343,31 +384,55 @@ function MachineStep({ machines, loading, selectedId, onSelect, onNext, onBack }
           🎮
         </div>
         <h2 className="text-2xl font-bold text-foreground">เลือกเครื่อง</h2>
-        <p className="text-muted mt-2">เลือกเครื่องที่ต้องการเล่น</p>
+        <p className="text-muted mt-2">เลือกเครื่องที่ต้องการจองคิว</p>
       </div>
 
       {machines.length === 0 ? (
         <AnimatedCard className="p-8 text-center">
-          <div className="text-4xl mb-4">😢</div>
-          <p className="text-muted">ไม่มีเครื่องว่างขณะนี้</p>
+          <div className="text-4xl mb-4">🔧</div>
+          <p className="text-muted">ไม่มีเครื่องพร้อมใช้งานขณะนี้</p>
         </AnimatedCard>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {machines.map((machine) => (
-            <button
-              key={machine.id}
-              onClick={() => onSelect(machine.id, machine.name)}
-              className={`p-6 rounded-2xl border-2 transition-all ${
-                selectedId === machine.id
-                  ? 'border-cyan-500 bg-cyan-500/20 shadow-lg shadow-cyan-500/20'
-                  : 'border-border bg-surface hover:border-cyan-500/50'
-              }`}
-            >
-              <div className="text-4xl mb-3">🏎️</div>
-              <div className="font-bold text-foreground">{machine.name}</div>
-              <div className="text-sm text-emerald-400 mt-1">ว่าง</div>
-            </button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {machines.map((machine) => {
+            const status = getMachineStatus(machine);
+            const queueInfo = machineQueueInfo[machine.id];
+            
+            return (
+              <button
+                key={machine.id}
+                onClick={() => onSelect(
+                  machine.id, 
+                  machine.name, 
+                  queueInfo?.estimatedWaitMinutes || 0,
+                  queueInfo?.nextPosition || 1
+                )}
+                className={`p-5 rounded-2xl border-2 transition-all text-left ${
+                  selectedId === machine.id
+                    ? 'border-cyan-500 bg-cyan-500/20 shadow-lg shadow-cyan-500/20'
+                    : 'border-border bg-surface hover:border-cyan-500/50'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="text-3xl">🏎️</div>
+                  <div>
+                    <div className="font-bold text-foreground text-lg">{machine.name}</div>
+                    <div className={`text-sm font-medium ${status.color}`}>{status.label}</div>
+                  </div>
+                </div>
+                {status.sublabel && (
+                  <div className="text-xs text-muted bg-background/50 px-3 py-1.5 rounded-lg mt-2">
+                    {status.sublabel}
+                  </div>
+                )}
+                {queueInfo && queueInfo.nextPosition > 1 && (
+                  <div className="text-xs text-purple-400 mt-2">
+                    📋 คิวของคุณจะเป็นลำดับที่ #{queueInfo.nextPosition}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -495,10 +560,20 @@ function ConfirmStep({ data, submitting, error, onSubmit, onBack }: ConfirmStepP
             <span className="text-muted">🎮 เครื่อง</span>
             <span className="font-bold text-foreground text-lg">{data.machineName}</span>
           </div>
-          <div className="flex justify-between items-center py-3">
+          <div className="flex justify-between items-center py-3 border-b border-border">
             <span className="text-muted">⏰ ระยะเวลา</span>
             <span className="font-bold text-cyan-400 text-lg">{data.duration} นาที</span>
           </div>
+          <div className="flex justify-between items-center py-3 border-b border-border">
+            <span className="text-muted">📋 ตำแหน่งคิว</span>
+            <span className="font-bold text-purple-400 text-lg">#{data.queuePosition}</span>
+          </div>
+          {data.estimatedWait > 0 && (
+            <div className="flex justify-between items-center py-3">
+              <span className="text-muted">⏳ รอประมาณ</span>
+              <span className="font-bold text-amber-400 text-lg">~{data.estimatedWait} นาที</span>
+            </div>
+          )}
         </div>
       </AnimatedCard>
 

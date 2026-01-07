@@ -292,7 +292,7 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
     switch (status) {
       case 'available':
         return {
-          label: 'ว่าง',
+          label: 'พร้อมเล่น',
           color: 'bg-emerald-500',
           glow: 'rgba(16, 185, 129, 0.4)',
           icon: '✅',
@@ -322,13 +322,14 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
   };
 
   const statusConfig = getStatusConfig(machine.status);
+  const canBook = machine.isActive && machine.status !== 'maintenance';
 
   return (
     <animated.div style={spring}>
       <AnimatedCard
-        onClick={machine.status === 'available' ? onSelect : undefined}
+        onClick={canBook ? onSelect : undefined}
         glowColor={statusConfig.glow}
-        disabled={machine.status !== 'available'}
+        disabled={!canBook}
         className="p-6"
       >
         {/* Header */}
@@ -355,22 +356,14 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
           {machine.description}
         </p>
 
-        {/* Action */}
-        {machine.status === 'available' && machine.isActive && (
-          <Link href="/customer" className="block">
+        {/* Action - Show for all bookable machines */}
+        {canBook ? (
+          <Link href="/customer/booking" className="block">
             <GlowButton color="cyan" size="sm" className="w-full">
-              จองคิวเครื่องนี้
+              🎯 จองคิวเครื่องนี้
             </GlowButton>
           </Link>
-        )}
-
-        {machine.status === 'occupied' && (
-          <div className="text-center py-2 text-orange-400 text-sm">
-            ⏳ มีคนกำลังใช้งาน
-          </div>
-        )}
-
-        {machine.status === 'maintenance' && (
+        ) : (
           <div className="text-center py-2 text-gray-400 text-sm">
             🔧 ปิดปรับปรุงชั่วคราว
           </div>
@@ -379,3 +372,4 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
     </animated.div>
   );
 }
+
