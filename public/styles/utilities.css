@@ -1,0 +1,100 @@
+/* Tailwind v4 Utilities */
+
+/* Hide scrollbar utility */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  /* Overlay backgrounds */
+  .bg-overlay { background-color: var(--color-overlay); }
+  .bg-overlay-light { background-color: var(--color-overlay-light); }
+  .bg-overlay-dark { background-color: var(--color-overlay-dark); }
+
+  /* Gradients */
+  .bg-primary-gradient { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); }
+}
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+  /* Mobile padding - ลด padding สำหรับ mobile */
+  .mobile-compact {
+    @apply px-3 py-4;
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-compact {
+      @apply px-6 py-6;
+    }
+  }
+
+  /* Responsive text */
+  .text-responsive-sm {
+    @apply text-xs;
+  }
+  
+  @media (min-width: 640px) {
+    .text-responsive-sm {
+      @apply text-sm;
+    }
+  }
+
+  .text-responsive-lg {
+    @apply text-lg;
+  }
+  
+  @media (min-width: 640px) {
+    .text-responsive-lg {
+      @apply text-xl;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-lg {
+      @apply text-2xl;
+    }
+  }
+
+  /* Mobile-friendly gaps */
+  .gap-responsive {
+    @apply gap-3;
+  }
+  
+  @media (min-width: 768px) {
+    .gap-responsive {
+      @apply gap-6;
+    }
+  }
+
+  /* Mobile card padding */
+  .card-padding {
+    @apply p-3;
+  }
+  
+  @media (min-width: 640px) {
+    .card-padding {
+      @apply p-4;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .card-padding {
+      @apply p-5;
+    }
+  }
+
+  /* Mobile section spacing */
+  .section-spacing {
+    @apply space-y-4;
+  }
+  
+  @media (min-width: 768px) {
+    .section-spacing {
+      @apply space-y-6;
+    }
+  }
+}
