@@ -1,0 +1,200 @@
+/* Racing Theme Animations */
+
+@layer utilities {
+  /* Shine animation for buttons */
+  @keyframes shine {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shine {
+    animation: shine 0.6s ease-out;
+  }
+
+  /* Pulse glow animation */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), 0 0 60px rgba(0, 212, 255, 0.3);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Racing stripe animation */
+  @keyframes racing-stripe {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-racing-stripe {
+    background-size: 200% 100%;
+    animation: racing-stripe 3s linear infinite;
+  }
+
+  /* Float animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Gradient text animation */
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-text {
+    background-size: 200% auto;
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  /* Neon flicker */
+  @keyframes neon-flicker {
+    0%, 100% {
+      opacity: 1;
+      text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+    }
+    50% {
+      opacity: 0.8;
+      text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+    }
+  }
+
+  .animate-neon-flicker {
+    animation: neon-flicker 2s ease-in-out infinite;
+  }
+
+  /* Spin glow for loading */
+  @keyframes spin-glow {
+    0% {
+      transform: rotate(0deg);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+    100% {
+      transform: rotate(360deg);
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+    }
+  }
+
+  .animate-spin-glow {
+    animation: spin-glow 1.5s linear infinite;
+  }
+
+  /* Status indicator pulse */
+  @keyframes status-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.7;
+    }
+  }
+
+  .animate-status-pulse {
+    animation: status-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Card entrance animation */
+  @keyframes card-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-card-enter {
+    animation: card-enter 0.4s ease-out forwards;
+  }
+
+  /* Stagger animation delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Glassmorphism utility */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Racing gradient backgrounds */
+  .bg-racing-gradient {
+    background: linear-gradient(135deg, 
+      rgba(0, 212, 255, 0.1) 0%, 
+      rgba(168, 85, 247, 0.1) 50%, 
+      rgba(236, 72, 153, 0.1) 100%
+    );
+  }
+
+  .bg-racing-gradient-strong {
+    background: linear-gradient(135deg, 
+      rgba(0, 212, 255, 0.3) 0%, 
+      rgba(168, 85, 247, 0.3) 50%, 
+      rgba(236, 72, 153, 0.3) 100%
+    );
+  }
+
+  /* Checkered flag pattern */
+  .bg-checkered {
+    background-image: 
+      linear-gradient(45deg, #000 25%, transparent 25%),
+      linear-gradient(-45deg, #000 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #000 75%),
+      linear-gradient(-45deg, transparent 75%, #000 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
+}
