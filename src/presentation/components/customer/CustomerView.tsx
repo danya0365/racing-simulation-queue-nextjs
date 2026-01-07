@@ -498,9 +498,17 @@ function SuccessModal({ queue, onClose }: SuccessModalProps) {
             </div>
           </div>
 
-          <GlowButton color="cyan" onClick={onClose} className="w-full">
-            เข้าใจแล้ว
-          </GlowButton>
+          {/* Buttons */}
+          <div className="flex flex-col gap-3">
+            <Link href={`/customer/queue/${queue.id}`}>
+              <GlowButton color="cyan" className="w-full">
+                📋 ดูสถานะคิว
+              </GlowButton>
+            </Link>
+            <AnimatedButton variant="ghost" onClick={onClose} className="w-full">
+              ปิด
+            </AnimatedButton>
+          </div>
         </div>
       </animated.div>
     </div>
