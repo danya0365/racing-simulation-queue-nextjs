@@ -6,6 +6,7 @@ import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import type { MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { createClientCustomerPresenter } from '@/src/presentation/presenters/customer/CustomerPresenterClientFactory';
+import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -25,10 +26,13 @@ interface BookingData {
 }
 
 export function BookingWizard() {
+  // Get saved customer info from store
+  const { customerInfo, setCustomerInfo } = useCustomerStore();
+  
   const [currentStep, setCurrentStep] = useState<BookingStep>('phone');
   const [bookingData, setBookingData] = useState<BookingData>({
-    customerPhone: '',
-    customerName: '',
+    customerPhone: customerInfo.phone || '',
+    customerName: customerInfo.name || '',
     machineId: '',
     machineName: '',
     duration: 30,
@@ -95,6 +99,12 @@ export function BookingWizard() {
         customerPhone: bookingData.customerPhone,
         bookingTime: bookingTime.toISOString(),
         duration: bookingData.duration,
+      });
+
+      // Save customer info to store for next time
+      setCustomerInfo({
+        phone: bookingData.customerPhone,
+        name: bookingData.customerName,
       });
 
       setSuccess({
