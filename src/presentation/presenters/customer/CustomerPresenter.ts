@@ -174,4 +174,68 @@ export class CustomerPresenter {
       throw error;
     }
   }
+
+  /**
+   * Cancel a queue booking
+   */
+  async cancelQueue(queueId: string): Promise<void> {
+    try {
+      await this.queueRepository.updateStatus(queueId, 'cancelled');
+    } catch (error) {
+      console.error('Error cancelling queue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search queues by phone number
+   */
+  async searchQueuesByPhone(phone: string): Promise<Queue[]> {
+    try {
+      const allQueues = await this.queueRepository.getAll();
+      // Normalize phone number for comparison (remove dashes, spaces)
+      const normalizedPhone = phone.replace(/[-\s]/g, '');
+      return allQueues.filter(q => 
+        q.customerPhone.replace(/[-\s]/g, '').includes(normalizedPhone)
+      );
+    } catch (error) {
+      console.error('Error searching queues by phone:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search queue by ID or position
+   */
+  async searchQueueById(searchTerm: string): Promise<Queue | null> {
+    try {
+      // Try searching by exact ID first
+      const queue = await this.queueRepository.getById(searchTerm);
+      if (queue) return queue;
+
+      // If not found, try searching by position number
+      const allQueues = await this.queueRepository.getAll();
+      const position = parseInt(searchTerm.replace('#', ''), 10);
+      if (!isNaN(position)) {
+        return allQueues.find(q => q.position === position) || null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error searching queue by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all queues (for history)
+   */
+  async getAllQueues(): Promise<Queue[]> {
+    try {
+      return await this.queueRepository.getAll();
+    } catch (error) {
+      console.error('Error getting all queues:', error);
+      throw error;
+    }
+  }
 }
