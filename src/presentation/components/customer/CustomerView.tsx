@@ -4,6 +4,7 @@ import { Queue } from '@/src/application/repositories/IQueueRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { Portal } from '@/src/presentation/components/ui/Portal';
 import { BookingFormData, CustomerViewModel, MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { ActiveBooking, useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
@@ -248,37 +249,43 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
         </section>
       )}
 
-      {/* Search Modal */}
+      {/* Search Modal - Rendered via Portal to fix fixed positioning */}
       {state.isSearchModalOpen && (
-        <SearchModal
-          isSearching={state.isSearching}
-          searchResults={state.searchResults}
-          searchError={state.searchError}
-          onSearchByPhone={actions.searchByPhone}
-          onSearchById={actions.searchById}
-          onClearResults={actions.clearSearchResults}
-          onClose={actions.closeSearchModal}
-        />
+        <Portal>
+          <SearchModal
+            isSearching={state.isSearching}
+            searchResults={state.searchResults}
+            searchError={state.searchError}
+            onSearchByPhone={actions.searchByPhone}
+            onSearchById={actions.searchById}
+            onClearResults={actions.clearSearchResults}
+            onClose={actions.closeSearchModal}
+          />
+        </Portal>
       )}
 
-      {/* Booking Modal */}
+      {/* Booking Modal - Rendered via Portal to fix fixed positioning */}
       {state.isBookingModalOpen && state.selectedMachine && (
-        <BookingModal
-          machine={state.selectedMachine}
-          isSubmitting={state.isSubmitting}
-          error={state.error}
-          initialData={customerInfo}
-          onSubmit={actions.submitBooking}
-          onClose={actions.closeBookingModal}
-        />
+        <Portal>
+          <BookingModal
+            machine={state.selectedMachine}
+            isSubmitting={state.isSubmitting}
+            error={state.error}
+            initialData={customerInfo}
+            onSubmit={actions.submitBooking}
+            onClose={actions.closeBookingModal}
+          />
+        </Portal>
       )}
 
-      {/* Success Modal */}
+      {/* Success Modal - Rendered via Portal to fix fixed positioning */}
       {state.bookingSuccess && (
-        <SuccessModal
-          queue={state.bookingSuccess}
-          onClose={actions.clearBookingSuccess}
-        />
+        <Portal>
+          <SuccessModal
+            queue={state.bookingSuccess}
+            onClose={actions.clearBookingSuccess}
+          />
+        </Portal>
       )}
 
       {/* Error Toast */}
