@@ -5,96 +5,103 @@
  */
 
 import {
-    CreateQueueData,
-    IQueueRepository,
-    PaginatedResult,
-    Queue,
-    QueueStats,
-    QueueStatus,
-    UpdateQueueData,
+  CreateQueueData,
+  IQueueRepository,
+  PaginatedResult,
+  Queue,
+  QueueStats,
+  QueueStatus,
+  UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
-// Mock data for queues
-const MOCK_QUEUES: Queue[] = [
+// Helper to create today's date with specific time
+function todayAt(hours: number, minutes: number = 0): string {
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date.toISOString();
+}
+
+// Mock data for queues - using dynamic dates
+const createMockQueues = (): Queue[] => [
   {
     id: 'queue-001',
     machineId: 'machine-002',
     customerName: 'สมชาย ใจดี',
     customerPhone: '081-234-5678',
-    bookingTime: '2025-01-07T10:00:00.000Z',
+    bookingTime: todayAt(10, 0),
     duration: 60,
     status: 'playing',
     position: 1,
     notes: 'ลูกค้าประจำ',
-    createdAt: '2025-01-07T09:30:00.000Z',
-    updatedAt: '2025-01-07T10:00:00.000Z',
+    createdAt: todayAt(9, 30),
+    updatedAt: todayAt(10, 0),
   },
   {
     id: 'queue-002',
     machineId: 'machine-004',
     customerName: 'อนุชา มั่นคง',
     customerPhone: '089-876-5432',
-    bookingTime: '2025-01-07T11:00:00.000Z',
+    bookingTime: todayAt(11, 0),
     duration: 30,
     status: 'playing',
     position: 1,
-    createdAt: '2025-01-07T10:45:00.000Z',
-    updatedAt: '2025-01-07T11:00:00.000Z',
+    createdAt: todayAt(10, 45),
+    updatedAt: todayAt(11, 0),
   },
   {
     id: 'queue-003',
     machineId: 'machine-001',
     customerName: 'วิชัย รักเร็ว',
     customerPhone: '062-111-2222',
-    bookingTime: '2025-01-07T12:00:00.000Z',
+    bookingTime: todayAt(12, 0),
     duration: 60,
     status: 'waiting',
     position: 1,
     notes: 'จองล่วงหน้า',
-    createdAt: '2025-01-07T08:00:00.000Z',
-    updatedAt: '2025-01-07T08:00:00.000Z',
+    createdAt: todayAt(8, 0),
+    updatedAt: todayAt(8, 0),
   },
   {
     id: 'queue-004',
     machineId: 'machine-001',
     customerName: 'ประยุทธ์ แข่งดี',
     customerPhone: '091-333-4444',
-    bookingTime: '2025-01-07T13:00:00.000Z',
+    bookingTime: todayAt(13, 0),
     duration: 45,
     status: 'waiting',
     position: 2,
-    createdAt: '2025-01-07T09:00:00.000Z',
-    updatedAt: '2025-01-07T09:00:00.000Z',
+    createdAt: todayAt(9, 0),
+    updatedAt: todayAt(9, 0),
   },
   {
     id: 'queue-005',
     machineId: 'machine-003',
     customerName: 'ธนพล สปีด',
     customerPhone: '083-555-6666',
-    bookingTime: '2025-01-07T14:00:00.000Z',
+    bookingTime: todayAt(14, 0),
     duration: 90,
     status: 'waiting',
     position: 1,
     notes: 'VIP Member',
-    createdAt: '2025-01-07T07:00:00.000Z',
-    updatedAt: '2025-01-07T07:00:00.000Z',
+    createdAt: todayAt(7, 0),
+    updatedAt: todayAt(7, 0),
   },
   {
     id: 'queue-006',
     machineId: 'machine-005',
     customerName: 'กิตติ F1',
     customerPhone: '095-777-8888',
-    bookingTime: '2025-01-07T09:00:00.000Z',
+    bookingTime: todayAt(9, 0),
     duration: 60,
     status: 'completed',
     position: 1,
-    createdAt: '2025-01-07T08:30:00.000Z',
-    updatedAt: '2025-01-07T10:00:00.000Z',
+    createdAt: todayAt(8, 30),
+    updatedAt: todayAt(10, 0),
   },
 ];
 
 export class MockQueueRepository implements IQueueRepository {
-  private queues: Queue[] = [...MOCK_QUEUES];
+  private queues: Queue[] = createMockQueues();
 
   async getById(id: string): Promise<Queue | null> {
     await this.delay(100);

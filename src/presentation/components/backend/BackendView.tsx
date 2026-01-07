@@ -1,7 +1,9 @@
 'use client';
 
+import type { Customer, CustomerStats } from '@/src/application/repositories/ICustomerRepository';
 import type { MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import { MockCustomerRepository } from '@/src/infrastructure/repositories/mock/MockCustomerRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -9,7 +11,10 @@ import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendP
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+// Customer repository instance
+const customerRepository = new MockCustomerRepository();
 
 interface BackendViewProps {
   initialViewModel?: BackendViewModel;
@@ -90,7 +95,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
 
       {/* Tabs */}
       <section className="px-4 md:px-8 py-4 bg-surface/50 border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex gap-2">
+        <div className="max-w-7xl mx-auto flex flex-wrap gap-2">
           <TabButton
             active={state.activeTab === 'dashboard'}
             onClick={() => actions.setActiveTab('dashboard')}
@@ -101,13 +106,19 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             active={state.activeTab === 'queues'}
             onClick={() => actions.setActiveTab('queues')}
           >
-            📋 จัดการคิว ({viewModel.waitingQueues.length})
+            📋 จัดการคิว ({viewModel.todayQueues.length})
           </TabButton>
           <TabButton
             active={state.activeTab === 'machines'}
             onClick={() => actions.setActiveTab('machines')}
           >
             🎮 จัดการเครื่อง ({viewModel.machines.length})
+          </TabButton>
+          <TabButton
+            active={state.activeTab === 'customers'}
+            onClick={() => actions.setActiveTab('customers')}
+          >
+            👥 จัดการลูกค้า
           </TabButton>
         </div>
       </section>
@@ -132,6 +143,9 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               isUpdating={state.isUpdating}
               onUpdateStatus={actions.updateMachineStatus}
             />
+          )}
+          {state.activeTab === 'customers' && (
+            <CustomersTab />
           )}
         </div>
       </section>
@@ -496,6 +510,253 @@ function MachineStatusCard({ machine }: { machine: { id: string; name: string; s
         <span className="text-lg">{statusConfig.icon}</span>
         <span className="font-medium text-foreground">{machine.name}</span>
       </div>
+    </div>
+  );
+}
+
+// Customers Tab
+function CustomersTab() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [stats, setStats] = useState<CustomerStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [customersData, statsData] = await Promise.all([
+        customerRepository.getAll(),
+        customerRepository.getStats(),
+      ]);
+      setCustomers(customersData);
+      setStats(statsData);
+    } catch (err) {
+      console.error('Error loading customers:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      const results = await customerRepository.search(query);
+      setCustomers(results);
+    } else {
+      const all = await customerRepository.getAll();
+      setCustomers(all);
+    }
+  };
+
+  const handleToggleVip = async (customer: Customer) => {
+    await customerRepository.update(customer.id, { isVip: !customer.isVip });
+    await loadData();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('ต้องการลบลูกค้านี้?')) {
+      await customerRepository.delete(id);
+      await loadData();
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat('th-TH', {
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date(dateString));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-12 h-12 border-4 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <CustomerStatsCard icon="👥" label="ลูกค้าทั้งหมด" value={stats.totalCustomers} color="from-blue-500 to-cyan-500" />
+          <CustomerStatsCard icon="⭐" label="VIP" value={stats.vipCustomers} color="from-amber-500 to-orange-500" />
+          <CustomerStatsCard icon="🆕" label="ใหม่วันนี้" value={stats.newCustomersToday} color="from-emerald-500 to-green-500" />
+          <CustomerStatsCard icon="🔄" label="ลูกค้าประจำ" value={stats.returningCustomers} color="from-purple-500 to-pink-500" />
+        </div>
+      )}
+
+      {/* Search & Add */}
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="🔍 ค้นหาชื่อหรือเบอร์โทร..."
+          className="flex-1 px-4 py-3 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-foreground placeholder-muted"
+        />
+        <GlowButton color="orange" onClick={() => setIsAddModalOpen(true)}>
+          ➕ เพิ่ม
+        </GlowButton>
+      </div>
+
+      {/* Customer List */}
+      {customers.length === 0 ? (
+        <AnimatedCard className="p-8 text-center">
+          <div className="text-4xl mb-4">👥</div>
+          <p className="text-muted">ไม่พบลูกค้า</p>
+        </AnimatedCard>
+      ) : (
+        <div className="space-y-3">
+          {customers.map((customer) => (
+            <AnimatedCard key={customer.id} className="p-4">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
+                    customer.isVip 
+                      ? 'bg-gradient-to-br from-amber-400 to-orange-500' 
+                      : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                  }`}>
+                    {customer.isVip ? '⭐' : '👤'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground">{customer.name}</span>
+                      {customer.isVip && (
+                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-full">VIP</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-muted">{customer.phone}</span>
+                    <div className="flex gap-3 text-xs text-muted mt-1">
+                      <span>🎮 {customer.visitCount} ครั้ง</span>
+                      <span>⏱️ {customer.totalPlayTime} นาที</span>
+                      {customer.lastVisit && <span>📅 {formatDate(customer.lastVisit)}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <AnimatedButton 
+                    variant={customer.isVip ? 'secondary' : 'primary'} 
+                    size="sm" 
+                    onClick={() => handleToggleVip(customer)}
+                  >
+                    {customer.isVip ? '⭐ ยกเลิก' : '⭐ VIP'}
+                  </AnimatedButton>
+                  <AnimatedButton variant="danger" size="sm" onClick={() => handleDelete(customer.id)}>
+                    🗑️
+                  </AnimatedButton>
+                </div>
+              </div>
+            </AnimatedCard>
+          ))}
+        </div>
+      )}
+
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <AddCustomerModal 
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={async (data) => {
+            await customerRepository.create(data);
+            await loadData();
+            setIsAddModalOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Customer Stats Card
+function CustomerStatsCard({ icon, label, value, color }: { icon: string; label: string; value: number; color: string }) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ${color} shadow-lg`}>
+      <div className="absolute inset-0 bg-black/20" />
+      <div className="relative z-10 text-white">
+        <div className="text-xl mb-1">{icon}</div>
+        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-xs opacity-80">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// Add Customer Modal
+function AddCustomerModal({ onClose, onSave }: { 
+  onClose: () => void; 
+  onSave: (data: { name: string; phone: string; email?: string; notes?: string }) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', notes: '' });
+  const [saving, setSaving] = useState(false);
+
+  const modalSpring = useSpring({
+    from: { opacity: 0, transform: 'scale(0.9)' },
+    to: { opacity: 1, transform: 'scale(1)' },
+    config: config.gentle,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.phone.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <animated.div style={modalSpring} className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="p-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-border flex justify-between items-center">
+          <h3 className="font-bold text-lg text-foreground">➕ เพิ่มลูกค้า</h3>
+          <button onClick={onClose} className="text-muted hover:text-foreground">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          <input
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-amber-500 text-foreground"
+            placeholder="ชื่อ-นามสกุล *"
+          />
+          <input
+            type="tel"
+            required
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-amber-500 text-foreground"
+            placeholder="เบอร์โทร *"
+          />
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-amber-500 text-foreground"
+            placeholder="อีเมล"
+          />
+          <div className="flex gap-3 pt-2">
+            <AnimatedButton variant="ghost" onClick={onClose} className="flex-1" disabled={saving}>ยกเลิก</AnimatedButton>
+            <AnimatedButton variant="primary" type="submit" className="flex-1" disabled={saving}>
+              {saving ? '⏳...' : '💾 บันทึก'}
+            </AnimatedButton>
+          </div>
+        </form>
+      </animated.div>
     </div>
   );
 }

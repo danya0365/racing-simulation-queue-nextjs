@@ -64,18 +64,27 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
             </Link>
           </div>
           
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-3xl shadow-lg">
-              🎮
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-3xl shadow-lg">
+                🎮
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">
+                  <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                    จองคิว Racing Simulator
+                  </span>
+                </h1>
+                <p className="text-muted">เลือกเครื่องที่ต้องการและจองคิวได้เลย</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">
-                <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                  จองคิว Racing Simulator
-                </span>
-              </h1>
-              <p className="text-muted">เลือกเครื่องที่ต้องการและจองคิวได้เลย</p>
-            </div>
+
+            {/* Quick Booking Button */}
+            <Link href="/customer/booking">
+              <GlowButton color="cyan" size="lg">
+                🚀 จองแบบง่าย
+              </GlowButton>
+            </Link>
           </div>
 
           {/* Quick Stats */}

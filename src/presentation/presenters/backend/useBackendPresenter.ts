@@ -15,14 +15,14 @@ export interface BackendPresenterState {
   error: string | null;
   selectedQueue: Queue | null;
   selectedMachine: Machine | null;
-  activeTab: 'dashboard' | 'queues' | 'machines';
+  activeTab: 'dashboard' | 'queues' | 'machines' | 'customers';
   isUpdating: boolean;
 }
 
 export interface BackendPresenterActions {
   loadData: () => Promise<void>;
   refreshData: () => Promise<void>;
-  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines') => void;
+  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers') => void;
   selectQueue: (queue: Queue | null) => void;
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
@@ -44,7 +44,7 @@ export function useBackendPresenter(
   const [error, setError] = useState<string | null>(null);
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers'>('dashboard');
   const [isUpdating, setIsUpdating] = useState(false);
 
   /**
