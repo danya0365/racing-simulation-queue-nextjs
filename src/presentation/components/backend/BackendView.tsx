@@ -104,6 +104,12 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             📊 Dashboard
           </TabButton>
           <TabButton
+            active={state.activeTab === 'control'}
+            onClick={() => actions.setActiveTab('control')}
+          >
+            🎛️ ควบคุมห้องเกม
+          </TabButton>
+          <TabButton
             active={state.activeTab === 'queues'}
             onClick={() => actions.setActiveTab('queues')}
           >
@@ -129,6 +135,15 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
         <div className="max-w-7xl mx-auto">
           {state.activeTab === 'dashboard' && (
             <DashboardTab viewModel={viewModel} />
+          )}
+          {state.activeTab === 'control' && (
+            <LiveControlTab
+              viewModel={viewModel}
+              isUpdating={state.isUpdating}
+              onUpdateQueueStatus={actions.updateQueueStatus}
+              onUpdateMachineStatus={actions.updateMachineStatus}
+              onRefresh={actions.refreshData}
+            />
           )}
           {state.activeTab === 'queues' && (
             <QueuesTab
@@ -218,6 +233,266 @@ function DashboardTab({ viewModel }: { viewModel: BackendViewModel }) {
           ))}
         </div>
       </AnimatedCard>
+    </div>
+  );
+}
+
+// Live Control Tab - Game Room Control Panel
+interface LiveControlTabProps {
+  viewModel: BackendViewModel;
+  isUpdating: boolean;
+  onUpdateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
+  onUpdateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
+  onRefresh: () => Promise<void>;
+}
+
+function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMachineStatus, onRefresh }: LiveControlTabProps) {
+  const formatTime = (dateString: string) => {
+    return new Intl.DateTimeFormat('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(dateString));
+  };
+
+  // Get queues for a specific machine
+  const getMachineQueues = (machineId: string) => {
+    return viewModel.todayQueues.filter(q => q.machineId === machineId);
+  };
+
+  // Get current playing queue for a machine
+  const getCurrentPlayer = (machineId: string) => {
+    return viewModel.todayQueues.find(q => q.machineId === machineId && q.status === 'playing');
+  };
+
+  // Get waiting queues for a machine
+  const getWaitingQueues = (machineId: string) => {
+    return viewModel.todayQueues
+      .filter(q => q.machineId === machineId && q.status === 'waiting')
+      .sort((a, b) => a.position - b.position);
+  };
+
+  // Get next in queue
+  const getNextInQueue = (machineId: string) => {
+    const waiting = getWaitingQueues(machineId);
+    return waiting.length > 0 ? waiting[0] : null;
+  };
+
+  // Call next queue (mark as playing)
+  const handleCallNext = async (machineId: string) => {
+    const next = getNextInQueue(machineId);
+    if (next) {
+      await onUpdateQueueStatus(next.id, 'playing');
+      await onUpdateMachineStatus(machineId, 'occupied');
+    }
+  };
+
+  // Mark current player as done
+  const handleMarkDone = async (machineId: string) => {
+    const current = getCurrentPlayer(machineId);
+    if (current) {
+      await onUpdateQueueStatus(current.id, 'completed');
+      
+      // Check if there's next queue
+      const next = getNextInQueue(machineId);
+      if (!next) {
+        await onUpdateMachineStatus(machineId, 'available');
+      }
+    }
+  };
+
+  // Toggle machine status
+  const handleToggleMachine = async (machine: typeof viewModel.machines[0]) => {
+    if (machine.status === 'maintenance') {
+      await onUpdateMachineStatus(machine.id, 'available');
+    } else {
+      await onUpdateMachineStatus(machine.id, 'maintenance');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">🎛️ ควบคุมห้องเกม</h2>
+          <p className="text-sm text-muted">จัดการเครื่องเกมและคิวแบบ Real-time</p>
+        </div>
+        <AnimatedButton variant="secondary" onClick={onRefresh} disabled={isUpdating}>
+          🔄 รีเฟรช
+        </AnimatedButton>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
+          <div className="text-3xl font-bold text-emerald-400">{viewModel.machineStats.availableMachines}</div>
+          <div className="text-sm text-muted">✅ ว่าง</div>
+        </div>
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 text-center">
+          <div className="text-3xl font-bold text-orange-400">{viewModel.machineStats.occupiedMachines}</div>
+          <div className="text-sm text-muted">🏁 กำลังเล่น</div>
+        </div>
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
+          <div className="text-3xl font-bold text-purple-400">{viewModel.waitingQueues.length}</div>
+          <div className="text-sm text-muted">⏳ รอคิว</div>
+        </div>
+        <div className="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4 text-center">
+          <div className="text-3xl font-bold text-gray-400">{viewModel.machineStats.maintenanceMachines}</div>
+          <div className="text-sm text-muted">🔧 ซ่อมบำรุง</div>
+        </div>
+      </div>
+
+      {/* Machine Control Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {viewModel.machines.map((machine) => {
+          const currentPlayer = getCurrentPlayer(machine.id);
+          const waitingQueues = getWaitingQueues(machine.id);
+          const nextInQueue = getNextInQueue(machine.id);
+          const isOccupied = machine.status === 'occupied' || !!currentPlayer;
+          const isMaintenance = machine.status === 'maintenance';
+
+          return (
+            <AnimatedCard 
+              key={machine.id} 
+              className={`p-5 ${isMaintenance ? 'opacity-60' : ''}`}
+              glowColor={
+                isMaintenance ? 'rgba(107, 114, 128, 0.3)' :
+                isOccupied ? 'rgba(249, 115, 22, 0.3)' :
+                'rgba(16, 185, 129, 0.3)'
+              }
+            >
+              {/* Machine Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg ${
+                    isMaintenance ? 'bg-gradient-to-br from-gray-500 to-gray-600' :
+                    isOccupied ? 'bg-gradient-to-br from-orange-500 to-red-600' :
+                    'bg-gradient-to-br from-emerald-500 to-green-600'
+                  }`}>
+                    🎮
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground">{machine.name}</h3>
+                    <p className="text-xs text-muted">เครื่องที่ {machine.position}</p>
+                  </div>
+                </div>
+                
+                {/* Status Badge */}
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  isMaintenance ? 'bg-gray-500 text-white' :
+                  isOccupied ? 'bg-orange-500 text-white' :
+                  'bg-emerald-500 text-white'
+                }`}>
+                  {isMaintenance ? '🔧 ซ่อมบำรุง' : isOccupied ? '🏁 กำลังเล่น' : '✅ ว่าง'}
+                </div>
+              </div>
+
+              {/* Current Player */}
+              {currentPlayer ? (
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-orange-400 mb-1">🏁 กำลังเล่น</p>
+                      <p className="font-bold text-foreground">{currentPlayer.customerName}</p>
+                      <p className="text-sm text-muted">{currentPlayer.customerPhone}</p>
+                      <p className="text-xs text-muted mt-1">
+                        ⏰ เริ่ม {formatTime(currentPlayer.bookingTime)} • {currentPlayer.duration} นาที
+                      </p>
+                    </div>
+                    <GlowButton 
+                      color="green" 
+                      size="sm"
+                      onClick={() => handleMarkDone(machine.id)}
+                      disabled={isUpdating}
+                    >
+                      ✅ เสร็จ
+                    </GlowButton>
+                  </div>
+                </div>
+              ) : !isMaintenance && (
+                <div className="bg-surface border border-border rounded-xl p-4 mb-4 text-center">
+                  <p className="text-muted text-sm">ไม่มีคนกำลังเล่น</p>
+                </div>
+              )}
+
+              {/* Queue Section */}
+              {!isMaintenance && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">
+                      📋 คิวรอ ({waitingQueues.length} คน)
+                    </span>
+                    {nextInQueue && !currentPlayer && (
+                      <GlowButton 
+                        color="purple" 
+                        size="sm"
+                        onClick={() => handleCallNext(machine.id)}
+                        disabled={isUpdating}
+                      >
+                        📢 เรียกคิว
+                      </GlowButton>
+                    )}
+                  </div>
+                  
+                  {waitingQueues.length > 0 ? (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {waitingQueues.slice(0, 4).map((queue, index) => (
+                        <div 
+                          key={queue.id}
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            index === 0 ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-surface'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                              index === 0 ? 'bg-purple-500 text-white' : 'bg-muted-light text-muted'
+                            }`}>
+                              {queue.position}
+                            </span>
+                            <span className={`text-sm ${index === 0 ? 'font-medium text-foreground' : 'text-muted'}`}>
+                              {queue.customerName}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted">{formatTime(queue.bookingTime)}</span>
+                        </div>
+                      ))}
+                      {waitingQueues.length > 4 && (
+                        <p className="text-xs text-muted text-center">+{waitingQueues.length - 4} คิวเพิ่มเติม</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted text-center py-2">ไม่มีคิวรอ</p>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2 border-t border-border">
+                {nextInQueue && currentPlayer && (
+                  <AnimatedButton 
+                    variant="primary" 
+                    size="sm"
+                    onClick={() => handleCallNext(machine.id)}
+                    disabled={isUpdating}
+                    className="flex-1"
+                  >
+                    📢 เรียกคิวถัดไป
+                  </AnimatedButton>
+                )}
+                <AnimatedButton 
+                  variant={isMaintenance ? 'success' : 'ghost'} 
+                  size="sm"
+                  onClick={() => handleToggleMachine(machine)}
+                  disabled={isUpdating}
+                  className="flex-1"
+                >
+                  {isMaintenance ? '✅ เปิดเครื่อง' : '🔧 ปิดซ่อม'}
+                </AnimatedButton>
+              </div>
+            </AnimatedCard>
+          );
+        })}
+      </div>
     </div>
   );
 }
