@@ -101,7 +101,7 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/customer">
+            <Link href="/customer/booking">
               <GlowButton color="cyan" size="lg">
                 🎮 จองคิวเลย
               </GlowButton>
