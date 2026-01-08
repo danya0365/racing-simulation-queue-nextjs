@@ -39,7 +39,7 @@ export class BookingWizardPresenter {
     try {
       const [machines, allQueues] = await Promise.all([
         this.machineRepository.getAll(),
-        this.queueRepository.getAll(),
+        this.queueRepository.getToday(),
       ]);
 
       // Calculate queue info for each machine
