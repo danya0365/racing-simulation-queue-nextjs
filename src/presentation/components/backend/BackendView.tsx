@@ -98,7 +98,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             active={state.activeTab === 'queues'}
             onClick={() => actions.setActiveTab('queues')}
           >
-            📋 จัดการคิว ({viewModel.todayQueues.length})
+            📋 จัดการคิว ({viewModel.activeQueues.length})
           </TabButton>
           <TabButton
             active={state.activeTab === 'machines'}
@@ -127,12 +127,13 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               isUpdating={state.isUpdating}
               onUpdateQueueStatus={actions.updateQueueStatus}
               onUpdateMachineStatus={actions.updateMachineStatus}
+              onResetQueue={actions.resetMachineQueue}
               onRefresh={actions.refreshData}
             />
           )}
           {state.activeTab === 'queues' && (
             <QueuesTab
-              queues={viewModel.todayQueues}
+              queues={viewModel.activeQueues}
               isUpdating={state.isUpdating}
               onUpdateStatus={actions.updateQueueStatus}
               onDelete={actions.deleteQueue}
@@ -198,11 +199,11 @@ function DashboardTab({ viewModel }: { viewModel: BackendViewModel }) {
       {/* Recent Queues */}
       <AnimatedCard className="p-6">
         <h3 className="text-lg font-bold mb-4 text-foreground">📋 คิวล่าสุดวันนี้</h3>
-        {viewModel.todayQueues.length === 0 ? (
+        {viewModel.activeQueues.length === 0 ? (
           <p className="text-muted text-center py-8">ยังไม่มีคิววันนี้</p>
         ) : (
           <div className="space-y-3">
-            {viewModel.todayQueues.slice(0, 5).map((queue) => (
+            {viewModel.activeQueues.slice(0, 5).map((queue) => (
               <QueueRow key={queue.id} queue={queue} />
             ))}
           </div>
@@ -220,11 +221,13 @@ interface LiveControlTabProps {
   isUpdating: boolean;
   onUpdateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
   onUpdateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
+  onResetQueue: (machineId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }
 
-function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMachineStatus, onRefresh }: LiveControlTabProps) {
+function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMachineStatus, onResetQueue, onRefresh }: LiveControlTabProps) {
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [resetConfirmMachineId, setResetConfirmMachineId] = useState<string | null>(null);
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -235,17 +238,17 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
 
   // Get queues for a specific machine
   const getMachineQueues = (machineId: string) => {
-    return viewModel.todayQueues.filter(q => q.machineId === machineId);
+    return viewModel.activeQueues.filter(q => q.machineId === machineId);
   };
 
   // Get current playing queue for a machine
   const getCurrentPlayer = (machineId: string) => {
-    return viewModel.todayQueues.find(q => q.machineId === machineId && q.status === 'playing');
+    return viewModel.activeQueues.find(q => q.machineId === machineId && q.status === 'playing');
   };
 
   // Get waiting queues for a machine
   const getWaitingQueues = (machineId: string) => {
-    return viewModel.todayQueues
+    return viewModel.activeQueues
       .filter(q => q.machineId === machineId && q.status === 'waiting')
       .sort((a, b) => a.position - b.position);
   };
@@ -493,7 +496,48 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
                 >
                   {isMaintenance ? '✅ เปิดเครื่อง' : '🔧 ปิดซ่อม'}
                 </AnimatedButton>
+                {/* Reset Queue Button */}
+                {waitingQueues.length > 0 && (
+                  <AnimatedButton 
+                    variant="danger" 
+                    size="sm"
+                    onClick={() => setResetConfirmMachineId(machine.id)}
+                    disabled={isUpdating}
+                  >
+                    🔄 Reset
+                  </AnimatedButton>
+                )}
               </div>
+
+              {/* Reset Confirmation */}
+              {resetConfirmMachineId === machine.id && (
+                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <p className="text-sm text-red-400 mb-2">
+                    ⚠️ ยืนยัน Reset คิวทั้งหมดของเครื่องนี้?
+                  </p>
+                  <p className="text-xs text-muted mb-3">
+                    คิวรอ {waitingQueues.length} คนจะถูกยกเลิก และลำดับคิวจะเริ่มใหม่
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setResetConfirmMachineId(null)}
+                      className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-muted hover:bg-muted-light"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await onResetQueue(machine.id);
+                        setResetConfirmMachineId(null);
+                      }}
+                      disabled={isUpdating}
+                      className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm text-white font-medium disabled:opacity-50"
+                    >
+                      🔄 Reset เลย
+                    </button>
+                  </div>
+                </div>
+              )}
             </AnimatedCard>
           );
         })}
@@ -511,9 +555,9 @@ interface FullscreenControlPanelProps {
   onToggleMachine: (machine: BackendViewModel['machines'][0]) => Promise<void>;
   onRefresh: () => Promise<void>;
   onExit: () => void;
-  getCurrentPlayer: (machineId: string) => BackendViewModel['todayQueues'][0] | undefined;
-  getWaitingQueues: (machineId: string) => BackendViewModel['todayQueues'];
-  getNextInQueue: (machineId: string) => BackendViewModel['todayQueues'][0] | null;
+  getCurrentPlayer: (machineId: string) => BackendViewModel['activeQueues'][0] | undefined;
+  getWaitingQueues: (machineId: string) => BackendViewModel['activeQueues'];
+  getNextInQueue: (machineId: string) => BackendViewModel['activeQueues'][0] | null;
   formatTime: (dateString: string) => string;
 }
 

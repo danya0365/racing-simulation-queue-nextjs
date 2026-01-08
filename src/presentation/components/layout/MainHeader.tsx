@@ -43,8 +43,8 @@ export function MainHeader() {
     router.push('/');
   };
 
-  // Get display name - prefer full_name from profile, fallback to email
-  const displayName = authState.profile?.full_name || authState.user?.email?.split('@')[0] || 'ผู้ใช้';
+  // Get display name - prefer fullName from profile, fallback to email
+  const displayName = authState.profile?.fullName || authState.user?.email?.split('@')[0] || 'ผู้ใช้';
   const userInitial = displayName.charAt(0).toUpperCase();
 
   return (

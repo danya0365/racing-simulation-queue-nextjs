@@ -7,12 +7,12 @@
 'use client';
 
 import type {
-    AuthProfile,
-    AuthSession,
-    AuthUser,
-    UpdateProfileData
+  AuthProfile,
+  AuthSession,
+  AuthUser,
+  UpdateProfileData
 } from '@/src/application/repositories/IAuthRepository';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthViewModel } from './AuthPresenter';
 import { createClientAuthPresenter } from './AuthPresenterClientFactory';
@@ -85,17 +85,18 @@ export function useAuthPresenter(
   initialViewModel?: AuthViewModel
 ): [AuthPresenterState, AuthPresenterActions] {
   const router = useRouter();
-  const searchParams = useSearchParams();
   
-  // Get redirect URL from query params or default to /customer
+  // Get redirect URL from URL params - avoids useSearchParams which requires Suspense
   const getRedirectUrl = useCallback(() => {
-    const redirectTo = searchParams.get('redirectTo');
+    if (typeof window === 'undefined') return '/customer';
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectTo = urlParams.get('redirectTo');
     // Safety check: only allow relative paths or same-origin URLs
     if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith(window.location.origin))) {
       return redirectTo;
     }
     return '/customer';
-  }, [searchParams]);
+  }, []);
   // State
   const [user, setUser] = useState<AuthUser | null>(initialViewModel?.user || null);
   const [profile, setProfile] = useState<AuthProfile | null>(initialViewModel?.profile || null);

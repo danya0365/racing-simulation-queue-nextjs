@@ -5,13 +5,13 @@
  */
 
 import {
-    CreateQueueData,
-    IQueueRepository,
-    PaginatedResult,
-    Queue,
-    QueueStats,
-    QueueStatus,
-    UpdateQueueData,
+  CreateQueueData,
+  IQueueRepository,
+  PaginatedResult,
+  Queue,
+  QueueStats,
+  QueueStatus,
+  UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
 // Helper to create today's date with specific time
@@ -289,6 +289,53 @@ export class MockQueueRepository implements IQueueRepository {
   // Helper method to simulate network delay
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async getActiveAndRecent(): Promise<Queue[]> {
+    await this.delay(100);
+    
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    return this.queues
+      .filter((queue) => {
+        // Active queues (always show)
+        if (queue.status === 'waiting' || queue.status === 'playing') {
+          return true;
+        }
+        // Recently finished queues (last 24 hours)
+        if (queue.status === 'completed' || queue.status === 'cancelled') {
+          const updatedAt = new Date(queue.updatedAt);
+          return updatedAt >= twentyFourHoursAgo;
+        }
+        return false;
+      })
+      .sort((a, b) => 
+        new Date(a.bookingTime).getTime() - new Date(b.bookingTime).getTime()
+      );
+  }
+
+  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+    await this.delay(200);
+
+    let cancelledCount = 0;
+    let completedCount = 0;
+
+    this.queues = this.queues.map((queue) => {
+      if (queue.machineId !== machineId) return queue;
+
+      if (queue.status === 'waiting') {
+        cancelledCount++;
+        return { ...queue, status: 'cancelled' as QueueStatus, updatedAt: new Date().toISOString() };
+      }
+      if (queue.status === 'playing') {
+        completedCount++;
+        return { ...queue, status: 'completed' as QueueStatus, updatedAt: new Date().toISOString() };
+      }
+      return queue;
+    });
+
+    return { cancelledCount, completedCount };
   }
 }
 

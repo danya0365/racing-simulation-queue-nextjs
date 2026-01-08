@@ -13,7 +13,8 @@ export interface BackendViewModel {
   machineStats: MachineStats;
   queues: Queue[];
   queueStats: QueueStats;
-  todayQueues: Queue[];
+  /** Active queues (waiting/playing) + recently finished (24h) - for 24-hour operations */
+  activeQueues: Queue[];
   waitingQueues: Queue[];
 }
 
@@ -31,12 +32,12 @@ export class BackendPresenter {
    */
   async getViewModel(): Promise<BackendViewModel> {
     try {
-      const [machines, machineStats, queues, queueStats, todayQueues, waitingQueues] = await Promise.all([
+      const [machines, machineStats, queues, queueStats, activeQueues, waitingQueues] = await Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getStats(),
         this.queueRepository.getAll(),
         this.queueRepository.getStats(),
-        this.queueRepository.getToday(),
+        this.queueRepository.getActiveAndRecent(),
         this.queueRepository.getWaiting(),
       ]);
 
@@ -45,7 +46,7 @@ export class BackendPresenter {
         machineStats,
         queues,
         queueStats,
-        todayQueues,
+        activeQueues,
         waitingQueues,
       };
     } catch (error) {
@@ -120,6 +121,18 @@ export class BackendPresenter {
       return await this.queueRepository.getByMachineId(machineId);
     } catch (error) {
       console.error('Error getting machine queues:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset all queues for a machine
+   */
+  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+    try {
+      return await this.queueRepository.resetMachineQueue(machineId);
+    } catch (error) {
+      console.error('Error resetting machine queue:', error);
       throw error;
     }
   }

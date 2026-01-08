@@ -28,6 +28,7 @@ export interface BackendPresenterActions {
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
   updateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
   deleteQueue: (queueId: string) => Promise<void>;
+  resetMachineQueue: (machineId: string) => Promise<void>;
   setError: (error: string | null) => void;
 }
 
@@ -151,6 +152,25 @@ export function useBackendPresenter(
     setSelectedMachine(machine);
   }, []);
 
+  /**
+   * Reset machine queue
+   */
+  const resetMachineQueue = useCallback(async (machineId: string) => {
+    setIsUpdating(true);
+    setError(null);
+
+    try {
+      await presenter.resetMachineQueue(machineId);
+      await refreshData();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [refreshData]);
+
   // Load data on mount if no initial data
   useEffect(() => {
     if (!initialViewModel) {
@@ -186,6 +206,7 @@ export function useBackendPresenter(
       updateQueueStatus,
       updateMachineStatus,
       deleteQueue,
+      resetMachineQueue,
       setError,
     },
   ];

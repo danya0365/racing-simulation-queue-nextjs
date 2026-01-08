@@ -120,4 +120,16 @@ export interface IQueueRepository {
    * Get next queue position for a machine
    */
   getNextPosition(machineId: string): Promise<number>;
+
+  /**
+   * Get active queues (waiting/playing) + recently finished (24 hours)
+   * For 24-hour operations
+   */
+  getActiveAndRecent(): Promise<Queue[]>;
+
+  /**
+   * Reset all queues for a machine
+   * Cancels waiting, completes playing, resets position
+   */
+  resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }>;
 }

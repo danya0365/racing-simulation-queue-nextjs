@@ -275,15 +275,63 @@ export class SupabaseQueueRepository implements IQueueRepository {
       id: raw.id,
       machineId: raw.machine_id,
       customerId: raw.customer_id,
-      customerName: raw.customers?.name || 'Unknown',
-      customerPhone: raw.customers?.phone || '',
+      customerName: raw.customers?.name || raw.customer_name || 'Unknown',
+      customerPhone: raw.customers?.phone || raw.customer_phone || '',
       bookingTime: raw.booking_time,
       duration: raw.duration,
       status: raw.status as QueueStatus,
-      position: raw.position,
+      position: raw.position || raw.queue_position,
       notes: raw.notes || '',
       createdAt: raw.created_at,
       updatedAt: raw.updated_at,
+    };
+  }
+
+  async getActiveAndRecent(): Promise<Queue[]> {
+    // Use direct query approach (works without RPC being registered in types)
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    const { data, error } = await this.supabase
+      .from('queues')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
+      .or(`status.in.(waiting,playing),and(status.in.(completed,cancelled),updated_at.gte.${twentyFourHoursAgo.toISOString()})`)
+      .order('booking_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching active and recent queues:', error);
+      return [];
+    }
+    return data.map(this.mapToDomain);
+  }
+
+  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+    // Direct implementation until RPC is available
+    // 1. Cancel waiting queues
+    const { data: waitingData } = await this.supabase
+      .from('queues')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('machine_id', machineId)
+      .eq('status', 'waiting')
+      .select('id');
+
+    // 2. Complete playing queues
+    const { data: playingData } = await this.supabase
+      .from('queues')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('machine_id', machineId)
+      .eq('status', 'playing')
+      .select('id');
+
+    // 3. Reset machine status
+    await this.supabase
+      .from('machines')
+      .update({ status: 'available', current_queue_id: null, updated_at: new Date().toISOString() })
+      .eq('id', machineId);
+
+    return {
+      cancelledCount: waitingData?.length || 0,
+      completedCount: playingData?.length || 0,
     };
   }
 }
