@@ -6,7 +6,7 @@ import { HomeViewModel } from '@/src/presentation/presenters/home/HomePresenter'
 import { useHomePresenter } from '@/src/presentation/presenters/home/useHomePresenter';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface HomeViewProps {
   initialViewModel?: HomeViewModel;
@@ -16,20 +16,8 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
   const [state, actions] = useHomePresenter(initialViewModel);
   const viewModel = state.viewModel;
 
-  // Hero text animation
-  const heroSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(30px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
-    config: config.gentle,
-  });
-
-  // Stats animation
-  const statsSpring = useSpring({
-    from: { opacity: 0, transform: 'scale(0.9)' },
-    to: { opacity: 1, transform: 'scale(1)' },
-    delay: 200,
-    config: config.gentle,
-  });
+  // NOTE: Removed heroSpring and statsSpring for performance
+  // Using CSS animations instead (animate-hero-in, animate-section-in)
 
   // Loading state
   if (state.loading && !viewModel) {
@@ -79,8 +67,8 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
           }} />
         </div>
 
-        {/* Content */}
-        <animated.div style={heroSpring} className="relative z-10 text-center px-4 py-12">
+        {/* Content - Using CSS animation instead of react-spring */}
+        <div className="relative z-10 text-center px-4 py-12 animate-hero-in">
           {/* Racing icon */}
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 mb-6 animate-float shadow-2xl shadow-cyan-500/30">
             <span className="text-5xl">🏎️</span>
@@ -112,11 +100,11 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
               </GlowButton>
             </Link>
           </div>
-        </animated.div>
+        </div>
       </section>
 
-      {/* Stats Section */}
-      <animated.section style={statsSpring} className="px-4 md:px-8 py-8">
+      {/* Stats Section - Using CSS animation instead of react-spring */}
+      <section className="px-4 md:px-8 py-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-6">
             <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
@@ -164,7 +152,7 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
             ))}
           </div>
         </div>
-      </animated.section>
+      </section>
 
       {/* Queue Stats Section */}
       <section className="px-4 md:px-8 py-8 bg-surface/50">
@@ -275,18 +263,8 @@ interface MachineCardProps {
 }
 
 function MachineCard({ machine, index, onSelect }: MachineCardProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), index * 100);
-    return () => clearTimeout(timer);
-  }, [index]);
-
-  const spring = useSpring({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-    config: config.gentle,
-  });
+  // Using CSS animation with staggered delay instead of react-spring
+  const delayClass = `animate-delay-${Math.min(index * 50, 300)}`;
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -325,7 +303,6 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
   const canBook = machine.isActive && machine.status !== 'maintenance';
 
   return (
-    <animated.div style={spring}>
       <AnimatedCard
         onClick={canBook ? onSelect : undefined}
         glowColor={statusConfig.glow}
@@ -369,7 +346,6 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
           </div>
         )}
       </AnimatedCard>
-    </animated.div>
   );
 }
 

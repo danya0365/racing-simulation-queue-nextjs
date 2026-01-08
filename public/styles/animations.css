@@ -197,4 +197,102 @@
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
+
+  /* ============================================
+     LIGHTWEIGHT PAGE ANIMATIONS (CSS only)
+     Replaces heavy react-spring animations
+     ============================================ */
+
+  /* Page/Section fade in - fast and lightweight */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Fade in with slide up */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Fade in with scale */
+  @keyframes fade-in-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Page wrapper animation - very light */
+  .animate-page-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  /* Hero section animation */
+  .animate-hero-in {
+    animation: fade-in-up 0.4s ease-out forwards;
+  }
+
+  /* Section reveal animation */
+  .animate-section-in {
+    animation: fade-in-scale 0.3s ease-out forwards;
+  }
+
+  /* Sequential delays for staggered content */
+  .animate-delay-0 { animation-delay: 0ms; }
+  .animate-delay-50 { animation-delay: 50ms; }
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-150 { animation-delay: 150ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-250 { animation-delay: 250ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+
+  /* For elements that start hidden and animate in */
+  .animate-start-hidden {
+    opacity: 0;
+  }
+
+  /* Modal slide in from bottom */
+  @keyframes slide-in-bottom {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-modal-in {
+    animation: slide-in-bottom 0.25s ease-out forwards;
+  }
+
+  /* Backdrop fade */
+  @keyframes backdrop-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-backdrop-in {
+    animation: backdrop-fade 0.2s ease-out forwards;
+  }
 }

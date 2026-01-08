@@ -9,7 +9,6 @@ import { Portal } from '@/src/presentation/components/ui/Portal';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { useCustomersPresenter } from '@/src/presentation/presenters/customers/useCustomersPresenter';
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -21,12 +20,8 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
   const [state, actions] = useBackendPresenter(initialViewModel);
   const viewModel = state.viewModel;
 
-  // Page animation
-  const pageSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(20px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
-    config: config.gentle,
-  });
+  // NOTE: Removed pageSpring for better performance
+  // Using CSS animations instead (animate-page-in)
 
   // Loading state
   if (state.loading && !viewModel) {
@@ -58,7 +53,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
   if (!viewModel) return null;
 
   return (
-    <animated.div style={pageSpring} className="h-full overflow-auto scrollbar-thin">
+    <div className="h-full overflow-auto scrollbar-thin">
       {/* Header */}
       <section className="px-4 md:px-8 py-6 bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10 border-b border-border">
         <div className="max-w-7xl mx-auto">
@@ -174,7 +169,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           </div>
         </div>
       )}
-    </animated.div>
+    </div>
   );
 }
 
@@ -1002,21 +997,11 @@ function MachinesTab({ machines, isUpdating, onUpdateStatus }: MachinesTabProps)
   );
 }
 
-// Stats Card
+// Stats Card - Using CSS hover transition instead of react-spring
 function StatsCard({ icon, label, value, color }: { icon: string; label: string; value: number; color: string }) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const spring = useSpring({
-    transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-    config: config.wobbly,
-  });
-
   return (
-    <animated.div
-      style={spring}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ${color} shadow-lg cursor-default`}
+    <div
+      className={`relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ${color} shadow-lg cursor-default transition-transform duration-200 hover:scale-105`}
     >
       <div className="absolute inset-0 bg-black/20" />
       <div className="relative z-10 text-white">
@@ -1024,7 +1009,7 @@ function StatsCard({ icon, label, value, color }: { icon: string; label: string;
         <div className="text-3xl font-bold">{value}</div>
         <div className="text-sm opacity-80">{label}</div>
       </div>
-    </animated.div>
+    </div>
   );
 }
 
@@ -1231,11 +1216,7 @@ function AddCustomerModal({ onClose, onSave }: {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', notes: '' });
   const [saving, setSaving] = useState(false);
 
-  const modalSpring = useSpring({
-    from: { opacity: 0, transform: 'scale(0.9)' },
-    to: { opacity: 1, transform: 'scale(1)' },
-    config: config.gentle,
-  });
+  // Using CSS animation instead of react-spring
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1255,8 +1236,8 @@ function AddCustomerModal({ onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <animated.div style={modalSpring} className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal-in">
         <div className="p-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-border flex justify-between items-center">
           <h3 className="font-bold text-lg text-foreground">➕ เพิ่มลูกค้า</h3>
           <button onClick={onClose} className="text-muted hover:text-foreground">✕</button>
@@ -1292,7 +1273,7 @@ function AddCustomerModal({ onClose, onSave }: {
             </AnimatedButton>
           </div>
         </form>
-      </animated.div>
+      </div>
     </div>
   );
 }

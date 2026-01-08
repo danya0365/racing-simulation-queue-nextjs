@@ -8,7 +8,6 @@ import { Portal } from '@/src/presentation/components/ui/Portal';
 import { BookingFormData, CustomerViewModel, MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -21,12 +20,8 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
   const viewModel = state.viewModel;
   const { customerInfo, activeBookings } = useCustomerStore();
 
-  // Page animation
-  const pageSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(20px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
-    config: config.gentle,
-  });
+  // NOTE: Removed pageSpring for better performance
+  // Using CSS animations instead (animate-page-in)
 
   // Loading state
   if (state.loading && !viewModel) {
@@ -61,7 +56,7 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
   const waitingCount = activeBookings.filter(b => b.status === 'waiting').length;
 
   return (
-    <animated.div style={pageSpring} className="h-full overflow-auto scrollbar-thin">
+    <div className="h-full overflow-auto scrollbar-thin">
       {/* Hero Header Section */}
       <section className="relative py-10 px-4 md:px-8 bg-gradient-to-br from-cyan-500/10 via-background to-purple-500/10 overflow-hidden">
         {/* Background decorations */}
@@ -269,7 +264,7 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
           </div>
         </div>
       )}
-    </animated.div>
+    </div>
   );
 }
 
@@ -285,15 +280,10 @@ function MachineBookingCard({ machine, queueInfo, index, onBook }: MachineBookin
   const isAvailable = machine.status === 'available';
   const waitingCount = queueInfo?.waitingCount || 0;
 
-  const cardSpring = useSpring({
-    from: { opacity: 0, y: 20 },
-    to: { opacity: 1, y: 0 },
-    delay: index * 100,
-    config: config.gentle,
-  });
+  // Using CSS animation with staggered delay
+  const delayClass = `animate-delay-${Math.min(index * 50, 300)}`;
 
   return (
-    <animated.div style={cardSpring}>
       <AnimatedCard className="h-full">
         <div className="p-5">
           {/* Header */}
@@ -355,7 +345,6 @@ function MachineBookingCard({ machine, queueInfo, index, onBook }: MachineBookin
           </GlowButton>
         </div>
       </AnimatedCard>
-    </animated.div>
   );
 }
 
@@ -420,19 +409,14 @@ function SearchModal({
     }
   };
 
-  const modalSpring = useSpring({
-    from: { opacity: 0, transform: 'scale(0.9)' },
-    to: { opacity: 1, transform: 'scale(1)' },
-    config: config.gentle,
-  });
+  // Using CSS animation (animate-modal-in) instead of react-spring
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
       
-      <animated.div
-        style={modalSpring}
-        className="relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden"
+      <div
+        className="relative w-full max-w-lg bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal-in"
       >
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border-b border-border">
@@ -535,7 +519,7 @@ function SearchModal({
             </div>
           </div>
         )}
-      </animated.div>
+      </div>
     </div>
   );
 }
@@ -566,19 +550,14 @@ function BookingModal({ machine, isSubmitting, error, initialData, onSubmit, onC
     });
   };
 
-  const modalSpring = useSpring({
-    from: { opacity: 0, transform: 'scale(0.9)' },
-    to: { opacity: 1, transform: 'scale(1)' },
-    config: config.gentle,
-  });
+  // Using CSS animation instead of react-spring
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
       
-      <animated.div
-        style={modalSpring}
-        className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden"
+      <div
+        className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal-in"
       >
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-b border-border">
@@ -667,7 +646,7 @@ function BookingModal({ machine, isSubmitting, error, initialData, onSubmit, onC
             {isSubmitting ? '🔄 กำลังจอง...' : '✅ ยืนยันการจอง'}
           </GlowButton>
         </form>
-      </animated.div>
+      </div>
     </div>
   );
 }
@@ -679,11 +658,7 @@ interface SuccessModalProps {
 }
 
 function SuccessModal({ queue, onClose }: SuccessModalProps) {
-  const modalSpring = useSpring({
-    from: { opacity: 0, transform: 'scale(0.9)' },
-    to: { opacity: 1, transform: 'scale(1)' },
-    config: config.gentle,
-  });
+  // Using CSS animation instead of react-spring
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -694,11 +669,10 @@ function SuccessModal({ queue, onClose }: SuccessModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
       
-      <animated.div
-        style={modalSpring}
-        className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden text-center"
+      <div
+        className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden text-center animate-modal-in"
       >
         {/* Success Animation */}
         <div className="p-8 bg-gradient-to-br from-emerald-500/20 to-green-500/10">
@@ -750,7 +724,7 @@ function SuccessModal({ queue, onClose }: SuccessModalProps) {
             </AnimatedButton>
           </div>
         </div>
-      </animated.div>
+      </div>
     </div>
   );
 }

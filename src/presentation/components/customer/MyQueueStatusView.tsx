@@ -4,7 +4,7 @@ import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import { QueueStatusData } from '@/src/presentation/presenters/queueStatus/QueueStatusPresenter';
 import { useQueueStatusPresenter } from '@/src/presentation/presenters/queueStatus/useQueueStatusPresenter';
-import { animated, config, useSpring } from '@react-spring/web';
+import { animated, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -17,11 +17,8 @@ export function MyQueueStatusView() {
   const [state, actions] = useQueueStatusPresenter();
   const { viewModel, loading, focusQueueId, currentTime } = state;
 
-  const pageSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(20px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
-    config: config.gentle,
-  });
+  // NOTE: Removed pageSpring for better performance
+  // Using CSS animations instead (animate-page-in)
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -74,7 +71,7 @@ export function MyQueueStatusView() {
   const completedQueues = viewModel?.completedQueues || [];
 
   return (
-    <animated.div style={pageSpring} className="h-full overflow-auto scrollbar-thin">
+    <div className="h-full overflow-auto scrollbar-thin">
       {/* Header */}
       <section className="px-4 md:px-8 py-6 bg-gradient-to-br from-purple-500/10 via-background to-cyan-500/10">
         <div className="max-w-2xl mx-auto">
@@ -214,7 +211,7 @@ export function MyQueueStatusView() {
           </div>
         </div>
       </section>
-    </animated.div>
+    </div>
   );
 }
 
