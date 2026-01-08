@@ -3,19 +3,21 @@
  * Factory for creating CustomerPresenter instances on the server side
  */
 
-import { MockMachineRepository } from '@/src/infrastructure/repositories/mock/MockMachineRepository';
-import { MockQueueRepository } from '@/src/infrastructure/repositories/mock/MockQueueRepository';
+import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
+import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
+import { createClient } from '@/src/infrastructure/supabase/server';
 import { CustomerPresenter } from './CustomerPresenter';
 
 export class CustomerPresenterServerFactory {
-  static create(): CustomerPresenter {
-    const machineRepository = new MockMachineRepository();
-    const queueRepository = new MockQueueRepository();
+  static async create(): Promise<CustomerPresenter> {
+    const supabase = await createClient();
+    const machineRepository = new SupabaseMachineRepository(supabase);
+    const queueRepository = new SupabaseQueueRepository(supabase);
 
     return new CustomerPresenter(machineRepository, queueRepository);
   }
 }
 
-export function createServerCustomerPresenter(): CustomerPresenter {
-  return CustomerPresenterServerFactory.create();
+export async function createServerCustomerPresenter(): Promise<CustomerPresenter> {
+  return await CustomerPresenterServerFactory.create();
 }

@@ -5,13 +5,13 @@
  */
 
 import {
-  CreateQueueData,
-  IQueueRepository,
-  PaginatedResult,
-  Queue,
-  QueueStats,
-  QueueStatus,
-  UpdateQueueData,
+    CreateQueueData,
+    IQueueRepository,
+    PaginatedResult,
+    Queue,
+    QueueStats,
+    QueueStatus,
+    UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
 // Helper to create today's date with specific time
@@ -265,6 +265,25 @@ export class MockQueueRepository implements IQueueRepository {
 
     const maxPosition = Math.max(...machineQueues.map((q) => q.position));
     return maxPosition + 1;
+  }
+
+  async cancel(id: string, customerId?: string): Promise<boolean> {
+    await this.delay(200);
+
+    const index = this.queues.findIndex((queue) => queue.id === id);
+    if (index === -1) {
+      return false;
+    }
+
+    // In mock, we don't verify customerId since it's for testing
+    // Just update status to cancelled
+    this.queues[index] = {
+      ...this.queues[index],
+      status: 'cancelled',
+      updatedAt: new Date().toISOString(),
+    };
+
+    return true;
   }
 
   // Helper method to simulate network delay

@@ -1,11 +1,11 @@
 import {
-  CreateQueueData,
-  IQueueRepository,
-  PaginatedResult,
-  Queue,
-  QueueStats,
-  QueueStatus,
-  UpdateQueueData
+    CreateQueueData,
+    IQueueRepository,
+    PaginatedResult,
+    Queue,
+    QueueStats,
+    QueueStatus,
+    UpdateQueueData
 } from '@/src/application/repositories/IQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -213,26 +213,39 @@ export class SupabaseQueueRepository implements IQueueRepository {
 
   async cancel(id: string, customerId?: string): Promise<boolean> {
     if (customerId) {
-        // Try guest cancellation first
-        const { data, error } = await this.supabase.rpc('rpc_cancel_queue_guest', {
-            p_queue_id: id,
-            p_customer_id: customerId
-        });
-        
-        if (error) {
-            // If it fails with access denied (might mean it needs admin/mod)
-            // or if it fails because it's already cancelled
-            console.warn('Guest cancellation failed:', error.message);
-            
-            // Try admin cancellation if guest fail (might be an admin logged in)
-            const { error: adminError } = await this.supabase.rpc('rpc_update_queue_status_admin', {
-                p_queue_id: id,
-                p_status: 'cancelled'
-            });
-            
-            return !adminError;
-        }
-        return !!data;
+      // For guest cancellation, verify the queue belongs to the customer first
+      // Then update status directly
+      const { data: queue, error: fetchError } = await this.supabase
+        .from('queues')
+        .select('id, customer_id, status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !queue) {
+        console.warn('Queue not found:', id);
+        return false;
+      }
+
+      // Verify customer owns this queue
+      if (queue.customer_id !== customerId) {
+        console.warn('Customer ID mismatch for queue cancellation');
+        return false;
+      }
+
+      // Only allow cancellation of waiting queues
+      if (queue.status !== 'waiting') {
+        console.warn('Cannot cancel queue with status:', queue.status);
+        return false;
+      }
+
+      // Update the queue status to cancelled
+      const { error: updateError } = await this.supabase
+        .from('queues')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .eq('customer_id', customerId);
+
+      return !updateError;
     }
 
     // No customerId provided, must be admin/mod manually cancelling
