@@ -5,6 +5,7 @@ import {
     ICustomerRepository,
     UpdateCustomerData
 } from '@/src/application/repositories/ICustomerRepository';
+import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
 
@@ -152,7 +153,8 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
       totalCustomers: data.length,
       vipCustomers: data.filter(c => c.is_vip).length,
       newCustomersToday: data.filter(c => new Date(c.created_at || '') >= today).length,
-      returningCustomers: data.filter(c => (c.visit_count || 0) > 1).length,
+      // Use centralized config for "returning/regular" customer threshold
+      returningCustomers: data.filter(c => (c.visit_count || 0) >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
     };
   }
 
@@ -171,7 +173,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     const { data, error } = await this.supabase
       .from('customers')
       .select('*')
-      .gte('visit_count', 5)
+      .gte('visit_count', CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS)
       .order('visit_count', { ascending: false });
 
     if (error) return [];

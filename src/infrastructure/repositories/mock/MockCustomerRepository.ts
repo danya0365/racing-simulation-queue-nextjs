@@ -10,6 +10,7 @@ import {
     ICustomerRepository,
     UpdateCustomerData,
 } from '@/src/application/repositories/ICustomerRepository';
+import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 
 // Mock data with sample customers
 const mockCustomers: Customer[] = [
@@ -181,7 +182,7 @@ export class MockCustomerRepository implements ICustomerRepository {
       totalCustomers: this.customers.length,
       vipCustomers: this.customers.filter((c) => c.isVip).length,
       newCustomersToday: newToday,
-      returningCustomers: this.customers.filter((c) => c.visitCount > 1).length,
+      returningCustomers: this.customers.filter((c) => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
     };
   }
 
@@ -191,7 +192,7 @@ export class MockCustomerRepository implements ICustomerRepository {
 
   async getFrequentCustomers(): Promise<Customer[]> {
     return this.customers
-      .filter((c) => c.visitCount >= 5)
+      .filter((c) => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS)
       .sort((a, b) => b.visitCount - a.visitCount);
   }
 }

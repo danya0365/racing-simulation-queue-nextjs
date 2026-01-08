@@ -2,6 +2,7 @@
 
 import type { MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -1268,7 +1269,7 @@ function CustomersTab() {
           return createdAt.getTime() === today.getTime();
         });
       case 'regular':
-        return filtered.filter(c => c.visitCount >= 3);
+        return filtered.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS);
       default:
         return filtered;
     }
@@ -1301,7 +1302,7 @@ function CustomersTab() {
       createdAt.setHours(0, 0, 0, 0);
       return createdAt.getTime() === today.getTime();
     }).length,
-    regular: allCustomers.filter(c => c.visitCount >= 3).length,
+    regular: allCustomers.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
   };
 
   const filterButtons = [
@@ -1404,7 +1405,7 @@ function CustomersTab() {
                       {customer.isVip && (
                         <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-full">VIP</span>
                       )}
-                      {customer.visitCount >= 3 && !customer.isVip && (
+                      {customer.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS && !customer.isVip && (
                         <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs font-bold rounded-full">ประจำ</span>
                       )}
                     </div>
