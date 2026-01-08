@@ -143,9 +143,48 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 6. GUEST RPC: Get Single Queue Details
+CREATE OR REPLACE FUNCTION public.rpc_get_queue_details(p_queue_id UUID)
+RETURNS TABLE (
+    id UUID,
+    machine_id UUID,
+    machine_name TEXT,
+    customer_name TEXT,
+    customer_phone_masked TEXT,
+    booking_time TIMESTAMP WITH TIME ZONE,
+    duration INTEGER,
+    status public.queue_status,
+    queue_position INTEGER,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE
+) SECURITY DEFINER AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        q.id,
+        q.machine_id,
+        m.name as machine_name,
+        c.name as customer_name,
+        public.mask_phone(c.phone) as customer_phone_masked,
+        q.booking_time,
+        q.duration,
+        q.status,
+        q.position as queue_position,
+        q.notes,
+        q.created_at,
+        q.updated_at
+    FROM public.queues q
+    JOIN public.customers c ON q.customer_id = c.id
+    JOIN public.machines m ON q.machine_id = m.id
+    WHERE q.id = p_queue_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Grant execute on RPCs to anon and authenticated
 GRANT EXECUTE ON FUNCTION public.rpc_get_active_machines() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_today_queues() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_create_booking(TEXT, TEXT, UUID, INTEGER, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_all_customers_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_update_queue_status_admin(UUID, public.queue_status) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_get_queue_details(UUID) TO anon, authenticated;

@@ -14,6 +14,28 @@ export class SupabaseQueueRepository implements IQueueRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async getById(id: string): Promise<Queue | null> {
+    // Try using the guest RPC first to bypass RLS for customer info
+    const { data: rpcData, error: rpcError } = await this.supabase
+      .rpc('rpc_get_queue_details', { p_queue_id: id });
+
+    if (!rpcError && rpcData && (rpcData as any).length > 0) {
+      const q = (rpcData as any)[0];
+      return {
+        id: q.id,
+        machineId: q.machine_id,
+        customerName: q.customer_name,
+        customerPhone: q.customer_phone_masked,
+        bookingTime: q.booking_time,
+        duration: q.duration,
+        status: q.status as QueueStatus,
+        position: q.queue_position,
+        notes: q.notes || '',
+        createdAt: q.created_at,
+        updatedAt: q.updated_at,
+      };
+    }
+
+    // Fallback or Admin view (full data)
     const { data, error } = await this.supabase
       .from('queues')
       .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')

@@ -3,7 +3,7 @@
 import type { Machine } from '@/src/application/repositories/IMachineRepository';
 import type { Queue } from '@/src/application/repositories/IQueueRepository';
 import { ActiveBooking, useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookingFormData, CustomerViewModel } from './CustomerPresenter';
 import { createClientCustomerPresenter } from './CustomerPresenterClientFactory';
 
@@ -89,9 +89,10 @@ export function useCustomerPresenter(
     clearHistory: clearStoreHistory,
   } = useCustomerStore();
   
-  // Filter to only show active ones
-  const activeBookingsList = activeBookings.filter(
-    b => b.status === 'waiting' || b.status === 'playing'
+  // Optimize active bookings list with useMemo to prevent unnecessary re-renders
+  const activeBookingsList = useMemo(() => 
+    activeBookings.filter(b => b.status === 'waiting' || b.status === 'playing'),
+    [activeBookings]
   );
 
   /**
@@ -126,28 +127,39 @@ export function useCustomerPresenter(
     }
   }, []);
 
+  // Use ref to keep track of the list for the periodic sync without triggering callback regeneration
+  const activeBookingsRef = useRef(activeBookingsList);
+  useEffect(() => {
+    activeBookingsRef.current = activeBookingsList;
+  }, [activeBookingsList]);
+
   /**
    * Sync booking status with server
    * Updates local bookings with current status from server
    */
   const syncBookingStatus = useCallback(async () => {
+    const list = activeBookingsRef.current;
+    if (list.length === 0) return;
+
     try {
-      for (const booking of activeBookingsList) {
+      for (const booking of list) {
         const serverQueue = await presenter.getQueueById(booking.id);
         if (serverQueue) {
-          updateBooking(booking.id, {
-            status: serverQueue.status as ActiveBooking['status'],
-            position: serverQueue.position,
-          });
+          // Only update if something actually changed to avoid unnecessary state updates
+          if (serverQueue.status !== booking.status || serverQueue.position !== booking.position) {
+            updateBooking(booking.id, {
+              status: serverQueue.status as ActiveBooking['status'],
+              position: serverQueue.position,
+            });
+          }
         } else {
-          // Queue not found on server, likely deleted or expired
           removeBooking(booking.id);
         }
       }
     } catch (err) {
       console.error('Error syncing booking status:', err);
     }
-  }, [activeBookingsList, updateBooking, removeBooking]);
+  }, [updateBooking, removeBooking]);
 
   /**
    * Select a machine
@@ -382,13 +394,14 @@ export function useCustomerPresenter(
 
   // Sync booking status periodically
   useEffect(() => {
-    if (activeBookingsList.length > 0) {
-      syncBookingStatus();
-      
-      // Sync every 30 seconds
-      const interval = setInterval(syncBookingStatus, 30000);
-      return () => clearInterval(interval);
-    }
+    if (activeBookingsList.length === 0) return;
+
+    // Initial sync
+    syncBookingStatus();
+    
+    // Sync every 30 seconds
+    const interval = setInterval(syncBookingStatus, 30000);
+    return () => clearInterval(interval);
   }, [activeBookingsList.length, syncBookingStatus]);
 
   return [

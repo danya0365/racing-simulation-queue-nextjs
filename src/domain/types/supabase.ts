@@ -396,6 +396,23 @@ export type Database = {
           visit_count: number
         }[]
       }
+      rpc_get_queue_details: {
+        Args: { p_queue_id: string }
+        Returns: {
+          id: string
+          machine_id: string
+          machine_name: string
+          customer_name: string
+          customer_phone_masked: string
+          booking_time: string
+          duration: number
+          status: Database["public"]["Enums"]["queue_status"]
+          queue_position: number
+          notes: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       rpc_get_today_queues: {
         Args: Record<PropertyKey, never>
         Returns: {
