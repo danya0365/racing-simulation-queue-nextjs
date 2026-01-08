@@ -1,10 +1,10 @@
 import {
-    CreateMachineData,
-    IMachineRepository,
-    Machine,
-    MachineStats,
-    MachineStatus,
-    UpdateMachineData
+  CreateMachineData,
+  IMachineRepository,
+  Machine,
+  MachineStats,
+  MachineStatus,
+  UpdateMachineData
 } from '@/src/application/repositories/IMachineRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -26,31 +26,16 @@ export class SupabaseMachineRepository implements IMachineRepository {
 
   async getAll(): Promise<Machine[]> {
     const { data, error } = await this.supabase
-      .rpc('rpc_get_active_machines');
+      .from('machines')
+      .select('*')
+      .order('position');
 
     if (error) {
-      console.error('Error fetching machines via RPC:', error);
-      // Fallback to table query if RPC fails
-      const { data: tableData, error: tableError } = await this.supabase
-        .from('machines')
-        .select('*')
-        .order('position');
-      
-      if (tableError) return [];
-      return tableData.map(this.mapToDomain);
+      console.error('Error fetching machines:', error);
+      return [];
     }
 
-    // Map RPC result which uses machine_position to domain position
-    return data.map(m => ({
-      id: m.id,
-      name: m.name,
-      description: m.description || '',
-      position: m.machine_position,
-      status: m.status as MachineStatus,
-      isActive: m.is_active,
-      createdAt: new Date().toISOString(), // RPC doesn't return these but UI might not need them accurately
-      updatedAt: new Date().toISOString(),
-    }));
+    return data.map(this.mapToDomain);
   }
 
   async getAvailable(): Promise<Machine[]> {

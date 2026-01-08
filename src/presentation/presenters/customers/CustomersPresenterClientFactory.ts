@@ -1,11 +1,14 @@
 'use client';
 
-import { MockCustomerRepository } from '@/src/infrastructure/repositories/mock/MockCustomerRepository';
+import { SupabaseCustomerRepository } from '@/src/infrastructure/repositories/supabase/SupabaseCustomerRepository';
+import { createClient } from '@/src/infrastructure/supabase/client';
 import { CustomersPresenter } from './CustomersPresenter';
 
 export class CustomersPresenterClientFactory {
   static create(): CustomersPresenter {
-    const customerRepository = new MockCustomerRepository();
+    const supabase = createClient();
+    const customerRepository = new SupabaseCustomerRepository(supabase);
+    
     return new CustomersPresenter(customerRepository);
   }
 }

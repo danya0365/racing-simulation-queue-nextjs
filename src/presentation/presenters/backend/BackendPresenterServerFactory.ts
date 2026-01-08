@@ -1,21 +1,18 @@
-/**
- * BackendPresenterServerFactory
- * Factory for creating BackendPresenter instances on the server side
- */
-
-import { MockMachineRepository } from '@/src/infrastructure/repositories/mock/MockMachineRepository';
-import { MockQueueRepository } from '@/src/infrastructure/repositories/mock/MockQueueRepository';
+import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
+import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
+import { createClient } from '@/src/infrastructure/supabase/server';
 import { BackendPresenter } from './BackendPresenter';
 
 export class BackendPresenterServerFactory {
-  static create(): BackendPresenter {
-    const machineRepository = new MockMachineRepository();
-    const queueRepository = new MockQueueRepository();
+  static async create(): Promise<BackendPresenter> {
+    const supabase = await createClient();
+    const machineRepository = new SupabaseMachineRepository(supabase);
+    const queueRepository = new SupabaseQueueRepository(supabase);
 
     return new BackendPresenter(machineRepository, queueRepository);
   }
 }
 
-export function createServerBackendPresenter(): BackendPresenter {
-  return BackendPresenterServerFactory.create();
+export async function createServerBackendPresenter(): Promise<BackendPresenter> {
+  return await BackendPresenterServerFactory.create();
 }

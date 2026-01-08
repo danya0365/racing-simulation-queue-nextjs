@@ -11,7 +11,7 @@ export const fetchCache = "force-no-store";
  * Generate metadata for the page
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const presenter = createServerBackendPresenter();
+  const presenter = await createServerBackendPresenter();
 
   try {
     return presenter.generateMetadata();
@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * Backend/Admin page - Server Component for SEO optimization
  */
 export default async function BackendPage() {
-  const presenter = createServerBackendPresenter();
+  const presenter = await createServerBackendPresenter();
 
   try {
     const viewModel = await presenter.getViewModel();
