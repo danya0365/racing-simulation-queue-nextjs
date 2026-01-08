@@ -34,7 +34,7 @@ INSERT INTO
         '00000000-0000-0000-0000-000000000001',
         'authenticated',
         'authenticated',
-        'admin@shopqueue.com',
+        'admin@racing.com',
         crypt (current_setting('my.app_password'), gen_salt ('bf')),
         NOW() - INTERVAL '30 days',
         NULL,
