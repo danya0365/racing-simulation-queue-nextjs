@@ -114,7 +114,11 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     setError(null);
 
     try {
-      await presenter.cancelQueue(queueId);
+      // Get customer ID from local store for ownership verification
+      const booking = activeBookingsRef.current.find(b => b.id === queueId);
+      const customerId = booking?.customerId;
+      
+      await presenter.cancelQueue(queueId, customerId);
       removeBooking(queueId);
       setFocusQueueId(null);
       await loadData();

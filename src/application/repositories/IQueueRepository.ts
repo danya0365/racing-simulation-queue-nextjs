@@ -9,6 +9,7 @@ export type QueueStatus = 'waiting' | 'playing' | 'completed' | 'cancelled';
 export interface Queue {
   id: string;
   machineId: string;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   bookingTime: string;
@@ -109,6 +110,11 @@ export interface IQueueRepository {
    * Update queue status
    */
   updateStatus(id: string, status: QueueStatus): Promise<Queue>;
+
+  /**
+   * Cancel a queue (supports guest verification)
+   */
+  cancel(id: string, customerId?: string): Promise<boolean>;
 
   /**
    * Get next queue position for a machine

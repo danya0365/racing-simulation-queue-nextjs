@@ -11,6 +11,7 @@ import { Metadata } from 'next';
 export interface QueueStatusData {
   id: string;
   machineId: string;
+  customerId?: string;
   machineName: string;
   customerName: string;
   customerPhone: string;
@@ -104,9 +105,9 @@ export class QueueStatusPresenter {
   /**
    * Cancel a queue
    */
-  async cancelQueue(queueId: string): Promise<void> {
+  async cancelQueue(queueId: string, customerId?: string): Promise<void> {
     try {
-      await this.queueRepository.updateStatus(queueId, 'cancelled');
+      await this.queueRepository.cancel(queueId, customerId);
     } catch (error) {
       console.error('Error cancelling queue:', error);
       throw error;
@@ -130,6 +131,7 @@ export class QueueStatusPresenter {
         results.push({
           id: queue.id,
           machineId: queue.machineId,
+          customerId: queue.customerId,
           machineName: machine?.name || 'Unknown',
           customerName: queue.customerName,
           customerPhone: queue.customerPhone,

@@ -11,6 +11,7 @@ interface CustomerInfo {
 interface ActiveBooking {
   id: string;
   machineId: string;
+  customerId?: string;
   machineName: string;
   customerName: string;
   customerPhone: string;

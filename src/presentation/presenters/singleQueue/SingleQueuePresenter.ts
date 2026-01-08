@@ -90,9 +90,9 @@ export class SingleQueuePresenter {
   /**
    * Cancel a queue
    */
-  async cancelQueue(queueId: string): Promise<void> {
+  async cancelQueue(queueId: string, customerId?: string): Promise<void> {
     try {
-      await this.queueRepository.updateStatus(queueId, 'cancelled');
+      await this.queueRepository.cancel(queueId, customerId);
     } catch (error) {
       console.error('Error cancelling queue:', error);
       throw error;

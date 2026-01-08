@@ -98,6 +98,7 @@ BEGIN
     RETURN jsonb_build_object(
         'success', true,
         'queue_id', v_queue_id,
+        'customer_id', v_customer_id,
         'position', v_next_pos
     );
 END;
@@ -148,6 +149,7 @@ CREATE OR REPLACE FUNCTION public.rpc_get_queue_details(p_queue_id UUID)
 RETURNS TABLE (
     id UUID,
     machine_id UUID,
+    customer_id UUID,
     machine_name TEXT,
     customer_name TEXT,
     customer_phone_masked TEXT,
@@ -164,6 +166,7 @@ BEGIN
     SELECT 
         q.id,
         q.machine_id,
+        q.customer_id,
         m.name as machine_name,
         c.name as customer_name,
         public.mask_phone(c.phone) as customer_phone_masked,
@@ -181,6 +184,56 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 7. GUEST RPC: Cancel Booking (Guest ownership verification)
+CREATE OR REPLACE FUNCTION public.rpc_cancel_queue_guest(
+    p_queue_id UUID,
+    p_customer_id UUID
+)
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+DECLARE
+    v_profile_id UUID;
+    v_actual_customer_id UUID;
+    v_status public.queue_status;
+BEGIN
+    -- 1. Get queue and customer info
+    SELECT q.customer_id, q.status, c.profile_id 
+    INTO v_actual_customer_id, v_status, v_profile_id
+    FROM public.queues q
+    JOIN public.customers c ON q.customer_id = c.id
+    WHERE q.id = p_queue_id;
+
+    -- 2. Validate ownership
+    IF v_actual_customer_id IS NULL OR v_actual_customer_id != p_customer_id THEN
+        RAISE EXCEPTION 'Ownership verification failed.';
+    END IF;
+
+    -- 3. Check status
+    IF v_status != 'waiting' THEN
+        RAISE EXCEPTION 'Only waiting queues can be cancelled.';
+    END IF;
+
+    -- 4. Check profile connection (Security)
+    IF v_profile_id IS NOT NULL THEN
+        -- If it's a registered user's booking, they must be authenticated
+        IF auth.uid() IS NULL OR auth.uid() != v_profile_id THEN
+            RAISE EXCEPTION 'Please login to cancel this booking.';
+        END IF;
+    END IF;
+
+    -- 5. Perform cancellation
+    UPDATE public.queues 
+    SET status = 'cancelled', updated_at = NOW() 
+    WHERE id = p_queue_id;
+
+    -- 6. Trigger machine status update
+    UPDATE public.machines 
+    SET status = 'available', current_queue_id = NULL 
+    WHERE current_queue_id = p_queue_id;
+
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Grant execute on RPCs to anon and authenticated
 GRANT EXECUTE ON FUNCTION public.rpc_get_active_machines() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_today_queues() TO anon, authenticated;
@@ -188,3 +241,4 @@ GRANT EXECUTE ON FUNCTION public.rpc_create_booking(TEXT, TEXT, UUID, INTEGER, T
 GRANT EXECUTE ON FUNCTION public.rpc_get_all_customers_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_update_queue_status_admin(UUID, public.queue_status) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_queue_details(UUID) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_cancel_queue_guest(UUID, UUID) TO anon, authenticated;

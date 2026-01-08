@@ -23,6 +23,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
       return {
         id: q.id,
         machineId: q.machine_id,
+        customerId: q.customer_id,
         customerName: q.customer_name,
         customerPhone: q.customer_phone_masked,
         bookingTime: q.booking_time,
@@ -133,7 +134,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
 
     if (error) throw error;
     
-    // Result is { success: boolean, queue_id: string, position: number }
+    // Result is { success: boolean, queue_id: string, customer_id: string, position: number }
     const queueId = (result as any).queue_id;
     const queue = await this.getById(queueId);
     if (!queue) throw new Error('Failed to retrieve created queue');
@@ -210,6 +211,39 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return queue;
   }
 
+  async cancel(id: string, customerId?: string): Promise<boolean> {
+    if (customerId) {
+        // Try guest cancellation first
+        const { data, error } = await this.supabase.rpc('rpc_cancel_queue_guest', {
+            p_queue_id: id,
+            p_customer_id: customerId
+        });
+        
+        if (error) {
+            // If it fails with access denied (might mean it needs admin/mod)
+            // or if it fails because it's already cancelled
+            console.warn('Guest cancellation failed:', error.message);
+            
+            // Try admin cancellation if guest fail (might be an admin logged in)
+            const { error: adminError } = await this.supabase.rpc('rpc_update_queue_status_admin', {
+                p_queue_id: id,
+                p_status: 'cancelled'
+            });
+            
+            return !adminError;
+        }
+        return !!data;
+    }
+
+    // No customerId provided, must be admin/mod manually cancelling
+    const { error } = await this.supabase.rpc('rpc_update_queue_status_admin', {
+        p_queue_id: id,
+        p_status: 'cancelled'
+    });
+    
+    return !error;
+  }
+
   async getNextPosition(machineId: string): Promise<number> {
     const { data, error } = await this.supabase
       .from('queues')
@@ -227,6 +261,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return {
       id: raw.id,
       machineId: raw.machine_id,
+      customerId: raw.customer_id,
       customerName: raw.customers?.name || 'Unknown',
       customerPhone: raw.customers?.phone || '',
       bookingTime: raw.booking_time,

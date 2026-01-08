@@ -210,6 +210,7 @@ export function useCustomerPresenter(
       addBooking({
         id: newQueue.id,
         machineId: newQueue.machineId,
+        customerId: newQueue.customerId,
         machineName: machine?.name || `Machine ${data.machineId}`,
         customerName: newQueue.customerName,
         customerPhone: newQueue.customerPhone,
@@ -241,8 +242,12 @@ export function useCustomerPresenter(
     setError(null);
 
     try {
+      // Find customer ID for verification
+      const booking = activeBookingsRef.current.find(b => b.id === queueId);
+      const customerId = booking?.customerId;
+      
       // Call presenter to cancel
-      await presenter.cancelQueue(queueId);
+      await presenter.cancelQueue(queueId, customerId);
       
       // Remove from local store (will move to history automatically)
       removeBooking(queueId);

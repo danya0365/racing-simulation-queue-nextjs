@@ -116,7 +116,8 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
     setError(null);
 
     try {
-      await presenter.cancelQueue(queueId);
+      const customerId = localBookingRef.current?.customerId;
+      await presenter.cancelQueue(queueId, customerId);
       removeBooking(queueId);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
