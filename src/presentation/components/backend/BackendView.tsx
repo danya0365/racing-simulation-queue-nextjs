@@ -192,7 +192,7 @@ function DashboardTab({ viewModel }: { viewModel: BackendViewModel }) {
         <StatsCard icon="🎮" label="เครื่องทั้งหมด" value={viewModel.machineStats.totalMachines} color="from-blue-500 to-cyan-500" />
         <StatsCard icon="✅" label="เครื่องว่าง" value={viewModel.machineStats.availableMachines} color="from-emerald-500 to-green-500" />
         <StatsCard icon="📋" label="รอคิววันนี้" value={viewModel.waitingQueues.length} color="from-purple-500 to-violet-500" />
-        <StatsCard icon="🏁" label="กำลังเล่น" value={viewModel.queueStats.playingQueues} color="from-orange-500 to-amber-500" />
+        <StatsCard icon="🏁" label="กำลังเล่น" value={viewModel.machineStats.occupiedMachines} color="from-orange-500 to-amber-500" />
       </div>
 
       {/* Recent Queues */}
@@ -209,15 +209,7 @@ function DashboardTab({ viewModel }: { viewModel: BackendViewModel }) {
         )}
       </AnimatedCard>
 
-      {/* Machines Overview */}
-      <AnimatedCard className="p-6">
-        <h3 className="text-lg font-bold mb-4 text-foreground">🎮 สถานะเครื่อง</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {viewModel.machines.map((machine) => (
-            <MachineStatusCard key={machine.id} machine={machine} />
-          ))}
-        </div>
-      </AnimatedCard>
+
     </div>
   );
 }
@@ -1047,32 +1039,7 @@ function QueueRow({ queue }: { queue: { id: string; customerName: string; status
   );
 }
 
-// Machine Status Card
-function MachineStatusCard({ machine }: { machine: { id: string; name: string; status: string; position: number } }) {
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'available':
-        return { icon: '✅', color: 'border-emerald-500 bg-emerald-500/10' };
-      case 'occupied':
-        return { icon: '🏁', color: 'border-orange-500 bg-orange-500/10' };
-      case 'maintenance':
-        return { icon: '🔧', color: 'border-gray-500 bg-gray-500/10' };
-      default:
-        return { icon: '❓', color: 'border-gray-500 bg-gray-500/10' };
-    }
-  };
 
-  const statusConfig = getStatusConfig(machine.status);
-
-  return (
-    <div className={`p-3 rounded-xl border-2 ${statusConfig.color}`}>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{statusConfig.icon}</span>
-        <span className="font-medium text-foreground">{machine.name}</span>
-      </div>
-    </div>
-  );
-}
 
 // Customers Tab - Following Clean Architecture Pattern
 function CustomersTab() {
