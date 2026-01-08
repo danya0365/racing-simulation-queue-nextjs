@@ -46,7 +46,7 @@ export function AnimatedButton({
 
   const spring = useSpring({
     transform: isPressed 
-      ? 'scale(0.95)' 
+      ? 'scale(0.95) translateY(0px)' 
       : isHovered 
         ? 'scale(1.05) translateY(-2px)' 
         : 'scale(1) translateY(0px)',

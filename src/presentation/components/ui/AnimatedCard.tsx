@@ -28,8 +28,8 @@ export function AnimatedCard({
       ? `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)',
     boxShadow: isHovered
-      ? `0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 40px ${glowColor}`
-      : '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 0 0px rgba(0, 0, 0, 0)',
+      ? `0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 40px 0px ${glowColor}`
+      : '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 0 0px 0px rgba(0, 0, 0, 0)',
     config: config.gentle,
   });
 

@@ -367,7 +367,7 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
           return (
             <AnimatedCard 
               key={machine.id} 
-              className={`p-5 ${isMaintenance ? 'opacity-60' : ''}`}
+              className={`p-5 transition-all duration-300 ${isMaintenance ? 'bg-surface/40' : ''}`}
               glowColor={
                 isMaintenance ? 'rgba(107, 114, 128, 0.3)' :
                 isOccupied ? 'rgba(249, 115, 22, 0.3)' :
@@ -375,7 +375,7 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
               }
             >
               {/* Machine Header */}
-              <div className="flex items-center justify-between mb-4">
+              <div className={`flex items-center justify-between mb-4 ${isMaintenance ? 'opacity-50 grayscale' : ''}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg ${
                     isMaintenance ? 'bg-gradient-to-br from-gray-500 to-gray-600' :
