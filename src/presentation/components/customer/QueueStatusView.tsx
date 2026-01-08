@@ -4,139 +4,25 @@ import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton'
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
-import { createClientCustomerPresenter } from '@/src/presentation/presenters/customer/CustomerPresenterClientFactory';
-import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
+import { useSingleQueuePresenter } from '@/src/presentation/presenters/singleQueue/useSingleQueuePresenter';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface QueueStatusViewProps {
   queueId: string;
 }
 
+/**
+ * QueueStatusView
+ * View component for viewing a single queue status
+ * ✅ Following Clean Architecture pattern - uses useSingleQueuePresenter hook
+ */
 export function QueueStatusView({ queueId }: QueueStatusViewProps) {
   const router = useRouter();
-  const [queue, setQueue] = useState<{
-    id: string;
-    machineId: string;
-    customerName: string;
-    customerPhone: string;
-    bookingTime: string;
-    duration: number;
-    status: string;
-    position: number;
-    notes?: string;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [machineName, setMachineName] = useState<string>('');
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [queueAhead, setQueueAhead] = useState(0);
-
-  const presenter = createClientCustomerPresenter();
-  const { activeBookings, removeBooking, updateBooking } = useCustomerStore();
-
-  // Try to get queue from local store first
-  const localBooking = activeBookings.find(b => b.id === queueId);
-
-  const loadQueue = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await presenter.getQueueById(queueId);
-      if (result) {
-        setQueue(result);
-        
-        // Update local store with latest status
-        updateBooking(queueId, {
-          status: result.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-          position: result.position,
-        });
-
-        // Get machine name
-        const machine = await presenter.getMachineById(result.machineId);
-        if (machine) {
-          setMachineName(machine.name);
-        }
-
-        // Calculate queue ahead for the same machine
-        try {
-          const allQueues = await presenter.getAllQueues();
-          const machineQueues = allQueues.filter(
-            q => q.machineId === result.machineId && 
-            q.status === 'waiting' && 
-            q.position < result.position
-          );
-          setQueueAhead(machineQueues.length);
-        } catch {
-          setQueueAhead(Math.max(0, result.position - 1));
-        }
-      } else if (localBooking) {
-        // Use local storage data if server doesn't have it
-        setQueue({
-          id: localBooking.id,
-          machineId: localBooking.machineId,
-          customerName: localBooking.customerName,
-          customerPhone: localBooking.customerPhone,
-          bookingTime: localBooking.bookingTime,
-          duration: localBooking.duration,
-          status: localBooking.status,
-          position: localBooking.position,
-        });
-        setMachineName(localBooking.machineName);
-      } else {
-        setError('ไม่พบข้อมูลคิว');
-      }
-    } catch (err) {
-      // If server fails, try local storage
-      if (localBooking) {
-        setQueue({
-          id: localBooking.id,
-          machineId: localBooking.machineId,
-          customerName: localBooking.customerName,
-          customerPhone: localBooking.customerPhone,
-          bookingTime: localBooking.bookingTime,
-          duration: localBooking.duration,
-          status: localBooking.status,
-          position: localBooking.position,
-        });
-        setMachineName(localBooking.machineName);
-      } else {
-        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [queueId, presenter, localBooking, updateBooking]);
-
-  const handleCancel = async () => {
-    if (!confirm('คุณต้องการยกเลิกคิวนี้หรือไม่?')) return;
-    
-    setIsCancelling(true);
-    try {
-      await presenter.cancelQueue(queueId);
-      removeBooking(queueId);
-      router.push('/customer');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'ไม่สามารถยกเลิกคิวได้');
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  useEffect(() => {
-    loadQueue();
-  }, [loadQueue]);
-
-  // Auto refresh every 15 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadQueue();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [loadQueue]);
+  const [state, actions] = useSingleQueuePresenter(queueId);
+  const { viewModel, loading, error, isCancelling, isFocusMode } = state;
 
   const pageSpring = useSpring({
     from: { opacity: 0, transform: 'translateY(20px)' },
@@ -209,7 +95,37 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
     }
   };
 
-  if (loading) {
+  const handleCancel = async () => {
+    await actions.cancelQueue();
+    router.push('/customer');
+  };
+
+  // Focus Mode
+  if (isFocusMode && viewModel?.queue) {
+    return (
+      <Portal>
+        <CustomerFocusMode
+          queue={{
+            id: viewModel.queue.id,
+            machineName: viewModel.machine?.name || 'Unknown',
+            customerName: viewModel.queue.customerName,
+            customerPhone: viewModel.queue.customerPhone,
+            bookingTime: viewModel.queue.bookingTime,
+            duration: viewModel.queue.duration,
+            status: viewModel.queue.status,
+            position: viewModel.queue.position,
+            queueAhead: viewModel.queueAhead,
+          }}
+          onRefresh={actions.loadData}
+          onCancel={handleCancel}
+          onExit={actions.exitFocusMode}
+        />
+      </Portal>
+    );
+  }
+
+  // Loading state
+  if (loading && !viewModel) {
     return (
       <div className="h-full flex items-center justify-center bg-racing-gradient">
         <div className="text-center">
@@ -220,13 +136,13 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
     );
   }
 
-  if (error || !queue) {
+  // Error state
+  if (error && !viewModel) {
     return (
       <div className="h-full flex items-center justify-center bg-racing-gradient">
-        <div className="text-center max-w-md px-4">
-          <div className="text-6xl mb-4">🔍</div>
-          <h2 className="text-xl font-bold text-foreground mb-2">ไม่พบข้อมูลคิว</h2>
-          <p className="text-muted mb-6">{error || 'ไม่พบคิวที่ต้องการ หรือคิวอาจถูกยกเลิกไปแล้ว'}</p>
+        <div className="text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <p className="text-error mb-4">{error}</p>
           <Link href="/customer">
             <GlowButton color="cyan">กลับหน้าจองคิว</GlowButton>
           </Link>
@@ -235,169 +151,158 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
     );
   }
 
-  const statusConfig = getStatusConfig(queue.status);
-
-  // Show Focus Mode for customer waiting
-  if (isFocusMode && queue.status === 'waiting') {
+  if (!viewModel?.queue) {
     return (
-      <Portal>
-        <CustomerFocusMode
-          queue={queue}
-          machineName={machineName}
-          queueAhead={queueAhead}
-          onRefresh={loadQueue}
-          onCancel={handleCancel}
-          onExit={() => setIsFocusMode(false)}
-          isCancelling={isCancelling}
-        />
-      </Portal>
+      <div className="h-full flex items-center justify-center bg-racing-gradient">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <p className="text-muted mb-4">ไม่พบข้อมูลคิว</p>
+          <Link href="/customer">
+            <GlowButton color="cyan">กลับหน้าจองคิว</GlowButton>
+          </Link>
+        </div>
+      </div>
     );
   }
+
+  const queue = viewModel.queue;
+  const machineName = viewModel.machine?.name || 'Unknown';
+  const queueAhead = viewModel.queueAhead;
+  const statusConfig = getStatusConfig(queue.status);
+  const estimatedWaitMinutes = queueAhead * 20;
+  const isNextUp = queueAhead === 0 && queue.status === 'waiting';
 
   return (
     <animated.div style={pageSpring} className="h-full overflow-auto scrollbar-thin">
       {/* Header */}
       <section className="px-4 md:px-8 py-6 bg-gradient-to-br from-purple-500/10 via-background to-cyan-500/10">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <Link href="/customer" className="text-muted hover:text-cyan-400 transition-colors inline-flex items-center gap-2">
-              ← กลับหน้าจองคิว
+            <Link href="/customer/queue-status" className="text-muted hover:text-cyan-400 transition-colors inline-flex items-center gap-2">
+              ← กลับหน้าสถานะคิว
             </Link>
-            {queue.status === 'waiting' && (
-              <GlowButton color="purple" size="sm" onClick={() => setIsFocusMode(true)}>
-                📺 โหมดรอคิว
-              </GlowButton>
-            )}
+            <button
+              onClick={actions.loadData}
+              className="text-muted hover:text-cyan-400 transition-colors"
+            >
+              🔄 รีเฟรช
+            </button>
           </div>
           <h1 className="text-2xl font-bold">
             <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              สถานะคิวของคุณ
+              📋 สถานะคิว #{queue.position}
             </span>
           </h1>
         </div>
       </section>
 
-      {/* Status Card */}
-      <section className="px-4 md:px-8 py-8">
-        <div className="max-w-2xl mx-auto">
-          <AnimatedCard className="p-8 text-center">
-            {/* Status Icon with Animation */}
-            <div className={`w-28 h-28 mx-auto mb-6 rounded-full bg-gradient-to-br ${statusConfig.color} flex items-center justify-center text-6xl shadow-lg animate-float`}>
+      {/* Content */}
+      <section className="px-4 md:px-8 py-6">
+        <div className="max-w-lg mx-auto space-y-6">
+          {/* Queue Number Card */}
+          <AnimatedCard className={`p-8 text-center ${statusConfig.bgColor}`}>
+            {/* Status Icon */}
+            <div className={`w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br ${statusConfig.color} flex items-center justify-center text-5xl shadow-lg ${isNextUp ? 'animate-pulse' : ''}`}>
               {statusConfig.icon}
             </div>
 
-            {/* Queue Position - Large & Prominent */}
-            <div className="mb-4">
-              <span className="text-7xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                #{queue.position}
-              </span>
-              <p className="text-muted mt-2">หมายเลขคิว</p>
+            {/* Queue Number */}
+            <div className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-2">
+              #{queue.position}
             </div>
-
-            {/* Status Badge */}
-            <div className={`inline-block px-8 py-3 rounded-full bg-gradient-to-r ${statusConfig.color} text-white font-bold text-lg mb-4 shadow-lg`}>
+            <div className={`text-xl font-bold bg-gradient-to-r ${statusConfig.color} bg-clip-text text-transparent mb-2`}>
               {statusConfig.label}
             </div>
+            
+            {/* Next Up Alert */}
+            {isNextUp && (
+              <div className="mt-4 p-4 bg-emerald-500/20 border border-emerald-500 rounded-xl animate-pulse">
+                <p className="text-emerald-400 font-bold text-lg">🎉 ถึงคิวคุณแล้ว!</p>
+                <p className="text-emerald-300 text-sm">กรุณาเตรียมตัวที่เครื่อง</p>
+              </div>
+            )}
+
+            {/* Queue Ahead */}
+            {queue.status === 'waiting' && !isNextUp && (
+              <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                <p className="text-purple-300 font-medium">มี {queueAhead} คิวก่อนหน้า</p>
+                <p className="text-purple-400/70 text-sm">รอประมาณ {estimatedWaitMinutes} นาที</p>
+              </div>
+            )}
 
             {/* Status Message */}
-            <p className="text-muted mb-8 text-lg">{statusConfig.message}</p>
+            <p className="text-muted mt-4">{statusConfig.message}</p>
+          </AnimatedCard>
 
-            {/* Queue Details Card */}
-            <div className={`rounded-xl p-6 text-left space-y-4 ${statusConfig.bgColor} border border-border`}>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>👤</span> ชื่อ
-                </span>
+          {/* Details Card */}
+          <AnimatedCard className="p-6">
+            <h3 className="font-bold text-foreground mb-4">📝 รายละเอียดการจอง</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted">👤 ชื่อ</span>
                 <span className="font-medium text-foreground">{queue.customerName}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>📱</span> เบอร์โทร
-                </span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted">📱 เบอร์โทร</span>
                 <span className="font-medium text-foreground">{queue.customerPhone}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>🎮</span> เครื่อง
-                </span>
-                <span className="font-medium text-foreground">{machineName || `Machine ${queue.machineId}`}</span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted">🎮 เครื่อง</span>
+                <span className="font-medium text-foreground">{machineName}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>📅</span> วันที่
-                </span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted">📅 วันที่</span>
                 <span className="font-medium text-foreground">{formatDate(queue.bookingTime)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>⏰</span> เวลานัดหมาย
-                </span>
-                <span className="font-medium text-cyan-400 text-lg">{formatTime(queue.bookingTime)}</span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted">⏰ เวลา</span>
+                <span className="font-medium text-foreground">{formatTime(queue.bookingTime)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-muted flex items-center gap-2">
-                  <span>⏱️</span> ระยะเวลา
-                </span>
-                <span className="font-medium text-foreground">{queue.duration} นาที</span>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted">⏱️ ระยะเวลา</span>
+                <span className="font-medium text-cyan-400">{queue.duration} นาที</span>
               </div>
-              {queue.notes && (
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted flex items-center gap-2">
-                    <span>📝</span> หมายเหตุ
-                  </span>
-                  <span className="font-medium text-foreground">{queue.notes}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <AnimatedButton variant="ghost" onClick={loadQueue}>
-                🔄 รีเฟรช
-              </AnimatedButton>
-              
-              {statusConfig.showCancel && (
-                <AnimatedButton 
-                  variant="ghost" 
-                  onClick={handleCancel}
-                  disabled={isCancelling}
-                  className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                >
-                  {isCancelling ? '❌ กำลังยกเลิก...' : '❌ ยกเลิกคิว'}
-                </AnimatedButton>
-              )}
-              
-              <Link href="/customer">
-                <GlowButton color="cyan">จองคิวเพิ่ม</GlowButton>
-              </Link>
             </div>
           </AnimatedCard>
 
-          {/* Auto refresh notice */}
-          <div className="flex items-center justify-center gap-2 text-center text-sm text-muted mt-6">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>ข้อมูลจะรีเฟรชอัตโนมัติทุก 15 วินาที</span>
+          {/* Actions */}
+          <div className="space-y-3">
+            {/* Focus Mode Button */}
+            {queue.status === 'waiting' && (
+              <GlowButton
+                color="purple"
+                size="lg"
+                className="w-full"
+                onClick={actions.enterFocusMode}
+              >
+                📺 โหมดติดตาม
+              </GlowButton>
+            )}
+
+            {/* Cancel Button */}
+            {statusConfig.showCancel && (
+              <AnimatedButton
+                variant="ghost"
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                {isCancelling ? '⏳ กำลังยกเลิก...' : '❌ ยกเลิกคิว'}
+              </AnimatedButton>
+            )}
+
+            {/* Back Button */}
+            <Link href="/customer" className="block">
+              <AnimatedButton variant="ghost" className="w-full">
+                ← กลับหน้าหลัก
+              </AnimatedButton>
+            </Link>
           </div>
 
-          {/* Help Section */}
-          <div className="mt-8 p-6 rounded-xl bg-surface border border-border">
-            <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-              <span>💡</span> คำแนะนำ
-            </h3>
-            <ul className="space-y-2 text-sm text-muted">
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400">•</span>
-                <span>กรุณามาถึงก่อนเวลานัดหมายอย่างน้อย 5 นาที</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400">•</span>
-                <span>สามารถยกเลิกคิวได้หากมีการเปลี่ยนแปลง</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-cyan-400">•</span>
-                <span>หากมีข้อสงสัย สามารถติดต่อเจ้าหน้าที่ได้ตลอดเวลา</span>
-              </li>
-            </ul>
+          {/* Auto refresh notice */}
+          <div className="flex items-center justify-center gap-2 text-center text-sm text-muted pt-4">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>ข้อมูลจะรีเฟรชอัตโนมัติทุก 15 วินาที</span>
           </div>
         </div>
       </section>
@@ -405,36 +310,25 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
   );
 }
 
-// Customer Focus Mode - Fullscreen Queue Waiting Experience
+// Customer Focus Mode - Fullscreen Queue Tracking
 interface CustomerFocusModeProps {
   queue: {
     id: string;
-    machineId: string;
+    machineName: string;
     customerName: string;
     customerPhone: string;
     bookingTime: string;
     duration: number;
     status: string;
     position: number;
-    notes?: string;
+    queueAhead: number;
   };
-  machineName: string;
-  queueAhead: number;
   onRefresh: () => Promise<void>;
   onCancel: () => Promise<void>;
   onExit: () => void;
-  isCancelling: boolean;
 }
 
-function CustomerFocusMode({
-  queue,
-  machineName,
-  queueAhead,
-  onRefresh,
-  onCancel,
-  onExit,
-  isCancelling,
-}: CustomerFocusModeProps) {
+function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocusModeProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -476,16 +370,16 @@ function CustomerFocusMode({
     }).format(new Date(queue.bookingTime));
   };
 
-  // Estimate wait time (assume ~20 mins per person)
-  const estimatedWaitMinutes = queueAhead * 20;
+  // Estimate wait time
+  const estimatedWaitMinutes = queue.queueAhead * 20;
   const estimatedWaitText = estimatedWaitMinutes > 0 
     ? `ประมาณ ${estimatedWaitMinutes} นาที`
     : 'ใกล้ถึงคิวแล้ว!';
 
   // Is next in queue?
-  const isNextUp = queueAhead === 0;
+  const isNextUp = queue.queueAhead === 0;
 
-  // Animation for pulsing when next up
+  // Pulse animation when next up
   const pulseSpring = useSpring({
     loop: isNextUp,
     from: { scale: 1, opacity: 1 },
@@ -502,7 +396,7 @@ function CustomerFocusMode({
         ? 'bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900' 
         : 'bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900'
     }`}>
-      {/* Animated Background Circles */}
+      {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
@@ -511,7 +405,7 @@ function CustomerFocusMode({
         )}
       </div>
 
-      {/* Exit Button - Top Right */}
+      {/* Exit Button */}
       <button
         onClick={onExit}
         className="absolute top-4 right-4 z-20 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white font-medium flex items-center gap-2 backdrop-blur-sm transition-all"
@@ -522,25 +416,25 @@ function CustomerFocusMode({
 
       {/* Main Content */}
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 py-8">
-        {/* Top: Customer Info */}
-        <div className="text-center mb-8">
+        {/* Customer Info */}
+        <div className="text-center mb-6">
           <p className="text-white/60 text-sm">ยินดีต้อนรับ</p>
           <h1 className="text-2xl md:text-3xl font-bold text-white">{queue.customerName}</h1>
           <p className="text-white/40 text-sm mt-1">{queue.customerPhone}</p>
         </div>
 
-        {/* Queue Number - Hero */}
+        {/* Queue Number */}
         <animated.div 
           style={pulseSpring}
-          className={`relative mb-8 ${isNextUp ? 'animate-bounce' : ''}`}
+          className={`relative mb-6 ${isNextUp ? 'animate-bounce' : ''}`}
         >
-          <div className={`w-48 h-48 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center shadow-2xl ${
+          <div className={`w-40 h-40 md:w-56 md:h-56 rounded-full flex flex-col items-center justify-center shadow-2xl ${
             isNextUp 
               ? 'bg-gradient-to-br from-emerald-400 to-green-600 ring-4 ring-emerald-300' 
               : 'bg-gradient-to-br from-purple-500 to-pink-600 ring-4 ring-purple-400/50'
           }`}>
             <span className="text-white/60 text-sm">หมายเลขคิว</span>
-            <span className="text-6xl md:text-8xl font-bold text-white">
+            <span className="text-5xl md:text-7xl font-bold text-white">
               #{queue.position}
             </span>
           </div>
@@ -548,29 +442,29 @@ function CustomerFocusMode({
 
         {/* Status Message */}
         {isNextUp ? (
-          <div className="text-center mb-8 animate-pulse">
+          <div className="text-center mb-6 animate-pulse">
             <div className="text-4xl mb-2">🎉</div>
-            <h2 className="text-3xl md:text-4xl font-bold text-emerald-300 mb-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-emerald-300 mb-2">
               ถึงคิวคุณแล้ว!
             </h2>
-            <p className="text-white/80 text-lg">กรุณาเตรียมตัวที่เครื่อง</p>
+            <p className="text-white/80 text-lg">กรุณาเตรียมตัวที่เครื่อง {queue.machineName}</p>
           </div>
         ) : (
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-              มี {queueAhead} คิวก่อนหน้า
+          <div className="text-center mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
+              มี {queue.queueAhead} คิวก่อนหน้า
             </h2>
             <p className="text-white/60 text-lg">{estimatedWaitText}</p>
           </div>
         )}
 
         {/* Progress Bar */}
-        {!isNextUp && (
-          <div className="w-full max-w-md mb-8">
+        {!isNextUp && queue.queueAhead < 5 && (
+          <div className="w-full max-w-sm mb-6">
             <div className="bg-white/10 rounded-full h-4 overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(10, 100 - (queueAhead * 20))}%` }}
+                style={{ width: `${Math.max(10, 100 - (queue.queueAhead * 20))}%` }}
               />
             </div>
             <p className="text-center text-white/40 text-sm mt-2">ความคืบหน้า</p>
@@ -578,53 +472,52 @@ function CustomerFocusMode({
         )}
 
         {/* Info Cards */}
-        <div className="grid grid-cols-2 gap-4 max-w-md w-full mb-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl mb-1">🎮</div>
+        <div className="grid grid-cols-2 gap-3 max-w-sm w-full mb-6">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl mb-1">🎮</div>
             <p className="text-white/60 text-xs">เครื่อง</p>
-            <p className="text-white font-medium text-sm">{machineName}</p>
+            <p className="text-white font-medium text-sm">{queue.machineName}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl mb-1">⏱️</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl mb-1">⏱️</div>
             <p className="text-white/60 text-xs">ระยะเวลา</p>
             <p className="text-white font-medium text-sm">{queue.duration} นาที</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl mb-1">📅</div>
-            <p className="text-white/60 text-xs">เวลานัดหมาย</p>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl mb-1">📅</div>
+            <p className="text-white/60 text-xs">เวลาจอง</p>
             <p className="text-white font-medium text-sm">{formatBookingTime()}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-3xl mb-1">⏰</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+            <div className="text-2xl mb-1">⏰</div>
             <p className="text-white/60 text-xs">เวลาปัจจุบัน</p>
             <p className="text-white font-mono font-medium text-sm">{formatTime()}</p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+            className="px-5 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50"
           >
             <span className={refreshing ? 'animate-spin' : ''}>🔄</span>
             <span>รีเฟรช</span>
           </button>
           <button
             onClick={onCancel}
-            disabled={isCancelling}
-            className="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-xl text-red-300 font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+            className="px-5 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-xl text-red-300 font-medium flex items-center gap-2 transition-all"
           >
             <span>❌</span>
-            <span>{isCancelling ? 'กำลังยกเลิก...' : 'ยกเลิกคิว'}</span>
+            <span>ยกเลิก</span>
           </button>
         </div>
 
-        {/* Footer: Live indicator */}
-        <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-2 text-white/40 text-sm">
+        {/* Footer */}
+        <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2 text-white/40 text-sm">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>กำลังอัพเดทอัตโนมัติ</span>
+          <span>อัพเดทอัตโนมัติทุก 10 วินาที</span>
         </div>
       </div>
     </div>

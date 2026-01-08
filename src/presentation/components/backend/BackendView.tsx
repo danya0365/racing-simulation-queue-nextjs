@@ -1,21 +1,17 @@
 'use client';
 
-import type { Customer, CustomerStats } from '@/src/application/repositories/ICustomerRepository';
 import type { MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { QueueStatus } from '@/src/application/repositories/IQueueRepository';
-import { MockCustomerRepository } from '@/src/infrastructure/repositories/mock/MockCustomerRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
+import { useCustomersPresenter } from '@/src/presentation/presenters/customers/useCustomersPresenter';
 import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-
-// Customer repository instance
-const customerRepository = new MockCustomerRepository();
+import { useEffect, useState } from 'react';
 
 interface BackendViewProps {
   initialViewModel?: BackendViewModel;
@@ -1099,56 +1095,10 @@ function MachineStatusCard({ machine }: { machine: { id: string; name: string; s
   );
 }
 
-// Customers Tab
+// Customers Tab - Following Clean Architecture Pattern
 function CustomersTab() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [stats, setStats] = useState<CustomerStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [customersData, statsData] = await Promise.all([
-        customerRepository.getAll(),
-        customerRepository.getStats(),
-      ]);
-      setCustomers(customersData);
-      setStats(statsData);
-    } catch (err) {
-      console.error('Error loading customers:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      const results = await customerRepository.search(query);
-      setCustomers(results);
-    } else {
-      const all = await customerRepository.getAll();
-      setCustomers(all);
-    }
-  };
-
-  const handleToggleVip = async (customer: Customer) => {
-    await customerRepository.update(customer.id, { isVip: !customer.isVip });
-    await loadData();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('ต้องการลบลูกค้านี้?')) {
-      await customerRepository.delete(id);
-      await loadData();
-    }
-  };
+  const [state, actions] = useCustomersPresenter();
+  const { viewModel, loading, searchQuery, isAddModalOpen } = state;
 
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -1157,13 +1107,16 @@ function CustomersTab() {
     }).format(new Date(dateString));
   };
 
-  if (loading) {
+  if (loading && !viewModel) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-12 h-12 border-4 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
       </div>
     );
   }
+
+  const customers = viewModel?.customers || [];
+  const stats = viewModel?.stats;
 
   return (
     <div className="space-y-6">
@@ -1182,11 +1135,11 @@ function CustomersTab() {
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => actions.searchCustomers(e.target.value)}
           placeholder="🔍 ค้นหาชื่อหรือเบอร์โทร..."
           className="flex-1 px-4 py-3 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-foreground placeholder-muted"
         />
-        <GlowButton color="orange" onClick={() => setIsAddModalOpen(true)}>
+        <GlowButton color="orange" onClick={actions.openAddModal}>
           ➕ เพิ่ม
         </GlowButton>
       </div>
@@ -1229,11 +1182,11 @@ function CustomersTab() {
                   <AnimatedButton 
                     variant={customer.isVip ? 'secondary' : 'primary'} 
                     size="sm" 
-                    onClick={() => handleToggleVip(customer)}
+                    onClick={() => actions.toggleVipStatus(customer)}
                   >
                     {customer.isVip ? '⭐ ยกเลิก' : '⭐ VIP'}
                   </AnimatedButton>
-                  <AnimatedButton variant="danger" size="sm" onClick={() => handleDelete(customer.id)}>
+                  <AnimatedButton variant="danger" size="sm" onClick={() => actions.deleteCustomer(customer.id)}>
                     🗑️
                   </AnimatedButton>
                 </div>
@@ -1247,12 +1200,8 @@ function CustomersTab() {
       {isAddModalOpen && (
         <Portal>
           <AddCustomerModal 
-            onClose={() => setIsAddModalOpen(false)}
-            onSave={async (data) => {
-              await customerRepository.create(data);
-              await loadData();
-              setIsAddModalOpen(false);
-            }}
+            onClose={actions.closeAddModal}
+            onSave={actions.createCustomer}
           />
         </Portal>
       )}

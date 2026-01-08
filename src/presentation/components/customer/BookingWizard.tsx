@@ -4,119 +4,29 @@ import type { Machine } from '@/src/application/repositories/IMachineRepository'
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import {
+  BookingData,
+  BookingStep,
+  useBookingWizardPresenter
+} from '@/src/presentation/presenters/bookingWizard/useBookingWizardPresenter';
 import type { MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
-import { createClientCustomerPresenter } from '@/src/presentation/presenters/customer/CustomerPresenterClientFactory';
-import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-// Step definitions
-type BookingStep = 'phone' | 'machine' | 'duration' | 'confirm';
-
-interface BookingData {
-  customerPhone: string;
-  customerName: string;
-  machineId: string;
-  machineName: string;
-  duration: number;
-  isExistingCustomer: boolean;
-  estimatedWait: number;
-  queuePosition: number;
-}
-
+/**
+ * BookingWizard
+ * View component for the multi-step booking process
+ * ✅ Following Clean Architecture pattern - uses useBookingWizardPresenter hook
+ */
 export function BookingWizard() {
-  // Get saved customer info from store
-  const { customerInfo, setCustomerInfo } = useCustomerStore();
-  
-  const [currentStep, setCurrentStep] = useState<BookingStep>('phone');
-  const [bookingData, setBookingData] = useState<BookingData>({
-    customerPhone: customerInfo.phone || '',
-    customerName: customerInfo.name || '',
-    machineId: '',
-    machineName: '',
-    duration: 30,
-    isExistingCustomer: false,
-    estimatedWait: 0,
-    queuePosition: 1,
-  });
-  const [machines, setMachines] = useState<Machine[]>([]);
-  const [machineQueueInfo, setMachineQueueInfo] = useState<Record<string, MachineQueueInfo>>({});
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<{ queueId: string; position: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const presenter = createClientCustomerPresenter();
-
-  // Load machines - ALL machines, not just available
-  useEffect(() => {
-    const loadMachines = async () => {
-      try {
-        const viewModel = await presenter.getViewModel();
-        // FIXED: Use ALL machines, not just available
-        setMachines(viewModel.machines.filter(m => m.isActive && m.status !== 'maintenance'));
-        setMachineQueueInfo(viewModel.machineQueueInfo);
-      } catch (err) {
-        console.error('Error loading machines:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadMachines();
-  }, [presenter]);
+  const [state, actions] = useBookingWizardPresenter();
+  const { viewModel, loading, error, currentStep, bookingData, submitting, success } = state;
 
   // Progress calculation
   const steps: BookingStep[] = ['phone', 'machine', 'duration', 'confirm'];
   const currentStepIndex = steps.indexOf(currentStep);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
-
-  const goNext = () => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < steps.length) {
-      setCurrentStep(steps[nextIndex]);
-    }
-  };
-
-  const goBack = () => {
-    const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentStep(steps[prevIndex]);
-    }
-  };
-
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const bookingTime = new Date();
-      bookingTime.setMinutes(bookingTime.getMinutes() + 5);
-
-      const result = await presenter.createBooking({
-        machineId: bookingData.machineId,
-        customerName: bookingData.customerName,
-        customerPhone: bookingData.customerPhone,
-        bookingTime: bookingTime.toISOString(),
-        duration: bookingData.duration,
-      });
-
-      // Save customer info to store for next time
-      setCustomerInfo({
-        phone: bookingData.customerPhone,
-        name: bookingData.customerName,
-      });
-
-      setSuccess({
-        queueId: result.id,
-        position: result.position,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   // Success Screen
   if (success) {
@@ -196,36 +106,35 @@ export function BookingWizard() {
               value={bookingData.customerPhone}
               name={bookingData.customerName}
               onChange={(phone, name, isExisting) => 
-                setBookingData({ ...bookingData, customerPhone: phone, customerName: name, isExistingCustomer: isExisting })
+                actions.updateBookingData({ customerPhone: phone, customerName: name, isExistingCustomer: isExisting })
               }
-              onNext={goNext}
+              onNext={actions.goNext}
             />
           )}
 
           {currentStep === 'machine' && (
             <MachineStep
-              machines={machines}
-              machineQueueInfo={machineQueueInfo}
+              machines={viewModel?.machines || []}
+              machineQueueInfo={viewModel?.machineQueueInfo || {}}
               loading={loading}
               selectedId={bookingData.machineId}
-              onSelect={(id, name, waitTime, position) => setBookingData({ 
-                ...bookingData, 
+              onSelect={(id, name, waitTime, position) => actions.updateBookingData({ 
                 machineId: id, 
                 machineName: name,
                 estimatedWait: waitTime,
                 queuePosition: position 
               })}
-              onNext={goNext}
-              onBack={goBack}
+              onNext={actions.goNext}
+              onBack={actions.goBack}
             />
           )}
 
           {currentStep === 'duration' && (
             <DurationStep
               value={bookingData.duration}
-              onChange={(duration) => setBookingData({ ...bookingData, duration })}
-              onNext={goNext}
-              onBack={goBack}
+              onChange={(duration) => actions.updateBookingData({ duration })}
+              onNext={actions.goNext}
+              onBack={actions.goBack}
             />
           )}
 
@@ -234,8 +143,8 @@ export function BookingWizard() {
               data={bookingData}
               submitting={submitting}
               error={error}
-              onSubmit={handleSubmit}
-              onBack={goBack}
+              onSubmit={actions.submitBooking}
+              onBack={actions.goBack}
             />
           )}
         </animated.div>
@@ -255,7 +164,6 @@ interface PhoneStepProps {
 function PhoneStep({ value, name, onChange, onNext }: PhoneStepProps) {
   const [phone, setPhone] = useState(value);
   const [customerName, setCustomerName] = useState(name);
-  const [checking, setChecking] = useState(false);
 
   const formatPhone = (input: string) => {
     const digits = input.replace(/\D/g, '').slice(0, 10);
@@ -368,7 +276,7 @@ function MachineStep({ machines, machineQueueInfo, loading, selectedId, onSelect
       return { 
         label: '🏁 กำลังใช้งาน', 
         color: 'text-orange-400',
-        sublabel: queueInfo.waitingCount > 0 
+        sublabel: queueInfo && queueInfo.waitingCount > 0 
           ? `รอ ${queueInfo.waitingCount} คน (~${waitMinutes} นาที)`
           : `รอ ~${waitMinutes} นาที`
       };
