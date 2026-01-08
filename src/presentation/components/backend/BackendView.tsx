@@ -1216,6 +1216,11 @@ function QueueRow({ queue }: { queue: { id: string; customerName: string; status
 function CustomersTab() {
   const [state, actions] = useCustomersPresenter();
   const { viewModel, loading, searchQuery, isAddModalOpen } = state;
+  
+  // Filter and pagination state
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -1232,8 +1237,79 @@ function CustomersTab() {
     );
   }
 
-  const customers = viewModel?.customers || [];
+  const allCustomers = viewModel?.customers || [];
   const stats = viewModel?.stats;
+
+  // Calculate today date for "new today" filter
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Filter customers based on active filter
+  const getFilteredCustomers = () => {
+    let filtered = allCustomers;
+    
+    // Apply search first
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.phone.includes(query)
+      );
+    }
+    
+    // Apply filter
+    switch (activeFilter) {
+      case 'vip':
+        return filtered.filter(c => c.isVip);
+      case 'new':
+        return filtered.filter(c => {
+          const createdAt = new Date(c.createdAt);
+          createdAt.setHours(0, 0, 0, 0);
+          return createdAt.getTime() === today.getTime();
+        });
+      case 'regular':
+        return filtered.filter(c => c.visitCount >= 3);
+      default:
+        return filtered;
+    }
+  };
+
+  const filteredCustomers = getFilteredCustomers();
+  
+  // Pagination
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCustomers = filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset page when filter/search changes
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleSearch = (query: string) => {
+    actions.searchCustomers(query);
+    setCurrentPage(1);
+  };
+
+  // Count by filter for badges
+  const filterCounts = {
+    all: allCustomers.length,
+    vip: allCustomers.filter(c => c.isVip).length,
+    new: allCustomers.filter(c => {
+      const createdAt = new Date(c.createdAt);
+      createdAt.setHours(0, 0, 0, 0);
+      return createdAt.getTime() === today.getTime();
+    }).length,
+    regular: allCustomers.filter(c => c.visitCount >= 3).length,
+  };
+
+  const filterButtons = [
+    { key: 'all', label: 'ทั้งหมด', icon: '👥', color: 'from-gray-500 to-gray-600' },
+    { key: 'vip', label: 'VIP', icon: '⭐', color: 'from-amber-500 to-orange-600' },
+    { key: 'new', label: 'ใหม่วันนี้', icon: '🆕', color: 'from-emerald-500 to-green-600' },
+    { key: 'regular', label: 'ลูกค้าประจำ', icon: '🔄', color: 'from-purple-500 to-pink-600' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -1247,12 +1323,37 @@ function CustomersTab() {
         </div>
       )}
 
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        {filterButtons.map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => handleFilterChange(btn.key)}
+            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              activeFilter === btn.key
+                ? `bg-gradient-to-r ${btn.color} text-white shadow-lg`
+                : 'bg-surface border border-border text-muted hover:text-foreground hover:border-amber-500/50'
+            }`}
+          >
+            <span>{btn.icon}</span>
+            <span>{btn.label}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs ${
+              activeFilter === btn.key 
+                ? 'bg-white/20' 
+                : 'bg-muted-light'
+            }`}>
+              {filterCounts[btn.key as keyof typeof filterCounts]}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Search & Add */}
       <div className="flex gap-3">
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => actions.searchCustomers(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           placeholder="🔍 ค้นหาชื่อหรือเบอร์โทร..."
           className="flex-1 px-4 py-3 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-foreground placeholder-muted"
         />
@@ -1261,15 +1362,32 @@ function CustomersTab() {
         </GlowButton>
       </div>
 
+      {/* Results info */}
+      <div className="flex justify-between items-center text-sm text-muted">
+        <span>
+          แสดง {paginatedCustomers.length} จาก {filteredCustomers.length} รายการ
+          {activeFilter !== 'all' && ` (กรอง: ${filterButtons.find(b => b.key === activeFilter)?.label})`}
+        </span>
+        {totalPages > 1 && (
+          <span>หน้า {currentPage} / {totalPages}</span>
+        )}
+      </div>
+
       {/* Customer List */}
-      {customers.length === 0 ? (
+      {paginatedCustomers.length === 0 ? (
         <AnimatedCard className="p-8 text-center">
           <div className="text-4xl mb-4">👥</div>
-          <p className="text-muted">ไม่พบลูกค้า</p>
+          <p className="text-muted">
+            {searchQuery 
+              ? `ไม่พบลูกค้าที่ตรงกับ "${searchQuery}"` 
+              : activeFilter !== 'all'
+                ? `ไม่มีลูกค้าในหมวด "${filterButtons.find(b => b.key === activeFilter)?.label}"`
+                : 'ยังไม่มีลูกค้า'}
+          </p>
         </AnimatedCard>
       ) : (
         <div className="space-y-3">
-          {customers.map((customer) => (
+          {paginatedCustomers.map((customer) => (
             <AnimatedCard key={customer.id} className="p-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
@@ -1285,6 +1403,9 @@ function CustomersTab() {
                       <span className="font-bold text-foreground">{customer.name}</span>
                       {customer.isVip && (
                         <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-full">VIP</span>
+                      )}
+                      {customer.visitCount >= 3 && !customer.isVip && (
+                        <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs font-bold rounded-full">ประจำ</span>
                       )}
                     </div>
                     <span className="text-sm text-muted">{customer.phone}</span>
@@ -1310,6 +1431,67 @@ function CustomersTab() {
               </div>
             </AnimatedCard>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 pt-4">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-surface border border-border rounded-lg text-foreground hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ← ก่อนหน้า
+          </button>
+          
+          <div className="flex gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'bg-surface border border-border text-muted hover:text-foreground hover:border-amber-500/50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            {totalPages > 5 && currentPage < totalPages - 2 && (
+              <>
+                <span className="px-2 text-muted">...</span>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  className="w-10 h-10 rounded-lg text-sm font-medium bg-surface border border-border text-muted hover:text-foreground"
+                >
+                  {totalPages}
+                </button>
+              </>
+            )}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-surface border border-border rounded-lg text-foreground hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ถัดไป →
+          </button>
         </div>
       )}
 
