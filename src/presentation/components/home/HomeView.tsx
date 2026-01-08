@@ -2,6 +2,7 @@
 
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { HomePageSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { HomeViewModel } from '@/src/presentation/presenters/home/HomePresenter';
 import { useHomePresenter } from '@/src/presentation/presenters/home/useHomePresenter';
 import { animated, config, useSpring } from '@react-spring/web';
@@ -19,16 +20,9 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
   // NOTE: Removed heroSpring and statsSpring for performance
   // Using CSS animations instead (animate-hero-in, animate-section-in)
 
-  // Loading state
+  // Loading state - using Skeleton UI instead of spinner
   if (state.loading && !viewModel) {
-    return (
-      <div className="h-full flex items-center justify-center bg-racing-gradient">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin-glow mx-auto mb-4" />
-          <p className="text-muted animate-pulse">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <HomePageSkeleton />;
   }
 
   // Error state

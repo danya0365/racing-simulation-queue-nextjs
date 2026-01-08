@@ -5,6 +5,7 @@ import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton'
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
+import { CustomerViewSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { BookingFormData, CustomerViewModel, MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
@@ -23,16 +24,9 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
   // NOTE: Removed pageSpring for better performance
   // Using CSS animations instead (animate-page-in)
 
-  // Loading state
+  // Loading state - using Skeleton UI instead of spinner
   if (state.loading && !viewModel) {
-    return (
-      <div className="h-full flex items-center justify-center bg-racing-gradient">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin-glow mx-auto mb-4" />
-          <p className="text-muted animate-pulse">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <CustomerViewSkeleton />;
   }
 
   // Error state

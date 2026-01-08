@@ -2,6 +2,7 @@
 
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
+import { QueueStatusSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { QueueStatusData } from '@/src/presentation/presenters/queueStatus/QueueStatusPresenter';
 import { useQueueStatusPresenter } from '@/src/presentation/presenters/queueStatus/useQueueStatusPresenter';
 import { animated, useSpring } from '@react-spring/web';
@@ -54,16 +55,9 @@ export function MyQueueStatusView() {
     );
   }
 
-  // Loading state
+  // Loading state - using Skeleton UI instead of spinner
   if (loading && !viewModel) {
-    return (
-      <div className="h-full flex items-center justify-center bg-racing-gradient">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin-glow mx-auto mb-4" />
-          <p className="text-muted animate-pulse">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
+    return <QueueStatusSkeleton />;
   }
 
   const waitingQueues = viewModel?.waitingQueues || [];
