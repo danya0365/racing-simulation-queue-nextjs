@@ -1,11 +1,11 @@
 import {
-    CreateQueueData,
-    IQueueRepository,
-    PaginatedResult,
-    Queue,
-    QueueStats,
-    QueueStatus,
-    UpdateQueueData
+  CreateQueueData,
+  IQueueRepository,
+  PaginatedResult,
+  Queue,
+  QueueStats,
+  QueueStatus,
+  UpdateQueueData
 } from '@/src/application/repositories/IQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -16,7 +16,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
   async getById(id: string): Promise<Queue | null> {
     const { data, error } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .eq('id', id)
       .single();
 
@@ -28,7 +28,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
   async getAll(): Promise<Queue[]> {
     const { data, error } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .order('booking_time', { ascending: true });
 
     if (error) return [];
@@ -38,7 +38,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
   async getByMachineId(machineId: string): Promise<Queue[]> {
     const { data, error } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .eq('machine_id', machineId)
       .order('position', { ascending: true });
 
@@ -52,7 +52,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
     // but filter by waiting status
     const { data, error } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .eq('status', 'waiting')
       .order('booking_time', { ascending: true });
 
@@ -68,7 +68,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
 
     const { data, error } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .gte('booking_time', today.toISOString())
       .lt('booking_time', tomorrow.toISOString())
       .order('booking_time', { ascending: true });
@@ -83,7 +83,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
 
     const { data, error, count } = await this.supabase
       .from('queues')
-      .select('*, machines(name), customers(name, phone)', { count: 'exact' })
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
 
@@ -130,7 +130,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
         booking_time: data.bookingTime,
       })
       .eq('id', id)
-      .select('*, machines(name), customers(name, phone)')
+      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
       .single();
 
     if (error) throw error;
