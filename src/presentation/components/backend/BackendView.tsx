@@ -7,7 +7,10 @@ import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton'
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
-import { BackendSkeleton } from '@/src/presentation/components/ui/Skeleton';
+import {
+  BackendSkeleton,
+  CustomersTabSkeleton
+} from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { useCustomersPresenter } from '@/src/presentation/presenters/customers/useCustomersPresenter';
@@ -1231,11 +1234,7 @@ function CustomersTab() {
   };
 
   if (loading && !viewModel) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-12 h-12 border-4 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
-      </div>
-    );
+    return <CustomersTabSkeleton />;
   }
 
   const allCustomers = viewModel?.customers || [];

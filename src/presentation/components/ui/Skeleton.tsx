@@ -281,3 +281,262 @@ export function CustomerViewSkeleton() {
     </div>
   );
 }
+
+/**
+ * Dashboard Tab Skeleton
+ */
+export function DashboardTabSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-28 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Charts / Summary Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <Skeleton className="h-5 w-40 mb-4" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <SkeletonCircle size="w-8 h-8" />
+                  <SkeletonText width="w-32" />
+                </div>
+                <SkeletonText width="w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <Skeleton className="h-5 w-40 mb-4" />
+          <Skeleton className="h-48 w-full rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Live Control Tab Skeleton
+ */
+export function LiveControlTabSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Machine Control Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-surface border border-border rounded-xl p-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <SkeletonCircle size="w-12 h-12 rounded-xl" />
+                <div className="space-y-1">
+                  <Skeleton className="h-5 w-24" />
+                  <SkeletonText width="w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            {/* Current Queue */}
+            <div className="mb-4 p-3 bg-background rounded-lg">
+              <SkeletonText width="w-20 mb-2" />
+              <div className="flex items-center gap-2">
+                <SkeletonCircle size="w-8 h-8" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-4 w-32" />
+                  <SkeletonText width="w-24" />
+                </div>
+              </div>
+            </div>
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Skeleton className="flex-1 h-10 rounded-xl" />
+              <Skeleton className="flex-1 h-10 rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Queues Tab Skeleton
+ */
+export function QueuesTabSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-6 w-32" />
+      </div>
+
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-10 w-28 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Queue List */}
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="bg-surface border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SkeletonCircle size="w-12 h-12" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <div className="flex gap-3">
+                    <SkeletonText width="w-20" />
+                    <SkeletonText width="w-16" />
+                    <SkeletonText width="w-24" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center gap-2 pt-4">
+        <Skeleton className="h-10 w-24 rounded-lg" />
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-10 w-10 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-24 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Machines Tab Skeleton
+ */
+export function MachinesTabSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-10 w-32 rounded-xl" />
+      </div>
+
+      {/* Machine Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="bg-surface border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <SkeletonCircle size="w-12 h-12 rounded-xl" />
+                <div className="space-y-1">
+                  <Skeleton className="h-5 w-28" />
+                  <SkeletonText width="w-20" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <SkeletonText width="w-full mb-4" />
+            <div className="flex gap-2">
+              <Skeleton className="flex-1 h-9 rounded-lg" />
+              <Skeleton className="flex-1 h-9 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Customers Tab Skeleton
+ */
+export function CustomersTabSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-10 w-28 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Search & Add */}
+      <div className="flex gap-3">
+        <Skeleton className="flex-1 h-12 rounded-xl" />
+        <Skeleton className="h-12 w-24 rounded-xl" />
+      </div>
+
+      {/* Results Info */}
+      <div className="flex justify-between">
+        <SkeletonText width="w-48" />
+        <SkeletonText width="w-24" />
+      </div>
+
+      {/* Customer List */}
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="bg-surface border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <SkeletonCircle size="w-12 h-12" />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                  <SkeletonText width="w-28" />
+                  <div className="flex gap-3">
+                    <SkeletonText width="w-16" />
+                    <SkeletonText width="w-20" />
+                    <SkeletonText width="w-16" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-20 rounded-lg" />
+                <Skeleton className="h-9 w-10 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center gap-2 pt-4">
+        <Skeleton className="h-10 w-24 rounded-lg" />
+        <div className="flex gap-1">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-10 w-10 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-24 rounded-lg" />
+      </div>
+    </div>
+  );
+}
