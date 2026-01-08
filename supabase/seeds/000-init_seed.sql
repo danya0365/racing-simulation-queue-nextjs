@@ -217,15 +217,96 @@ SET role = 'admin'::public.profile_role;
 SELECT public.migrate_profile_roles();
 
 -- ============================================================================
--- AI CONTENT CREATOR: Seed Content Types
--- Created: 2026-01-04
+-- RACING SYSTEM: Seed Machines
 -- ============================================================================
-INSERT INTO public.ai_content_types (id, name, name_th, description, description_th, icon, color, prompt_template, suggested_time_slots)
+INSERT INTO public.machines (id, name, description, position, status, is_active)
 VALUES
-  ('morning-news', 'Morning News Summary', 'สรุปข่าวเช้า', 'Daily news summary in pixel art style', 'สรุปข่าวประจำวันแบบ Pixel Art', '📰', '#FFB347', 'Create a pixel art illustration about: {topic}', ARRAY['morning']),
-  ('food', 'Food & Recipe', 'อาหารและสูตร', 'Delicious food in pixel art', 'อาหารอร่อยแบบ Pixel Art', '🍜', '#FF6B6B', 'Create a pixel art of delicious {topic}', ARRAY['lunch', 'evening']),
-  ('entertainment', 'Entertainment & Meme', 'ความบันเทิงและมีม', 'Fun entertainment content', 'คอนเทนต์สนุกๆ และมีม', '😂', '#C9B1FF', 'Create a funny pixel art meme about: {topic}', ARRAY['afternoon', 'evening']),
-  ('tech-tips', 'Tech Tips', 'เคล็ดลับเทคโนโลยี', 'Technology tips and tricks', 'เคล็ดลับเทคโนโลยี', '💻', '#4ECDC4', 'Create a pixel art illustration about tech tip: {topic}', ARRAY['afternoon']),
-  ('daily-motivation', 'Daily Motivation', 'คำคมประจำวัน', 'Inspirational quotes', 'คำคมสร้างแรงบันดาลใจ', '✨', '#FFD93D', 'Create an inspiring pixel art about: {topic}', ARRAY['morning']),
-  ('gaming', 'Gaming Content', 'คอนเทนต์เกม', 'Gaming news and reviews', 'ข่าวเกมและรีวิว', '🎮', '#6C5CE7', 'Create a pixel art about gaming: {topic}', ARRAY['evening'])
+  ('00000000-0000-0000-0000-000000000101', 'Racing Sim 1', 'เครื่อง Formula Racing Simulator พร้อมพวงมาลัย Fanatec GT DD Pro', 1, 'available', TRUE),
+  ('00000000-0000-0000-0000-000000000102', 'Racing Sim 2', 'เครื่อง GT Racing Simulator พร้อมพวงมาลัย Thrustmaster T300RS', 2, 'available', TRUE),
+  ('00000000-0000-0000-0000-000000000103', 'Racing Sim 3', 'เครื่อง Rally Racing Simulator พร้อมพวงมาลัย Logitech G923', 3, 'available', TRUE),
+  ('00000000-0000-0000-0000-000000000104', 'Racing Sim 4', 'เครื่อง Drift Simulator พร้อมจอโค้ง Ultrawide 49 นิ้ว', 4, 'available', TRUE),
+  ('00000000-0000-0000-0000-000000000105', 'Racing Sim 5', 'เครื่อง F1 Simulator VIP พร้อมระบบ Motion Platform', 5, 'available', TRUE),
+  ('00000000-0000-0000-0000-000000000106', 'Racing Sim 6', 'เครื่อง Endurance Simulator ระดับ Pro สำหรับ E-Sports', 6, 'maintenance', FALSE)
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- RACING SYSTEM: Seed Customers (Additional)
+-- ============================================================================
+INSERT INTO public.customers (id, name, phone, visit_count, total_play_time, is_vip, created_at)
+VALUES
+  ('00000000-0000-0000-0000-000000000201', 'สมชาย ใจดี', '0812345678', 12, 720, TRUE, NOW() - INTERVAL '60 days'),
+  ('00000000-0000-0000-0000-000000000202', 'สมหญิง รักเกม', '0823456789', 8, 480, TRUE, NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000203', 'วิชัย เร็วแรง', '0834567890', 5, 300, FALSE, NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000204', 'มานี มีสุข', '0845678901', 3, 180, FALSE, NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000205', 'ณัฐพล สปีด', '0856789012', 1, 60, FALSE, NOW() - INTERVAL '5 days'),
+  ('00000000-0000-0000-0000-000000000206', 'กิตติ F1', '0867890123', 20, 1200, TRUE, NOW() - INTERVAL '90 days'),
+  ('00000000-0000-0000-0000-000000000207', 'อนันดา ขาซิ่ง', '0878901234', 2, 120, FALSE, NOW() - INTERVAL '10 days'),
+  ('00000000-0000-0000-0000-000000000208', 'แพรวพราว เรซซิ่ง', '0889012345', 15, 900, TRUE, NOW() - INTERVAL '40 days'),
+  ('00000000-0000-0000-0000-000000000209', 'โชติช่วง ชำนาญ', '0890123456', 4, 240, FALSE, NOW() - INTERVAL '15 days'),
+  ('00000000-0000-0000-0000-000000000210', 'ธันวา พาสนุก', '0801234567', 1, 30, FALSE, NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- RACING SYSTEM: Seed Historical Queues (Last 30 Days)
+-- ============================================================================
+-- This block generates random historical data
+DO $$
+DECLARE
+    v_machine_id UUID;
+    v_customer_id UUID;
+    v_day RECORD;
+    v_hour RECORD;
+    v_status public.queue_status;
+    v_duration INTEGER;
+BEGIN
+    -- Loop through the last 30 days
+    FOR v_day IN SELECT generate_series(CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE, '1 day')::date as d LOOP
+        
+        -- Generate 5-15 bookings per day
+        FOR i IN 1..(floor(random() * 11 + 5)) LOOP
+            
+            -- Pick a random machine
+            SELECT id INTO v_machine_id FROM public.machines ORDER BY random() LIMIT 1;
+            
+            -- Pick a random customer (including potential guests who aren't in the table, but for seed we use existing)
+            SELECT id INTO v_customer_id FROM public.customers ORDER BY random() LIMIT 1;
+            
+            -- Status distribution: mostly completed, some cancelled
+            IF random() < 0.15 THEN
+                v_status := 'cancelled';
+            ELSE
+                v_status := 'completed';
+            END IF;
+
+            -- If it's today, allow waiting/playing
+            IF v_day.d = CURRENT_DATE THEN
+                IF random() < 0.2 THEN
+                    v_status := 'waiting';
+                ELSIF random() < 0.4 THEN
+                    v_status := 'playing';
+                END IF;
+            END IF;
+
+            -- Duration: 30, 60, 90, 120
+            v_duration := (ARRAY[30, 60, 90, 120])[floor(random() * 4 + 1)];
+
+            INSERT INTO public.queues (
+                machine_id, 
+                customer_id, 
+                booking_time, 
+                duration, 
+                status, 
+                position, 
+                created_at
+            ) VALUES (
+                v_machine_id,
+                v_customer_id,
+                v_day.d + (floor(random() * 12 + 10) || ' hours')::interval + (floor(random() * 60) || ' minutes')::interval,
+                v_duration,
+                v_status,
+                1,
+                v_day.d + (floor(random() * 24) || ' hours')::interval
+            );
+        END LOOP;
+    END LOOP;
+END $$;
