@@ -1,7 +1,7 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SingleQueueViewModel } from './SingleQueuePresenter';
 import { createClientSingleQueuePresenter } from './SingleQueuePresenterClientFactory';
 
@@ -38,6 +38,12 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
 
   const { activeBookings, removeBooking, updateBooking } = useCustomerStore();
   const localBooking = activeBookings.find(b => b.id === queueId);
+  
+  // Use ref to keep track of local booking without triggering loadData recreation
+  const localBookingRef = useRef(localBooking);
+  useEffect(() => {
+    localBookingRef.current = localBooking;
+  }, [localBooking]);
 
   /**
    * Load queue data
@@ -48,32 +54,37 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
 
     try {
       const vm = await presenter.getViewModel(queueId);
+      const currentLocal = localBookingRef.current;
       
       if (vm.queue) {
-        // Update local store with latest status
-        updateBooking(queueId, {
-          status: vm.queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-          position: vm.queue.position,
-        });
+        // Only update local store if data actually changed to prevent loops
+        if (!currentLocal || 
+            currentLocal.status !== vm.queue.status || 
+            currentLocal.position !== vm.queue.position) {
+          updateBooking(queueId, {
+            status: vm.queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
+            position: vm.queue.position,
+          });
+        }
         setViewModel(vm);
-      } else if (localBooking) {
+      } else if (currentLocal) {
         // Use local storage data if server doesn't have it
         setViewModel({
           queue: {
-            id: localBooking.id,
-            machineId: localBooking.machineId,
-            customerName: localBooking.customerName,
-            customerPhone: localBooking.customerPhone,
-            bookingTime: localBooking.bookingTime,
-            duration: localBooking.duration,
-            status: localBooking.status,
-            position: localBooking.position,
-            createdAt: localBooking.createdAt,
-            updatedAt: localBooking.createdAt,
+            id: currentLocal.id,
+            machineId: currentLocal.machineId,
+            customerName: currentLocal.customerName,
+            customerPhone: currentLocal.customerPhone,
+            bookingTime: currentLocal.bookingTime,
+            duration: currentLocal.duration,
+            status: currentLocal.status,
+            position: currentLocal.position,
+            createdAt: currentLocal.createdAt,
+            updatedAt: currentLocal.createdAt,
           },
           machine: { 
-            id: localBooking.machineId, 
-            name: localBooking.machineName,
+            id: currentLocal.machineId, 
+            name: currentLocal.machineName,
             description: '',
             position: 0,
             status: 'available' as const,
@@ -81,7 +92,7 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
             createdAt: '',
             updatedAt: '',
           },
-          queueAhead: Math.max(0, localBooking.position - 1),
+          queueAhead: Math.max(0, currentLocal.position - 1),
         });
       } else {
         setError('ไม่พบข้อมูลคิว');
@@ -93,7 +104,7 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
     } finally {
       setLoading(false);
     }
-  }, [queueId, updateBooking, localBooking]);
+  }, [queueId, updateBooking]); // Removed localBooking from dependencies
 
   /**
    * Cancel queue
