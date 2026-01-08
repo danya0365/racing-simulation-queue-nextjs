@@ -32,12 +32,16 @@ export class HomePresenter {
   async getViewModel(): Promise<HomeViewModel> {
     try {
       // Get data in parallel for better performance
-      const [machines, machineStats, waitingQueues, queueStats] = await Promise.all([
+      const [allMachines, machineStats, waitingQueues, queueStats] = await Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getStats(),
         this.queueRepository.getWaiting(),
         this.queueRepository.getStats(),
       ]);
+
+      // Filter only active machines for client display
+      // isActive = false means hidden from clients completely
+      const machines = allMachines.filter(m => m.isActive);
 
       return {
         machines,

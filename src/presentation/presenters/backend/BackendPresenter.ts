@@ -136,4 +136,23 @@ export class BackendPresenter {
       throw error;
     }
   }
+
+  /**
+   * Update machine details (name, description, position, isActive, status, etc.)
+   */
+  async updateMachine(machineId: string, data: {
+    name?: string;
+    description?: string;
+    position?: number;
+    imageUrl?: string;
+    isActive?: boolean;
+    status?: MachineStatus;
+  }): Promise<Machine> {
+    try {
+      return await this.machineRepository.update(machineId, data);
+    } catch (error) {
+      console.error('Error updating machine:', error);
+      throw error;
+    }
+  }
 }

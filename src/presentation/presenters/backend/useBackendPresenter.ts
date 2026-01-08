@@ -9,6 +9,15 @@ import { createClientBackendPresenter } from './BackendPresenterClientFactory';
 // Initialize presenter instance once (singleton pattern)
 const presenter = createClientBackendPresenter();
 
+export interface MachineUpdateData {
+  name?: string;
+  description?: string;
+  position?: number;
+  imageUrl?: string;
+  isActive?: boolean;
+  status?: MachineStatus;
+}
+
 export interface BackendPresenterState {
   viewModel: BackendViewModel | null;
   loading: boolean;
@@ -27,6 +36,7 @@ export interface BackendPresenterActions {
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
   updateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
+  updateMachine: (machineId: string, data: MachineUpdateData) => Promise<void>;
   deleteQueue: (queueId: string) => Promise<void>;
   resetMachineQueue: (machineId: string) => Promise<void>;
   setError: (error: string | null) => void;
@@ -108,6 +118,25 @@ export function useBackendPresenter(
 
     try {
       await presenter.updateMachineStatus(machineId, status);
+      await refreshData();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [refreshData]);
+
+  /**
+   * Update machine details (name, description, isActive, etc.)
+   */
+  const updateMachine = useCallback(async (machineId: string, data: MachineUpdateData) => {
+    setIsUpdating(true);
+    setError(null);
+
+    try {
+      await presenter.updateMachine(machineId, data);
       await refreshData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -205,6 +234,7 @@ export function useBackendPresenter(
       selectMachine,
       updateQueueStatus,
       updateMachineStatus,
+      updateMachine,
       deleteQueue,
       resetMachineQueue,
       setError,

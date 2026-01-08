@@ -294,7 +294,9 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
   };
 
   const statusConfig = getStatusConfig(machine.status);
-  const canBook = machine.isActive && machine.status !== 'maintenance';
+  // Since only active machines are shown (filtered by presenter),
+  // we only check status for booking availability
+  const canBook = machine.status === 'available';
 
   return (
       <AnimatedCard
