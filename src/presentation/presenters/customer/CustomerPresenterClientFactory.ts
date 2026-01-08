@@ -1,18 +1,13 @@
-/**
- * CustomerPresenterClientFactory
- * Factory for creating CustomerPresenter instances on the client side
- */
-
-'use client';
-
-import { MockMachineRepository } from '@/src/infrastructure/repositories/mock/MockMachineRepository';
-import { MockQueueRepository } from '@/src/infrastructure/repositories/mock/MockQueueRepository';
+import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
+import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
+import { createClient } from '@/src/infrastructure/supabase/client';
 import { CustomerPresenter } from './CustomerPresenter';
 
 export class CustomerPresenterClientFactory {
   static create(): CustomerPresenter {
-    const machineRepository = new MockMachineRepository();
-    const queueRepository = new MockQueueRepository();
+    const supabase = createClient();
+    const machineRepository = new SupabaseMachineRepository(supabase);
+    const queueRepository = new SupabaseQueueRepository(supabase);
 
     return new CustomerPresenter(machineRepository, queueRepository);
   }

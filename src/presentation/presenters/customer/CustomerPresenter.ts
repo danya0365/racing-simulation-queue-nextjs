@@ -52,7 +52,7 @@ export class CustomerPresenter {
         this.machineRepository.getAll(),
         this.machineRepository.getAvailable(),
         this.machineRepository.getStats(),
-        this.queueRepository.getAll(),
+        this.queueRepository.getToday(),
       ]);
 
       // Calculate queue info for each machine
