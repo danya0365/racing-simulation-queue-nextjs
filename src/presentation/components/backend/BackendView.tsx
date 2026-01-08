@@ -802,6 +802,10 @@ interface QueuesTabProps {
 }
 
 function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabProps) {
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
@@ -824,20 +828,84 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
     }
   };
 
+  // Filter queues by status
+  const filteredQueues = statusFilter === 'all' 
+    ? queues 
+    : queues.filter(q => q.status === statusFilter);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredQueues.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedQueues = filteredQueues.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filter changes
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
+  // Count by status for filter badges
+  const statusCounts = {
+    all: queues.length,
+    waiting: queues.filter(q => q.status === 'waiting').length,
+    playing: queues.filter(q => q.status === 'playing').length,
+    completed: queues.filter(q => q.status === 'completed').length,
+    cancelled: queues.filter(q => q.status === 'cancelled').length,
+  };
+
+  const filterButtons = [
+    { key: 'all', label: 'ทั้งหมด', icon: '📋', color: 'from-gray-500 to-gray-600' },
+    { key: 'waiting', label: 'รอคิว', icon: '⏳', color: 'from-purple-500 to-violet-600' },
+    { key: 'playing', label: 'กำลังเล่น', icon: '🏁', color: 'from-cyan-500 to-blue-600' },
+    { key: 'completed', label: 'เสร็จสิ้น', icon: '✅', color: 'from-emerald-500 to-green-600' },
+    { key: 'cancelled', label: 'ยกเลิก', icon: '❌', color: 'from-red-500 to-rose-600' },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold text-foreground">คิววันนี้ ({queues.length})</h3>
+        <h3 className="text-lg font-bold text-foreground">
+          คิววันนี้ ({filteredQueues.length}{statusFilter !== 'all' ? ` / ${queues.length}` : ''})
+        </h3>
       </div>
 
-      {queues.length === 0 ? (
+      {/* Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        {filterButtons.map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => handleFilterChange(btn.key)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              statusFilter === btn.key
+                ? `bg-gradient-to-r ${btn.color} text-white shadow-lg`
+                : 'bg-surface border border-border text-muted hover:bg-muted-light hover:text-foreground'
+            }`}
+          >
+            <span>{btn.icon}</span>
+            <span>{btn.label}</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+              statusFilter === btn.key 
+                ? 'bg-white/20' 
+                : 'bg-muted-light'
+            }`}>
+              {statusCounts[btn.key as keyof typeof statusCounts]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Queue List */}
+      {paginatedQueues.length === 0 ? (
         <AnimatedCard className="p-8 text-center">
           <div className="text-4xl mb-4">📋</div>
-          <p className="text-muted">ยังไม่มีคิววันนี้</p>
+          <p className="text-muted">
+            {statusFilter === 'all' ? 'ยังไม่มีคิววันนี้' : `ไม่มีคิวสถานะ "${getStatusConfig(statusFilter).label}"`}
+          </p>
         </AnimatedCard>
       ) : (
         <div className="space-y-3">
-          {queues.map((queue) => {
+          {paginatedQueues.map((queue) => {
             const statusConfig = getStatusConfig(queue.status);
             return (
               <AnimatedCard key={queue.id} className="p-4">
@@ -897,6 +965,65 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
               </AnimatedCard>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-lg bg-surface border border-border text-muted hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            ← ก่อนหน้า
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => {
+                // Show first, last, current, and pages around current
+                if (page === 1 || page === totalPages) return true;
+                if (Math.abs(page - currentPage) <= 1) return true;
+                return false;
+              })
+              .map((page, index, arr) => {
+                // Add ellipsis if there's a gap
+                const prevPage = arr[index - 1];
+                const showEllipsis = prevPage && page - prevPage > 1;
+                
+                return (
+                  <span key={page} className="flex items-center gap-1">
+                    {showEllipsis && <span className="px-2 text-muted">...</span>}
+                    <button
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                        currentPage === page
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                          : 'bg-surface border border-border text-muted hover:bg-muted-light'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </span>
+                );
+              })}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 rounded-lg bg-surface border border-border text-muted hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            ถัดไป →
+          </button>
+        </div>
+      )}
+
+      {/* Summary Footer */}
+      {filteredQueues.length > 0 && (
+        <div className="text-center text-sm text-muted">
+          แสดง {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredQueues.length)} จาก {filteredQueues.length} รายการ
         </div>
       )}
     </div>
