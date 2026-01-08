@@ -12,7 +12,7 @@ import type {
     AuthUser,
     UpdateProfileData
 } from '@/src/application/repositories/IAuthRepository';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthViewModel } from './AuthPresenter';
 import { createClientAuthPresenter } from './AuthPresenterClientFactory';
@@ -85,7 +85,17 @@ export function useAuthPresenter(
   initialViewModel?: AuthViewModel
 ): [AuthPresenterState, AuthPresenterActions] {
   const router = useRouter();
-
+  const searchParams = useSearchParams();
+  
+  // Get redirect URL from query params or default to /customer
+  const getRedirectUrl = useCallback(() => {
+    const redirectTo = searchParams.get('redirectTo');
+    // Safety check: only allow relative paths or same-origin URLs
+    if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith(window.location.origin))) {
+      return redirectTo;
+    }
+    return '/customer';
+  }, [searchParams]);
   // State
   const [user, setUser] = useState<AuthUser | null>(initialViewModel?.user || null);
   const [profile, setProfile] = useState<AuthProfile | null>(initialViewModel?.profile || null);
@@ -150,7 +160,7 @@ export function useAuthPresenter(
         } else {
           setUser(result.user || null);
           setSuccessMessage(result.message || 'สมัครสมาชิกสำเร็จ');
-          router.push('/customer');
+          router.push(getRedirectUrl());
         }
         return true;
       } else {
@@ -164,7 +174,7 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router]);
+  }, [router, getRedirectUrl]);
 
   /**
    * Sign in with email and password
@@ -183,7 +193,7 @@ export function useAuthPresenter(
         setSession(result.session || null);
         setIsAuthenticated(true);
         setSuccessMessage(result.message || 'เข้าสู่ระบบสำเร็จ');
-        router.push('/customer');
+        router.push(getRedirectUrl());
         return true;
       } else {
         setError(result.error || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
@@ -196,7 +206,7 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router]);
+  }, [router, getRedirectUrl]);
 
   /**
    * Sign in with OTP
@@ -246,7 +256,7 @@ export function useAuthPresenter(
         setOtpSent(false);
         setOtpPhone('');
         setSuccessMessage(result.message || 'ยืนยัน OTP สำเร็จ');
-        router.push('/customer');
+        router.push(getRedirectUrl());
         return true;
       } else {
         setError(result.error || 'เกิดข้อผิดพลาดในการยืนยัน OTP');
@@ -259,7 +269,7 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router]);
+  }, [router, getRedirectUrl]);
 
   /**
    * Sign in with OAuth provider
