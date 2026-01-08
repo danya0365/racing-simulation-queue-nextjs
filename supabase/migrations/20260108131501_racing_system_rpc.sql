@@ -121,11 +121,19 @@ CREATE OR REPLACE FUNCTION public.rpc_update_queue_status_admin(
     p_status public.queue_status
 )
 RETURNS BOOLEAN SECURITY DEFINER AS $$
+DECLARE
+    v_customer_id UUID;
+    v_queue_duration INTEGER;
 BEGIN
     IF NOT public.is_moderator_or_admin() THEN
         RAISE EXCEPTION 'Access denied. Admin only.';
     END IF;
     
+    -- Get customer_id and duration before updating status
+    SELECT customer_id, duration INTO v_customer_id, v_queue_duration 
+    FROM public.queues WHERE id = p_queue_id;
+    
+    -- Update queue status
     UPDATE public.queues SET status = p_status, updated_at = NOW() WHERE id = p_queue_id;
     
     -- If status is playing, set machine status to occupied
@@ -133,8 +141,24 @@ BEGIN
         UPDATE public.machines 
         SET status = 'occupied', current_queue_id = p_queue_id 
         WHERE id = (SELECT machine_id FROM public.queues WHERE id = p_queue_id);
-    ELSIF p_status IN ('completed', 'cancelled') THEN
+    ELSIF p_status = 'completed' THEN
         -- Clear machine if this was the current queue
+        UPDATE public.machines 
+        SET status = 'available', current_queue_id = NULL 
+        WHERE current_queue_id = p_queue_id;
+        
+        -- Increment customer's visit_count and total_play_time
+        IF v_customer_id IS NOT NULL THEN
+            UPDATE public.customers 
+            SET 
+                visit_count = COALESCE(visit_count, 0) + 1,
+                total_play_time = COALESCE(total_play_time, 0) + COALESCE(v_queue_duration, 0),
+                last_visit = NOW(),
+                updated_at = NOW()
+            WHERE id = v_customer_id;
+        END IF;
+    ELSIF p_status = 'cancelled' THEN
+        -- Clear machine if this was the current queue (no visit_count increment)
         UPDATE public.machines 
         SET status = 'available', current_queue_id = NULL 
         WHERE current_queue_id = p_queue_id;
