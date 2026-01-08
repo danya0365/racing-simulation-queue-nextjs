@@ -61,6 +61,15 @@ export function MainHeader() {
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
+          {/* Quick Booking Button */}
+          <Link 
+            href="/quick-booking"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transition-all"
+          >
+            <span>⚡</span>
+            <span>จองด่วน</span>
+          </Link>
+
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
