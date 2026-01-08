@@ -1,25 +1,15 @@
-/**
- * HomePresenterClientFactory
- * Factory for creating HomePresenter instances on the client side
- * ✅ Injects the appropriate repository (Mock or Real)
- */
-
-'use client';
-
-import { MockMachineRepository } from '@/src/infrastructure/repositories/mock/MockMachineRepository';
-import { MockQueueRepository } from '@/src/infrastructure/repositories/mock/MockQueueRepository';
+import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
+import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
+import { createClient } from '@/src/infrastructure/supabase/client';
 import { HomePresenter } from './HomePresenter';
 
 export class HomePresenterClientFactory {
   static create(): HomePresenter {
-    // ✅ Use Mock Repositories for development
-    const machineRepository = new MockMachineRepository();
-    const queueRepository = new MockQueueRepository();
-
-    // ⏳ TODO: Switch to Supabase Repositories when backend is ready
-    // const supabase = createClientSupabaseClient();
-    // const machineRepository = new SupabaseMachineRepository(supabase);
-    // const queueRepository = new SupabaseQueueRepository(supabase);
+    const supabase = createClient();
+    
+    // ✅ Using Supabase Repositories for production/real data
+    const machineRepository = new SupabaseMachineRepository(supabase);
+    const queueRepository = new SupabaseQueueRepository(supabase);
 
     return new HomePresenter(machineRepository, queueRepository);
   }
