@@ -6,12 +6,49 @@
 
 'use client';
 
+import { authConfig, getEnabledOAuthProviders, hasAnyOAuthProvider } from '@/src/config/auth.config';
 import { useAuthPresenter } from '@/src/presentation/presenters/auth/useAuthPresenter';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 
 export function RegisterView() {
+  const router = useRouter();
   const [state, actions] = useAuthPresenter();
+  const config = authConfig;
+  
+  // Check if registration is disabled
+  if (!config.email.allowRegistration) {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10">
+        <div className="w-full max-w-md">
+          <div className="bg-surface rounded-2xl shadow-xl border border-border p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-5xl">🔒</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              การสมัครสมาชิกปิดอยู่
+            </h1>
+            <p className="text-muted mb-6">
+              ขณะนี้ไม่เปิดรับสมัครสมาชิกใหม่<br />
+              กรุณาติดต่อผู้ดูแลระบบ
+            </p>
+            
+            <Link
+              href="/auth/login"
+              className="inline-block py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl font-medium hover:from-purple-400 hover:to-pink-500 transition-all shadow-lg shadow-purple-500/25"
+            >
+              ไปหน้าเข้าสู่ระบบ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // OAuth settings
+  const showOAuth = hasAnyOAuthProvider(config);
+  const enabledProviders = getEnabledOAuthProviders(config);
   
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -26,6 +63,19 @@ export function RegisterView() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
   const [termsError, setTermsError] = useState<string | null>(null);
+
+  /**
+   * Get OAuth provider icon
+   */
+  const getProviderIcon = (provider: string) => {
+    switch (provider) {
+      case 'google': return 'G';
+      case 'facebook': return <span className="text-blue-500">f</span>;
+      case 'github': return '⌨️';
+      case 'line': return <span className="text-green-500">💬</span>;
+      default: return '?';
+    }
+  };
 
   /**
    * Handle form submission
@@ -216,7 +266,7 @@ export function RegisterView() {
               )}
             </div>
 
-            {/* Phone */}
+            {/* Phone - Optional */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1">
                 เบอร์โทรศัพท์ <span className="text-muted text-xs">(ไม่บังคับ)</span>
@@ -384,43 +434,34 @@ export function RegisterView() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-surface text-muted">หรือสมัครด้วย</span>
-            </div>
-          </div>
+          {/* Divider - Only if OAuth is enabled */}
+          {showOAuth && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-surface text-muted">หรือสมัครด้วย</span>
+                </div>
+              </div>
 
-          {/* Social Register */}
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('google')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl">G</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('facebook')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl text-blue-500">f</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('line')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl text-green-500">💬</span>
-            </button>
-          </div>
+              {/* Social Register */}
+              <div className={`grid gap-3 ${enabledProviders.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {enabledProviders.map((provider) => (
+                  <button
+                    key={provider}
+                    type="button"
+                    onClick={() => actions.signInWithOAuth(provider)}
+                    disabled={state.isSubmitting}
+                    className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
+                  >
+                    <span className="text-xl">{getProviderIcon(provider)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-muted">

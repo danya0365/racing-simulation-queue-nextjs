@@ -6,15 +6,21 @@
 
 'use client';
 
+import { authConfig, getEnabledOAuthProviders, hasAnyOAuthProvider } from '@/src/config/auth.config';
 import { useAuthPresenter } from '@/src/presentation/presenters/auth/useAuthPresenter';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 
-type LoginMethod = 'email' | 'phone';
-
 export function LoginView() {
   const [state, actions] = useAuthPresenter();
+  const config = authConfig;
   
+  // Determine available login methods
+  const showPhoneLogin = config.phone.enabled;
+  const showOAuth = hasAnyOAuthProvider(config);
+  const enabledProviders = getEnabledOAuthProviders(config);
+  
+  type LoginMethod = 'email' | 'phone';
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,6 +80,19 @@ export function LoginView() {
     }
   };
 
+  /**
+   * Get OAuth provider icon
+   */
+  const getProviderIcon = (provider: string) => {
+    switch (provider) {
+      case 'google': return 'G';
+      case 'facebook': return <span className="text-blue-500">f</span>;
+      case 'github': return '⌨️';
+      case 'line': return <span className="text-green-500">💬</span>;
+      default: return '?';
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10">
       <div className="w-full max-w-md">
@@ -97,31 +116,33 @@ export function LoginView() {
 
         {/* Form Card */}
         <div className="bg-surface rounded-2xl shadow-xl border border-border p-8">
-          {/* Login Method Tabs */}
-          <div className="flex rounded-xl bg-muted-light p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => setLoginMethod('email')}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-                loginMethod === 'email'
-                  ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
-                  : 'text-muted hover:text-foreground'
-              }`}
-            >
-              อีเมล
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginMethod('phone')}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-                loginMethod === 'phone'
-                  ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
-                  : 'text-muted hover:text-foreground'
-              }`}
-            >
-              เบอร์โทรศัพท์
-            </button>
-          </div>
+          {/* Login Method Tabs - Only show if phone login is enabled */}
+          {showPhoneLogin && (
+            <div className="flex rounded-xl bg-muted-light p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => setLoginMethod('email')}
+                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
+                  loginMethod === 'email'
+                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-muted hover:text-foreground'
+                }`}
+              >
+                อีเมล
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod('phone')}
+                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
+                  loginMethod === 'phone'
+                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-muted hover:text-foreground'
+                }`}
+              >
+                เบอร์โทรศัพท์
+              </button>
+            </div>
+          )}
 
           {/* Error Message */}
           {state.error && (
@@ -204,18 +225,23 @@ export function LoginView() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-input-border text-purple-500 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-muted">จดจำฉัน</span>
-                </label>
-                <Link href="/auth/forgot-password" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
-                  ลืมรหัสผ่าน?
-                </Link>
+                {config.features.rememberMe && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-input-border text-purple-500 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-muted">จดจำฉัน</span>
+                  </label>
+                )}
+                {!config.features.rememberMe && <div />}
+                {config.features.forgotPassword && (
+                  <Link href="/auth/forgot-password" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                    ลืมรหัสผ่าน?
+                  </Link>
+                )}
               </div>
 
               <button
@@ -235,8 +261,8 @@ export function LoginView() {
             </form>
           )}
 
-          {/* Phone Login Form */}
-          {loginMethod === 'phone' && (
+          {/* Phone Login Form - Only if enabled */}
+          {loginMethod === 'phone' && showPhoneLogin && (
             <form onSubmit={handlePhoneLogin} className="space-y-4">
               {!state.otpSent ? (
                 <div>
@@ -314,51 +340,44 @@ export function LoginView() {
             </form>
           )}
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-surface text-muted">หรือเข้าสู่ระบบด้วย</span>
-            </div>
-          </div>
+          {/* Divider - Only show if OAuth is enabled */}
+          {showOAuth && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-surface text-muted">หรือเข้าสู่ระบบด้วย</span>
+                </div>
+              </div>
 
-          {/* Social Login */}
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('google')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl">G</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('facebook')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl text-blue-500">f</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => actions.signInWithOAuth('line')}
-              disabled={state.isSubmitting}
-              className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
-            >
-              <span className="text-xl text-green-500">💬</span>
-            </button>
-          </div>
+              {/* Social Login */}
+              <div className={`grid gap-3 ${enabledProviders.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {enabledProviders.map((provider) => (
+                  <button
+                    key={provider}
+                    type="button"
+                    onClick={() => actions.signInWithOAuth(provider)}
+                    disabled={state.isSubmitting}
+                    className="flex items-center justify-center py-3 px-4 rounded-xl border border-border bg-surface hover:bg-muted-light transition-all disabled:opacity-50"
+                  >
+                    <span className="text-xl">{getProviderIcon(provider)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-          {/* Register Link */}
-          <p className="mt-6 text-center text-sm text-muted">
-            ยังไม่มีบัญชี?{' '}
-            <Link href="/auth/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
-              สมัครสมาชิก
-            </Link>
-          </p>
+          {/* Register Link - Only if registration is enabled */}
+          {config.email.allowRegistration && (
+            <p className="mt-6 text-center text-sm text-muted">
+              ยังไม่มีบัญชี?{' '}
+              <Link href="/auth/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
+                สมัครสมาชิก
+              </Link>
+            </p>
+          )}
         </div>
 
         {/* Footer */}
