@@ -1,7 +1,7 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { QueueStatusData, QueueStatusViewModel } from './QueueStatusPresenter';
 import { createClientQueueStatusPresenter } from './QueueStatusPresenterClientFactory';
 
@@ -40,6 +40,12 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
 
   const { activeBookings, removeBooking, updateBooking } = useCustomerStore();
 
+  // Use ref to keep track of active bookings without triggering loadData recreation
+  const activeBookingsRef = useRef(activeBookings);
+  useEffect(() => {
+    activeBookingsRef.current = activeBookings;
+  }, [activeBookings]);
+
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -56,23 +62,28 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     setError(null);
 
     try {
+      const currentLocalList = activeBookingsRef.current;
       // Get queue IDs from local storage
-      const queueIds = activeBookings.map(b => b.id);
+      const queueIds = currentLocalList.map(b => b.id);
       
       // Load queue status data
       const queues = await presenter.loadQueueStatusData(queueIds);
       
       // Update local store with latest status
       queues.forEach(queue => {
-        updateBooking(queue.id, {
-          status: queue.status,
-          position: queue.position,
-        });
+        const local = currentLocalList.find(b => b.id === queue.id);
+        // Only update if something actually changed
+        if (!local || local.status !== queue.status || local.position !== queue.position) {
+          updateBooking(queue.id, {
+            status: queue.status,
+            position: queue.position,
+          });
+        }
       });
 
       // Also include queues that couldn't be fetched from server
       const fetchedIds = new Set(queues.map(q => q.id));
-      const localOnlyQueues: QueueStatusData[] = activeBookings
+      const localOnlyQueues: QueueStatusData[] = currentLocalList
         .filter(b => !fetchedIds.has(b.id))
         .map(b => ({
           ...b,
@@ -91,7 +102,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     } finally {
       setLoading(false);
     }
-  }, [activeBookings, updateBooking]);
+  }, [updateBooking]); // Removed activeBookings from dependencies
 
   /**
    * Cancel a queue
