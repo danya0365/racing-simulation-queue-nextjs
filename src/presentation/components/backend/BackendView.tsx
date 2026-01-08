@@ -80,7 +80,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
       </section>
 
       {/* Tabs */}
-      <section className="px-4 md:px-8 py-4 bg-surface/50 border-b border-border sticky top-0 z-10">
+      <section className="px-4 md:px-8 py-4 bg-surface/50 backdrop-blur-sm border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex flex-wrap gap-2">
           <TabButton
             active={state.activeTab === 'dashboard'}

@@ -97,4 +97,17 @@
       @apply space-y-6;
     }
   }
+
+  /* Fix for bg-surface and opacity modifiers */
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+  
+  .bg-surface\/50 {
+    background-color: color-mix(in srgb, var(--color-surface), transparent 50%);
+  }
+
+  .bg-surface\/80 {
+    background-color: color-mix(in srgb, var(--color-surface), transparent 20%);
+  }
 }
