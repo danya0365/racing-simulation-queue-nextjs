@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_DURATION, DURATION_OPTIONS } from '@/src/config/booking.config';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
@@ -22,7 +23,7 @@ export function QuickBookingView() {
   const [selectedMachineId, setSelectedMachineId] = useState<string | null>(null);
   const [name, setName] = useState(customerInfo.name);
   const [phone, setPhone] = useState(customerInfo.phone);
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(DEFAULT_DURATION);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -277,19 +278,26 @@ export function QuickBookingView() {
                 {/* Duration */}
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">ระยะเวลา</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[15, 30, 60].map((d) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {DURATION_OPTIONS.map((d) => (
                       <button
-                        key={d}
+                        key={d.time}
                         type="button"
-                        onClick={() => setDuration(d)}
-                        className={`py-4 rounded-xl font-bold text-lg transition-all ${
-                          duration === d
+                        onClick={() => setDuration(d.time)}
+                        className={`py-4 px-3 rounded-xl font-bold transition-all relative ${
+                          duration === d.time
                             ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
                             : 'bg-white/10 text-white/60 hover:bg-white/20'
                         }`}
                       >
-                        {d} นาที
+                        {d.popular && (
+                          <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full">
+                            แนะนำ
+                          </span>
+                        )}
+                        <div className="text-lg">{d.label}</div>
+                        <div className="text-xs opacity-70">{d.labelEn}</div>
+                        <div className="text-sm mt-1">{d.priceDisplay}</div>
                       </button>
                     ))}
                   </div>

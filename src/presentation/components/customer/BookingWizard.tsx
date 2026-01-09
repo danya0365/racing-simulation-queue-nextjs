@@ -1,6 +1,7 @@
 'use client';
 
 import type { Machine } from '@/src/application/repositories/IMachineRepository';
+import { DURATION_OPTIONS } from '@/src/config/booking.config';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -381,13 +382,6 @@ interface DurationStepProps {
 }
 
 function DurationStep({ value, onChange, onNext, onBack }: DurationStepProps) {
-  const durations = [
-    { time: 30, label: '30 นาที', price: '฿150', icon: '⏱️' },
-    { time: 60, label: '1 ชั่วโมง', price: '฿250', icon: '🕐', popular: true },
-    { time: 90, label: '1.5 ชั่วโมง', price: '฿350', icon: '🕑' },
-    { time: 120, label: '2 ชั่วโมง', price: '฿400', icon: '🕒' },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
@@ -398,8 +392,8 @@ function DurationStep({ value, onChange, onNext, onBack }: DurationStepProps) {
         <p className="text-muted mt-2">เลือกเวลาที่ต้องการเล่น</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {durations.map((d) => (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {DURATION_OPTIONS.map((d) => (
           <button
             key={d.time}
             onClick={() => onChange(d.time)}
@@ -416,7 +410,8 @@ function DurationStep({ value, onChange, onNext, onBack }: DurationStepProps) {
             )}
             <div className="text-3xl mb-2">{d.icon}</div>
             <div className="font-bold text-lg text-foreground">{d.label}</div>
-            <div className="text-cyan-400 font-medium mt-1">{d.price}</div>
+            <div className="text-xs text-muted mb-1">{d.labelEn}</div>
+            <div className="text-cyan-400 font-medium mt-1">{d.priceDisplay}</div>
           </button>
         ))}
       </div>

@@ -294,21 +294,28 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
   };
 
   const statusConfig = getStatusConfig(machine.status);
-  // Since only active machines are shown (filtered by presenter),
-  // we only check status for booking availability
-  const canBook = machine.status === 'available';
+  // Check status for different behaviors
+  const isAvailable = machine.status === 'available';
+  const isOccupied = machine.status === 'occupied';
+  const isMaintenance = machine.status === 'maintenance';
 
   return (
       <AnimatedCard
-        onClick={canBook ? onSelect : undefined}
+        onClick={isAvailable ? onSelect : undefined}
         glowColor={statusConfig.glow}
-        disabled={!canBook}
+        disabled={isMaintenance}
         className="p-6"
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-2xl shadow-lg">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg ${
+              isMaintenance 
+                ? 'bg-gradient-to-br from-gray-500 to-slate-600' 
+                : isOccupied
+                ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                : 'bg-gradient-to-br from-cyan-500 to-blue-600'
+            }`}>
               🎮
             </div>
             <div>
@@ -329,11 +336,17 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
           {machine.description}
         </p>
 
-        {/* Action - Show for all bookable machines */}
-        {canBook ? (
+        {/* Action - Different for each status */}
+        {isAvailable ? (
           <Link href="/customer/booking" className="block">
             <GlowButton color="cyan" size="sm" className="w-full">
               🎯 จองคิวเครื่องนี้
+            </GlowButton>
+          </Link>
+        ) : isOccupied ? (
+          <Link href="/customer/booking" className="block">
+            <GlowButton color="purple" size="sm" className="w-full">
+              📋 ต่อคิวรอ
             </GlowButton>
           </Link>
         ) : (

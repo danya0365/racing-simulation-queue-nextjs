@@ -1,6 +1,7 @@
 'use client';
 
 import { Queue } from '@/src/application/repositories/IQueueRepository';
+import { DEFAULT_DURATION, DURATION_OPTIONS } from '@/src/config/booking.config';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -531,7 +532,7 @@ interface BookingModalProps {
 function BookingModal({ machine, isSubmitting, error, initialData, onSubmit, onClose }: BookingModalProps) {
   const [name, setName] = useState(initialData.name);
   const [phone, setPhone] = useState(initialData.phone);
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(DEFAULT_DURATION);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -605,19 +606,26 @@ function BookingModal({ machine, isSubmitting, error, initialData, onSubmit, onC
           {/* Duration Select */}
           <div>
             <label className="block text-sm font-medium text-muted mb-2">ระยะเวลา</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[15, 30, 60].map((d) => (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {DURATION_OPTIONS.map((d) => (
                 <button
-                  key={d}
+                  key={d.time}
                   type="button"
-                  onClick={() => setDuration(d)}
-                  className={`py-3 rounded-xl font-medium transition-all ${
-                    duration === d 
+                  onClick={() => setDuration(d.time)}
+                  className={`py-3 px-2 rounded-xl font-medium transition-all relative ${
+                    duration === d.time 
                       ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' 
                       : 'bg-surface border border-border text-muted hover:border-cyan-500'
                   }`}
                 >
-                  {d} นาที
+                  {d.popular && (
+                    <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full">
+                      แนะนำ
+                    </span>
+                  )}
+                  <div className="text-sm font-bold">{d.label}</div>
+                  <div className="text-xs opacity-70">{d.labelEn}</div>
+                  <div className="text-xs mt-0.5">{d.priceDisplay}</div>
                 </button>
               ))}
             </div>
