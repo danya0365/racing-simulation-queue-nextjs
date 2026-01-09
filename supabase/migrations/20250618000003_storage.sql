@@ -128,7 +128,7 @@ CREATE POLICY "Admins can delete any object"
   );
 
 -- Create function to generate signed URLs for private files
-CREATE OR REPLACE FUNCTION storage.get_private_url(bucket TEXT, object_path TEXT, expires_in INTEGER DEFAULT 60)
+CREATE OR REPLACE FUNCTION public.get_private_url(bucket TEXT, object_path TEXT, expires_in INTEGER DEFAULT 60)
 RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   url TEXT;
