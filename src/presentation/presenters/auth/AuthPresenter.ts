@@ -5,18 +5,18 @@
  */
 
 import type {
-    AuthProfile,
-    AuthResult,
-    AuthSession,
-    AuthUser,
-    IAuthRepository,
-    OTPSignInData,
-    ResetPasswordData,
-    SignInData,
-    SignUpData,
-    UpdatePasswordData,
-    UpdateProfileData,
-    VerifyOTPData,
+  AuthProfile,
+  AuthResult,
+  AuthSession,
+  AuthUser,
+  IAuthRepository,
+  OTPSignInData,
+  ResetPasswordData,
+  SignInData,
+  SignUpData,
+  UpdatePasswordData,
+  UpdateProfileData,
+  VerifyOTPData,
 } from '@/src/application/repositories/IAuthRepository';
 import { Metadata } from 'next';
 
@@ -40,7 +40,7 @@ export class AuthPresenter {
   /**
    * Helper to wrap promise with timeout
    */
-  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) =>
