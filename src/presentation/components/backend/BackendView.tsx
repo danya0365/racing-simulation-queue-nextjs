@@ -1471,6 +1471,7 @@ function CustomersTab() {
         description={`คุณต้องการลบข้อมูลลูกค้า "${customerToDelete?.name}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`}
         confirmText="ลบข้อมูล"
         variant="danger"
+        isLoading={state.loading}
         onConfirm={async () => {
           if (customerToDelete) {
             await actions.deleteCustomer(customerToDelete.id);

@@ -92,6 +92,10 @@ CREATE POLICY "Customers can be updated by admins/moderators"
   USING (public.is_moderator_or_admin() OR profile_id = public.get_active_profile_id())
   WITH CHECK (public.is_moderator_or_admin() OR profile_id = public.get_active_profile_id());
 
+CREATE POLICY "Customers can be deleted by admins/moderators"
+  ON public.customers FOR DELETE
+  USING (public.is_moderator_or_admin());
+
 -- RLS Policies for queues
 CREATE POLICY "Queues are viewable by everyone"
   ON public.queues FOR SELECT
