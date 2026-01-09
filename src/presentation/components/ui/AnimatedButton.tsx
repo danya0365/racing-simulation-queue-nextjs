@@ -1,7 +1,6 @@
 'use client';
 
-import { animated, config, useSpring } from '@react-spring/web';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -31,6 +30,10 @@ const sizeStyles: Record<ButtonSize, string> = {
   lg: 'px-8 py-3.5 text-lg rounded-2xl',
 };
 
+/**
+ * AnimatedButton - Uses CSS transitions for better performance
+ * Replaced react-spring with CSS to avoid render blocking issues
+ */
 export function AnimatedButton({
   children,
   variant = 'primary',
@@ -41,43 +44,19 @@ export function AnimatedButton({
   className = '',
   type = 'button',
 }: AnimatedButtonProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
-
-  const spring = useSpring({
-    transform: isPressed 
-      ? 'scale(0.95) translateY(0px)' 
-      : isHovered 
-        ? 'scale(1.05) translateY(-2px)' 
-        : 'scale(1) translateY(0px)',
-    config: config.wobbly,
-  });
-
-  const glowSpring = useSpring({
-    boxShadow: isHovered && !disabled
-      ? '0 0 30px rgba(0, 212, 255, 0.4), 0 10px 30px rgba(0, 0, 0, 0.2)'
-      : '0 0 0px rgba(0, 212, 255, 0), 0 4px 15px rgba(0, 0, 0, 0.1)',
-    config: config.slow,
-  });
-
   return (
-    <animated.button
+    <button
       type={type}
-      style={{ ...spring, ...glowSpring }}
       onClick={onClick}
       disabled={disabled || loading}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setIsPressed(false);
-      }}
-      onMouseDown={() => setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
       className={`
-        font-semibold transition-all duration-200 
+        font-semibold transition-all duration-200 ease-out
+        transform hover:scale-105 hover:-translate-y-0.5
+        active:scale-95 active:translate-y-0
+        hover:shadow-xl
         ${variantStyles[variant]} 
         ${sizeStyles[size]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${disabled ? 'opacity-50 cursor-not-allowed hover:scale-100 hover:translate-y-0' : 'cursor-pointer'}
         ${className}
       `}
     >
@@ -89,6 +68,6 @@ export function AnimatedButton({
       ) : (
         children
       )}
-    </animated.button>
+    </button>
   );
 }

@@ -61,13 +61,35 @@ export function useBackendPresenter(
   /**
    * Load data from presenter
    */
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
+  /**
+   * Load data from presenter
+   */
+  const loadData = useCallback(async (tab: string = activeTab) => {
+    // Only set loading on initial full load or explicit refresh interaction
+    // We don't want to show full page loader on tab switch if we can merge data
+    // But for now, let's keep it simple.
+    
+    // Logic: If switching to Dashboard, I need stats. If Control, I need active queues.
+    
     try {
-      const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      let partialData: Partial<BackendViewModel> = {};
+      
+      if (tab === 'dashboard') {
+        partialData = await presenter.getDashboardData();
+      } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
+        // Control, Machines, and Queues tabs all benefit from "Control Data" 
+        // which includes Machines + Active Queues
+        partialData = await presenter.getControlData();
+      } else {
+        // Fallback
+        partialData = await presenter.getViewModel();
+      }
+
+      setViewModel(prev => {
+        if (!prev) return partialData as BackendViewModel;
+        // Merge with previous state to avoid flickering if some data is valid
+        return { ...prev, ...partialData };
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -75,20 +97,28 @@ export function useBackendPresenter(
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
   /**
    * Refresh data
    */
   const refreshData = useCallback(async () => {
-    try {
-      const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+    await loadData(activeTab);
+  }, [loadData, activeTab]);
+
+  /**
+   * Set active tab and load its data
+   */
+  const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control') => {
+    setActiveTab(tab);
+    // Trigger load data for the new tab
+    if (tab === 'customers') {
+      // Customers tab handles its own fetching via its own presenter component
+      // So we don't need to fetch anything here
+    } else {
+      loadData(tab); 
     }
-  }, []);
+  }, [loadData]); 
 
   /**
    * Update queue status
@@ -229,7 +259,7 @@ export function useBackendPresenter(
     {
       loadData,
       refreshData,
-      setActiveTab,
+      setActiveTab: handleSetActiveTab,
       selectQueue,
       selectMachine,
       updateQueueStatus,

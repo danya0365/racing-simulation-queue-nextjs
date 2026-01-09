@@ -58,7 +58,6 @@ export class QueueStatusPresenter {
     try {
       return await this.queueRepository.getById(id);
     } catch (error) {
-      console.error('Error getting queue:', error);
       throw error;
     }
   }
@@ -70,7 +69,6 @@ export class QueueStatusPresenter {
     try {
       return await this.machineRepository.getById(id);
     } catch (error) {
-      console.error('Error getting machine:', error);
       throw error;
     }
   }
@@ -82,7 +80,6 @@ export class QueueStatusPresenter {
     try {
       return await this.queueRepository.getAll();
     } catch (error) {
-      console.error('Error getting all queues:', error);
       throw error;
     }
   }
@@ -93,9 +90,23 @@ export class QueueStatusPresenter {
    */
   async calculateQueueAhead(queue: Queue): Promise<{ queueAhead: number; estimatedWaitMinutes: number }> {
     try {
-      const allQueues = await this.queueRepository.getAll();
-      const machineQueues = allQueues.filter(q => q.machineId === queue.machineId);
+      // Get only queues for this machine instead of all queues in system
+      const machineQueues = await this.queueRepository.getByMachineId(queue.machineId);
       
+      return this.calculateQueueAheadSync(queue, machineQueues);
+    } catch (e) {
+      return { 
+        queueAhead: Math.max(0, queue.position - 1), 
+        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 // Fallback: 30 min per queue
+      };
+    }
+  }
+
+  /**
+   * Helper to calculate queue ahead without fetching data
+   */
+  private calculateQueueAheadSync(queue: Queue, machineQueues: Queue[]): { queueAhead: number; estimatedWaitMinutes: number } {
+    try {
       // Get waiting queues ahead (lower position = ahead)
       const waitingAhead = machineQueues.filter(
         q => q.status === 'waiting' && q.position < queue.position
@@ -121,10 +132,10 @@ export class QueueStatusPresenter {
         queueAhead: waitingAhead.length + (playingQueue ? 1 : 0),
         estimatedWaitMinutes
       };
-    } catch {
+    } catch (e) {
       return { 
         queueAhead: Math.max(0, queue.position - 1), 
-        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 // Fallback: 30 min per queue
+        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 
       };
     }
   }
@@ -136,45 +147,57 @@ export class QueueStatusPresenter {
     try {
       await this.queueRepository.cancel(queueId, customerId);
     } catch (error) {
-      console.error('Error cancelling queue:', error);
       throw error;
     }
   }
 
   /**
    * Load queue status data for multiple queue IDs
+   * Optimized to fetch data in parallel
    */
+  /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
   async loadQueueStatusData(queueIds: string[]): Promise<QueueStatusData[]> {
-    const results: QueueStatusData[] = [];
+    if (!queueIds.length) return [];
 
-    for (const queueId of queueIds) {
-      try {
-        const queue = await this.getQueueById(queueId);
-        if (!queue) continue;
+    try {
+      // ✅ Use RPC to fetch everything in 1 Request
+      // This calculates status, waiting time, and queue ahead on the server
+      const queuesWithStatus = await this.withTimeout(this.queueRepository.getByIdsWithStatus(queueIds));
 
-        const machine = await this.getMachineById(queue.machineId);
-        const { queueAhead, estimatedWaitMinutes } = await this.calculateQueueAhead(queue);
+      // Map to Presenter Model
+      const results: QueueStatusData[] = queuesWithStatus.map(q => ({
+        id: q.id,
+        machineId: q.machineId,
+        customerId: q.customerId,
+        machineName: q.machineName || 'Unknown',
+        customerName: q.customerName,
+        customerPhone: q.customerPhone,
+        bookingTime: q.bookingTime,
+        duration: q.duration,
+        status: q.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
+        position: q.position,
+        queueAhead: q.queueAhead,
+        estimatedWaitMinutes: q.estimatedWaitMinutes,
+      }));
 
-        results.push({
-          id: queue.id,
-          machineId: queue.machineId,
-          customerId: queue.customerId,
-          machineName: machine?.name || 'Unknown',
-          customerName: queue.customerName,
-          customerPhone: queue.customerPhone,
-          bookingTime: queue.bookingTime,
-          duration: queue.duration,
-          status: queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-          position: queue.position,
-          queueAhead,
-          estimatedWaitMinutes,
-        });
-      } catch (error) {
-        console.error(`Error loading queue ${queueId}:`, error);
-      }
+      return results;
+
+    } catch (error) {
+      console.error('Error loading queue status data:', error);
+      // Re-throw so the UI can show the error state
+      throw error; 
     }
-
-    return results;
   }
 
   /**

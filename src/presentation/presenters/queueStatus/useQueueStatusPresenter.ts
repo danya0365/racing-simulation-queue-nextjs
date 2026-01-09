@@ -1,11 +1,10 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { QueueStatusData, QueueStatusViewModel } from './QueueStatusPresenter';
 import { createClientQueueStatusPresenter } from './QueueStatusPresenterClientFactory';
 
-// Initialize presenter instance once (singleton pattern)
 const presenter = createClientQueueStatusPresenter();
 
 export interface QueueStatusPresenterState {
@@ -40,12 +39,6 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
 
   const { activeBookings, removeBooking, updateBooking } = useCustomerStore();
 
-  // Use ref to keep track of active bookings without triggering loadData recreation
-  const activeBookingsRef = useRef(activeBookings);
-  useEffect(() => {
-    activeBookingsRef.current = activeBookings;
-  }, [activeBookings]);
-
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -62,16 +55,14 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     setError(null);
 
     try {
-      const currentLocalList = activeBookingsRef.current;
       // Get queue IDs from local storage
-      const queueIds = currentLocalList.map(b => b.id);
+      const queueIds = activeBookings.map(b => b.id);
       
       // Load queue status data
       const queues = await presenter.loadQueueStatusData(queueIds);
-      
       // Update local store with latest status
       queues.forEach(queue => {
-        const local = currentLocalList.find(b => b.id === queue.id);
+        const local = activeBookings.find(b => b.id === queue.id);
         // Only update if something actually changed
         if (!local || local.status !== queue.status || local.position !== queue.position) {
           updateBooking(queue.id, {
@@ -83,7 +74,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
 
       // Also include queues that couldn't be fetched from server
       const fetchedIds = new Set(queues.map(q => q.id));
-      const localOnlyQueues: QueueStatusData[] = currentLocalList
+      const localOnlyQueues: QueueStatusData[] = activeBookings
         .filter(b => !fetchedIds.has(b.id))
         .map(b => ({
           ...b,
@@ -99,11 +90,10 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      console.error('Error loading queue status data:', err);
     } finally {
       setLoading(false);
     }
-  }, [updateBooking]); // Removed activeBookings from dependencies
+  }, []); // Removed activeBookings from dependencies
 
   /**
    * Cancel a queue
@@ -116,7 +106,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
 
     try {
       // Get customer ID from local store for ownership verification
-      const booking = activeBookingsRef.current.find(b => b.id === queueId);
+      const booking = activeBookings.find(b => b.id === queueId);
       const customerId = booking?.customerId;
       
       await presenter.cancelQueue(queueId, customerId);
@@ -126,7 +116,6 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      console.error('Error cancelling queue:', err);
     } finally {
       setLoading(false);
     }
@@ -161,7 +150,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
   // Load data on mount
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, []);
 
   // Auto refresh every 15 seconds
   useEffect(() => {
@@ -169,7 +158,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
       loadData();
     }, 15000);
     return () => clearInterval(interval);
-  }, [loadData]);
+  }, []);
 
   return [
     {

@@ -48,38 +48,37 @@ export class CustomerPresenter {
    */
   async getViewModel(): Promise<CustomerViewModel> {
     try {
-      const [machines, availableMachines, machineStats, allQueues] = await Promise.all([
+      const [machines, availableMachines, machineStats, dashboardInfo] = await Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getAvailable(),
         this.machineRepository.getStats(),
-        this.queueRepository.getToday(),
+        this.machineRepository.getDashboardInfo(),
       ]);
 
-      // Calculate queue info for each machine
+      // Map dashboard info to dictionary
       const machineQueueInfo: Record<string, MachineQueueInfo> = {};
       
-      for (const machine of machines) {
-        const machineQueues = allQueues.filter(q => q.machineId === machine.id);
-        const waitingQueues = machineQueues.filter(q => q.status === 'waiting');
-        const playingQueues = machineQueues.filter(q => q.status === 'playing');
-        
-        // Calculate estimated wait time (sum of remaining duration for playing + all waiting)
-        let estimatedWaitMinutes = 0;
-        for (const q of playingQueues) {
-          estimatedWaitMinutes += q.duration; // Assume just started for simplicity
-        }
-        for (const q of waitingQueues) {
-          estimatedWaitMinutes += q.duration;
-        }
-
-        machineQueueInfo[machine.id] = {
-          machineId: machine.id,
-          waitingCount: waitingQueues.length,
-          playingCount: playingQueues.length,
-          estimatedWaitMinutes,
-          nextPosition: waitingQueues.length + playingQueues.length + 1,
+      // Default info for machines with no activity
+      machines.forEach(m => {
+        machineQueueInfo[m.id] = {
+          machineId: m.id,
+          waitingCount: 0,
+          playingCount: 0,
+          estimatedWaitMinutes: 0,
+          nextPosition: 1,
         };
-      }
+      });
+
+      // Update with actual data from RPC
+      dashboardInfo.forEach(info => {
+        machineQueueInfo[info.machineId] = {
+          machineId: info.machineId,
+          waitingCount: info.waitingCount,
+          playingCount: info.playingCount,
+          estimatedWaitMinutes: info.estimatedWaitMinutes,
+          nextPosition: info.nextPosition,
+        };
+      });
 
       return {
         machines,
@@ -188,16 +187,11 @@ export class CustomerPresenter {
   }
 
   /**
-   * Search queues by phone number
+   * Search queues by phone number (Optimized via RPC)
    */
   async searchQueuesByPhone(phone: string): Promise<Queue[]> {
     try {
-      const allQueues = await this.queueRepository.getAll();
-      // Normalize phone number for comparison (remove dashes, spaces)
-      const normalizedPhone = phone.replace(/[-\s]/g, '');
-      return allQueues.filter(q => 
-        q.customerPhone.replace(/[-\s]/g, '').includes(normalizedPhone)
-      );
+      return await this.queueRepository.searchByPhone(phone);
     } catch (error) {
       console.error('Error searching queues by phone:', error);
       throw error;

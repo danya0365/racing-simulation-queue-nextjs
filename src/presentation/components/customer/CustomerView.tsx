@@ -11,7 +11,7 @@ import { BookingFormData, CustomerViewModel, MachineQueueInfo } from '@/src/pres
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface CustomerViewProps {
   initialViewModel?: CustomerViewModel;
@@ -528,6 +528,13 @@ function BookingModal({ machine, isSubmitting, error, initialData, onSubmit, onC
   const [name, setName] = useState(initialData.name);
   const [phone, setPhone] = useState(initialData.phone);
   const [duration, setDuration] = useState(DEFAULT_DURATION);
+
+  // Sync with initialData when modal opens or machine changes
+  useEffect(() => {
+    setName(initialData.name);
+    setPhone(initialData.phone);
+    setDuration(DEFAULT_DURATION);
+  }, [machine.id, initialData.name, initialData.phone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

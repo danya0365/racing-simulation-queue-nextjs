@@ -11,7 +11,6 @@ import {
   useBookingWizardPresenter
 } from '@/src/presentation/presenters/bookingWizard/useBookingWizardPresenter';
 import type { MachineQueueInfo } from '@/src/presentation/presenters/customer/CustomerPresenter';
-import { animated } from '@react-spring/web';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -33,7 +32,7 @@ export function BookingWizard() {
   if (success) {
     return (
       <div className="min-h-full flex items-center justify-center p-4 bg-racing-gradient">
-        <animated.div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-modal-in">
           <AnimatedCard className="p-8 text-center">
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-5xl shadow-lg shadow-emerald-500/30 animate-float">
               ✅
@@ -72,7 +71,7 @@ export function BookingWizard() {
               </Link>
             </div>
           </AnimatedCard>
-        </animated.div>
+        </div>
       </div>
     );
   }
@@ -101,7 +100,7 @@ export function BookingWizard() {
 
       {/* Content */}
       <main className="flex-1 flex items-center justify-center p-4">
-        <animated.div className="w-full max-w-lg">
+        <div className="w-full max-w-lg animate-section-in">
           {currentStep === 'phone' && (
             <PhoneStep
               value={bookingData.customerPhone}
@@ -148,7 +147,7 @@ export function BookingWizard() {
               onBack={actions.goBack}
             />
           )}
-        </animated.div>
+        </div>
       </main>
     </div>
   );

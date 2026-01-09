@@ -5,7 +5,6 @@ import { Portal } from '@/src/presentation/components/ui/Portal';
 import { QueueStatusSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { QueueStatusData } from '@/src/presentation/presenters/queueStatus/QueueStatusPresenter';
 import { useQueueStatusPresenter } from '@/src/presentation/presenters/queueStatus/useQueueStatusPresenter';
-import { animated, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -361,17 +360,6 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
   // Is next in queue?
   const isNextUp = queue.queueAhead === 0;
 
-  // Pulse animation when next up
-  const pulseSpring = useSpring({
-    loop: isNextUp,
-    from: { scale: 1, opacity: 1 },
-    to: isNextUp ? [
-      { scale: 1.05, opacity: 0.8 },
-      { scale: 1, opacity: 1 },
-    ] : { scale: 1, opacity: 1 },
-    config: { duration: 1000 },
-  });
-
   return (
     <div className={`fixed inset-0 z-[100] overflow-hidden ${
       isNextUp 
@@ -405,12 +393,11 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
           <p className="text-white/40 text-sm mt-1">{queue.customerPhone}</p>
         </div>
 
-        {/* Queue Number */}
-        <animated.div 
-          style={pulseSpring}
+        {/* Queue Number - Using CSS animation instead of react-spring */}
+        <div 
           className={`relative mb-6 ${isNextUp ? 'animate-bounce' : ''}`}
         >
-          <div className={`w-40 h-40 md:w-56 md:h-56 rounded-full flex flex-col items-center justify-center shadow-2xl ${
+          <div className={`w-40 h-40 md:w-56 md:h-56 rounded-full flex flex-col items-center justify-center shadow-2xl transition-transform duration-300 ${isNextUp ? 'scale-105' : 'scale-100'} ${
             isNextUp 
               ? 'bg-gradient-to-br from-emerald-400 to-green-600 ring-4 ring-emerald-300' 
               : 'bg-gradient-to-br from-purple-500 to-pink-600 ring-4 ring-purple-400/50'
@@ -420,7 +407,7 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
               #{queue.position}
             </span>
           </div>
-        </animated.div>
+        </div>
 
         {/* Status Message */}
         {isNextUp ? (

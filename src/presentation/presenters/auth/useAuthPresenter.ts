@@ -1,9 +1,3 @@
-/**
- * useAuthPresenter
- * Custom hook for authentication state management
- * Following Clean Architecture with presenter pattern
- */
-
 'use client';
 
 import type {
