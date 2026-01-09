@@ -1,5 +1,6 @@
 'use client';
 
+import { Customer, UpdateCustomerData } from '@/src/application/repositories/ICustomerRepository';
 import type { MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { QueueStatus } from '@/src/application/repositories/IQueueRepository';
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
@@ -1581,8 +1582,8 @@ function EditCustomerModal({ customer, onClose, onSave }: {
       await onSave({
         name: formData.name.trim(),
         phone: formData.phone.trim(),
-        email: formData.email.trim() || null,
-        notes: formData.notes.trim() || null,
+        email: formData.email.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
         isVip: formData.isVip
       });
     } finally {
