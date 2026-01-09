@@ -1363,6 +1363,13 @@ function CustomersTab() {
                 </div>
                 <div className="flex gap-2">
                   <AnimatedButton 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => actions.openDetailModal(customer)}
+                  >
+                    ✏️ แก้ไข
+                  </AnimatedButton>
+                  <AnimatedButton 
                     variant={customer.isVip ? 'secondary' : 'primary'} 
                     size="sm" 
                     onClick={() => actions.toggleVipStatus(customer)}
@@ -1438,6 +1445,20 @@ function CustomersTab() {
             ถัดไป →
           </button>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {state.isDetailModalOpen && state.selectedCustomer && (
+        <Portal>
+          <EditCustomerModal 
+            customer={state.selectedCustomer}
+            onClose={actions.closeDetailModal}
+            onSave={async (data) => {
+              await actions.updateCustomer(state.selectedCustomer!.id, data);
+              actions.closeDetailModal();
+            }}
+          />
+        </Portal>
       )}
 
       {/* Add Modal */}
@@ -1529,6 +1550,134 @@ function AddCustomerModal({ onClose, onSave }: {
             <AnimatedButton variant="ghost" onClick={onClose} className="flex-1" disabled={saving}>ยกเลิก</AnimatedButton>
             <AnimatedButton variant="primary" type="submit" className="flex-1" disabled={saving}>
               {saving ? '⏳...' : '💾 บันทึก'}
+            </AnimatedButton>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Edit Customer Modal
+function EditCustomerModal({ customer, onClose, onSave }: { 
+  customer: Customer;
+  onClose: () => void; 
+  onSave: (data: UpdateCustomerData) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState({ 
+    name: customer.name, 
+    phone: customer.phone, 
+    email: customer.email || '', 
+    notes: customer.notes || '',
+    isVip: customer.isVip || false
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim() || !formData.phone.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim() || null,
+        notes: formData.notes.trim() || null,
+        isVip: formData.isVip
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal-in">
+        <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-border flex justify-between items-center">
+          <h3 className="font-bold text-lg text-foreground">✏️ แก้ไขข้อมูลลูกค้า</h3>
+          <button onClick={onClose} className="text-muted hover:text-foreground">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">ชื่อ-นามสกุล *</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground"
+              placeholder="ชื่อ-นามสกุล"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">เบอร์โทร *</label>
+            <input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground"
+              placeholder="เบอร์โทร"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">อีเมล</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground"
+              placeholder="อีเมล (ถ้ามี)"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">หมายเหตุ</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground resize-none"
+              rows={3}
+              placeholder="รายละเอียดเพิ่มเติม..."
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-background rounded-xl border border-border">
+            <div>
+              <p className="font-medium text-foreground">สถานะ VIP</p>
+              <p className="text-xs text-muted">ลูกค้าจะได้รับสิทธิพิเศษตามความเหมาะสม</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, isVip: !formData.isVip })}
+              className={`relative w-14 h-8 rounded-full transition-colors ${
+                formData.isVip ? 'bg-amber-500' : 'bg-gray-500'
+              }`}
+            >
+              <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                formData.isVip ? 'left-7' : 'left-1'
+              }`} />
+            </button>
+          </div>
+
+          <div className="bg-muted/30 p-3 rounded-xl space-y-2">
+            <h4 className="text-xs font-bold text-muted uppercase">สถิติการใช้งาน</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted">เข้าเล่นทั้งหมด:</span>
+                <span className="text-foreground font-medium">{customer.visitCount} ครั้ง</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">เวลารวม:</span>
+                <span className="text-foreground font-medium">{customer.totalPlayTime} นาที</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <AnimatedButton variant="ghost" onClick={onClose} className="flex-1" disabled={saving}>ยกเลิก</AnimatedButton>
+            <AnimatedButton variant="primary" type="submit" className="flex-1" disabled={saving}>
+              {saving ? '⏳ กำลังบันทึก...' : '💾 บันทึกข้อมูล'}
             </AnimatedButton>
           </div>
         </form>

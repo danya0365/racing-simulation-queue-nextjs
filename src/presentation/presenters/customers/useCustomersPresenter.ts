@@ -1,6 +1,6 @@
 'use client';
 
-import type { CreateCustomerData, Customer } from '@/src/application/repositories/ICustomerRepository';
+import type { CreateCustomerData, Customer, UpdateCustomerData } from '@/src/application/repositories/ICustomerRepository';
 import { useCallback, useEffect, useState } from 'react';
 import { CustomersViewModel } from './CustomersPresenter';
 import { createClientCustomersPresenter } from './CustomersPresenterClientFactory';
@@ -22,6 +22,7 @@ export interface CustomersPresenterActions {
   loadData: () => Promise<void>;
   searchCustomers: (query: string) => Promise<void>;
   createCustomer: (data: CreateCustomerData) => Promise<void>;
+  updateCustomer: (id: string, data: UpdateCustomerData) => Promise<void>;
   toggleVipStatus: (customer: Customer) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
   openDetailModal: (customer: Customer) => void;
@@ -100,6 +101,23 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       console.error('Error creating customer:', err);
+      throw err;
+    }
+  }, [loadData]);
+
+  /**
+   * Update a customer
+   */
+  const updateCustomer = useCallback(async (id: string, data: UpdateCustomerData) => {
+    setError(null);
+
+    try {
+      await presenter.updateCustomer(id, data);
+      await loadData();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      console.error('Error updating customer:', err);
       throw err;
     }
   }, [loadData]);
@@ -187,6 +205,7 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
       loadData,
       searchCustomers,
       createCustomer,
+      updateCustomer,
       toggleVipStatus,
       deleteCustomer,
       openDetailModal,
