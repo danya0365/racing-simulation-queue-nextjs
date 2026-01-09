@@ -5,13 +5,14 @@
  */
 
 import {
-  CreateQueueData,
-  IQueueRepository,
-  PaginatedResult,
-  Queue,
-  QueueStats,
-  QueueStatus,
-  UpdateQueueData,
+    CreateQueueData,
+    IQueueRepository,
+    PaginatedResult,
+    Queue,
+    QueueStats,
+    QueueStatus,
+    QueueWithStatusDTO,
+    UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
 // Helper to create today's date with specific time
@@ -284,6 +285,37 @@ export class MockQueueRepository implements IQueueRepository {
     };
 
     return true;
+  }
+
+  async getByIds(ids: string[]): Promise<Queue[]> {
+    await this.delay(100);
+    return this.queues.filter(q => ids.includes(q.id));
+  }
+
+  async getByIdsWithStatus(ids: string[]): Promise<QueueWithStatusDTO[]> {
+    await this.delay(100);
+    return this.queues
+      .filter(q => ids.includes(q.id))
+      .map(q => ({
+        ...q,
+        machineName: 'Mock Machine', // Simplify for mock
+        queueAhead: 0,
+        estimatedWaitMinutes: 0
+      }));
+  }
+
+  async searchByPhone(phone: string): Promise<Queue[]> {
+    await this.delay(100);
+    return this.queues.filter(q => q.customerPhone.includes(phone));
+  }
+
+  async getBackendStats(): Promise<any> {
+    await this.delay(100);
+    return {
+      totalRevenue: 50000,
+      activeMachines: 5,
+      totalCustomers: 120
+    };
   }
 
   // Helper method to simulate network delay
