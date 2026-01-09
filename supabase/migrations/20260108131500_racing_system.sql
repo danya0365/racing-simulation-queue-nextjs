@@ -119,6 +119,11 @@ CREATE INDEX IF NOT EXISTS idx_queues_machine_id ON public.queues(machine_id);
 CREATE INDEX IF NOT EXISTS idx_queues_customer_id ON public.queues(customer_id);
 CREATE INDEX IF NOT EXISTS idx_queues_status ON public.queues(status);
 CREATE INDEX IF NOT EXISTS idx_queues_booking_time ON public.queues(booking_time);
+CREATE INDEX IF NOT EXISTS idx_queues_machine_status_position ON public.queues(machine_id, status, position);
+CREATE INDEX IF NOT EXISTS idx_queues_created_at ON public.queues(created_at);
+
+-- Index for profiles lookup by auth_id (used in getProfile)
+CREATE INDEX IF NOT EXISTS idx_profiles_auth_id ON public.profiles(auth_id);
 
 -- Create triggers for updating timestamps
 CREATE TRIGGER update_machines_updated_at
