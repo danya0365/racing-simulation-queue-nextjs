@@ -79,7 +79,61 @@ supabase db push
 - `queues` - คิวการจอง
 - `profiles` - ข้อมูลผู้ใช้
 
-### Step 4: Configure Authentication
+### Step 4: Seed Production Database (Optional)
+
+> ⚠️ **คำเตือน**: การ seed database จะเพิ่มข้อมูลทดสอบเข้าไปใน production ควรทำเฉพาะเมื่อ:
+> - Database ยังว่างเปล่า (deploy ครั้งแรก)
+> - ต้องการข้อมูลตัวอย่างสำหรับทดสอบ
+> - **อย่าทำถ้ามีข้อมูลจริงอยู่แล้ว** เพราะจะเกิดข้อมูลซ้ำซ้อน
+
+#### วิธีที่ 1: ใช้ Supabase SQL Editor (แนะนำ)
+
+1. ไปที่ Supabase Dashboard > SQL Editor
+2. เปิดไฟล์ `supabase/seeds/000-init_seed.sql` ในเครื่องของคุณ
+3. Copy เนื้อหาทั้งหมดแล้ว Paste ลงใน SQL Editor
+4. กด **Run** เพื่อ execute
+
+#### วิธีที่ 2: ใช้ psql CLI
+
+```bash
+# 1. ดู connection string จาก Supabase Dashboard > Project Settings > Database
+# Format: postgresql://postgres:[YOUR-PASSWORD]@[HOST]:[PORT]/postgres
+
+# 2. Run seed file
+psql "postgresql://postgres:[YOUR-PASSWORD]@[HOST]:[PORT]/postgres" \
+  -f supabase/seeds/000-init_seed.sql
+```
+
+#### วิธีที่ 3: ใช้ Supabase CLI (ถ้า link project แล้ว)
+
+```bash
+# Link project ก่อน (ถ้ายังไม่ได้ทำ)
+supabase link --project-ref YOUR_PROJECT_REF
+
+# Run seed
+supabase db seed
+```
+
+#### ข้อมูลที่จะถูก seed:
+
+**Users & Authentication:**
+- Admin: `admin@racing.com` (password: `12345678`)
+- User 1: `user1@shopqueue.com` (password: `12345678`)
+- User 2: `user2@shopqueue.com` (password: `12345678`)
+
+**Machines:**
+- 6 เครื่อง Racing Simulator (Racing Sim 1-6)
+
+**Customers:**
+- 10 ลูกค้าตัวอย่าง พร้อมประวัติการใช้งาน
+
+**Historical Queues:**
+- ข้อมูลคิวย้อนหลัง 30 วัน (5-15 bookings ต่อวัน)
+- สถานะ: completed, cancelled, waiting, playing
+
+> 💡 **หมายเหตุ**: หลังจาก seed แล้ว คุณควรเปลี่ยนรหัสผ่าน admin ทันที!
+
+### Step 5: Configure Authentication
 
 1. ไปที่ Supabase Dashboard > Authentication > Providers
 2. Enable Email provider
