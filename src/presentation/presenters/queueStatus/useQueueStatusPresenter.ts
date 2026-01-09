@@ -88,6 +88,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
         .map(b => ({
           ...b,
           queueAhead: Math.max(0, b.position - 1),
+          estimatedWaitMinutes: Math.max(0, b.position - 1) * 30, // Fallback: 30 min per queue
         }));
 
       const allQueues = [...queues, ...localOnlyQueues];

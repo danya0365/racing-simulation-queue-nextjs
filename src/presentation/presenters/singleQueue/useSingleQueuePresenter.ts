@@ -69,6 +69,7 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
         setViewModel(vm);
       } else if (currentLocal) {
         // Use local storage data if server doesn't have it
+        const queueAhead = Math.max(0, currentLocal.position - 1);
         setViewModel({
           queue: {
             id: currentLocal.id,
@@ -92,7 +93,8 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
             createdAt: '',
             updatedAt: '',
           },
-          queueAhead: Math.max(0, currentLocal.position - 1),
+          queueAhead,
+          estimatedWaitMinutes: queueAhead * currentLocal.duration,
         });
       } else {
         setError('ไม่พบข้อมูลคิว');
