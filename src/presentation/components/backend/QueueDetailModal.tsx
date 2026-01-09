@@ -1,3 +1,5 @@
+'use client';
+
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { useState } from 'react';
 
