@@ -1,4 +1,5 @@
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
+import { useState } from 'react';
 
 // Queue Detail Modal
 interface QueueDetailModalProps {
@@ -22,6 +23,11 @@ export function QueueDetailModal({
       minute: '2-digit',
     }).format(new Date(dateString));
   };
+
+  const [expanded, setExpanded] = useState(false);
+  const INITIAL_SHOW_COUNT = 3;
+  const visibleWaitingQueues = expanded ? waitingQueues : waitingQueues.slice(0, INITIAL_SHOW_COUNT);
+  const remainingCount = waitingQueues.length - INITIAL_SHOW_COUNT;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 text-foreground">
@@ -80,11 +86,11 @@ export function QueueDetailModal({
             </h4>
             {waitingQueues.length > 0 ? (
               <div className="space-y-2">
-                {waitingQueues.map((queue, index) => (
+                {visibleWaitingQueues.map((queue, index) => (
                   <div key={queue.id} className="bg-surface border border-border rounded-xl p-3 flex items-center justify-between hover:border-purple-500/30 transition-colors">
                      <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                          index === 0 ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-muted-light text-muted'
+                          index === 0 && !expanded ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-muted-light text-muted'
                         }`}>
                           {queue.position}
                         </div>
@@ -101,6 +107,19 @@ export function QueueDetailModal({
                      </div>
                   </div>
                 ))}
+
+                {waitingQueues.length > INITIAL_SHOW_COUNT && (
+                   <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full py-2 text-xs text-muted hover:text-purple-400 transition-colors flex items-center justify-center gap-1"
+                   >
+                     {expanded ? (
+                       <>▲ ย่อลง</>
+                     ) : (
+                       <>▼ ดูเพิ่มเติม ({remainingCount} รายการ)</>
+                     )}
+                   </button>
+                )}
               </div>
             ) : (
               <div className="bg-surface border border-border/50 border-dashed rounded-xl p-8 text-center">
