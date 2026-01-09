@@ -334,9 +334,6 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
           <p className="text-sm text-muted">จัดการเครื่องเกมและคิวแบบ Real-time</p>
         </div>
         <div className="flex gap-2">
-          <GlowButton color="purple" onClick={() => setIsFocusMode(true)}>
-            🖥️ โหมดเต็มจอ
-          </GlowButton>
           <AnimatedButton variant="secondary" onClick={onRefresh} disabled={isUpdating}>
             🔄 รีเฟรช
           </AnimatedButton>

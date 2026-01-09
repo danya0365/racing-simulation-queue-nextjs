@@ -4,6 +4,7 @@ import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Portal } from '../ui/Portal';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 
 /**
@@ -120,6 +121,8 @@ export function GameRoomControlView() {
   if (!viewModel) return null;
 
   return (
+    <div className='h-screen w-screen'>
+    <Portal>
     <FullscreenControlPanel
       viewModel={viewModel}
       isUpdating={state.isUpdating}
@@ -132,7 +135,9 @@ export function GameRoomControlView() {
       getWaitingQueues={getWaitingQueues}
       getNextInQueue={getNextInQueue}
       formatTime={formatTime}
-      isModal={false}
+      isModal={true}
     />
+    </Portal>
+    </div>
   );
 }

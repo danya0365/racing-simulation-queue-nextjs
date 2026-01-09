@@ -92,11 +92,6 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
               >
                 🔍 ค้นหาคิว
               </AnimatedButton>
-              <Link href="/customer/booking">
-                <GlowButton color="cyan" size="lg">
-                  🚀 จองแบบง่าย
-                </GlowButton>
-              </Link>
             </div>
           </div>
         </div>
