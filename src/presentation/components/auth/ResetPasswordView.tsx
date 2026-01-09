@@ -9,29 +9,33 @@
 import { useAuthPresenter } from '@/src/presentation/presenters/auth/useAuthPresenter';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 
 export function ResetPasswordView() {
   const searchParams = useSearchParams();
   const [state, actions] = useAuthPresenter();
+  
+  // Check for token error in URL - computed once on mount
+  const initialTokenError = useMemo(() => {
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error) {
+      // Set error message after initial render via setTimeout to avoid cascading renders
+      setTimeout(() => {
+        actions.setError(errorDescription || 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ');
+      }, 0);
+      return true;
+    }
+    return false;
+  }, [searchParams, actions]);
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [tokenError, setTokenError] = useState(false);
-
-  // Check for token in URL
-  useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-    
-    if (error) {
-      setTokenError(true);
-      actions.setError(errorDescription || 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ');
-    }
-  }, [searchParams, actions]);
+  const [tokenError, setTokenError] = useState(initialTokenError);
 
   /**
    * Handle form submission

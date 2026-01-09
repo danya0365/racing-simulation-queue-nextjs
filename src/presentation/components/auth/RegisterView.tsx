@@ -9,15 +9,32 @@
 import { authConfig, getEnabledOAuthProviders, hasAnyOAuthProvider } from '@/src/config/auth.config';
 import { useAuthPresenter } from '@/src/presentation/presenters/auth/useAuthPresenter';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 
 export function RegisterView() {
-  const router = useRouter();
   const [state, actions] = useAuthPresenter();
   const config = authConfig;
   
-  // Check if registration is disabled
+  // OAuth settings - computed before hooks
+  const showOAuth = hasAnyOAuthProvider(config);
+  const enabledProviders = getEnabledOAuthProviders(config);
+  
+  // All hooks must be called unconditionally at the top level
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  
+  const [fullNameError, setFullNameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+  const [termsError, setTermsError] = useState<string | null>(null);
+  
+  // Check if registration is disabled - after all hooks
   if (!config.email.allowRegistration) {
     return (
       <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-purple-500/10 via-background to-pink-500/10">
@@ -45,24 +62,6 @@ export function RegisterView() {
       </div>
     );
   }
-  
-  // OAuth settings
-  const showOAuth = hasAnyOAuthProvider(config);
-  const enabledProviders = getEnabledOAuthProviders(config);
-  
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  
-  const [fullNameError, setFullNameError] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
-  const [termsError, setTermsError] = useState<string | null>(null);
 
   /**
    * Get OAuth provider icon

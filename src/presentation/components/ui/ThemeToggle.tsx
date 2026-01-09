@@ -2,16 +2,22 @@
 
 import { animated, config, useSpring } from '@react-spring/web';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
+
+// Subscription function that never triggers updates
+const emptySubscribe = () => () => {};
+
+// Server always returns false
+const getServerSnapshot = () => false;
+
+// Client returns true after hydration
+const getClientSnapshot = () => true;
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { setTheme, resolvedTheme } = useTheme();
+  
+  // useSyncExternalStore is the recommended way to handle client-only rendering
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
   const isDark = resolvedTheme === 'dark';
 

@@ -13,7 +13,14 @@
     "supabase-generate": "supabase gen types typescript --local --schema public > src/domain/types/supabase.ts",
     "supabase-db-diff": "supabase db diff --schema public",
     "type-check": "tsc --noEmit",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:vercel": "./scripts/deploy-vercel.sh production",
+    "deploy:vercel:preview": "./scripts/deploy-vercel.sh preview",
+    "deploy:supabase": "./scripts/deploy-supabase.sh push",
+    "deploy:supabase:status": "./scripts/deploy-supabase.sh status",
+    "deploy:all": "./scripts/deploy-all.sh",
+    "setup:env": "./scripts/setup-env.sh",
+    "setup:env:prod": "./scripts/setup-env.sh production"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

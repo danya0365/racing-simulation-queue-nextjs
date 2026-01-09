@@ -1,137 +1,296 @@
-# 🏎️ Racing Queue - ระบบจองคิว Racing Simulator
+<p align="center">
+  <img src="public/racing-queue-hero.svg" alt="Racing Queue Logo" width="120" height="120" />
+</p>
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1-black?style=for-the-badge&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+<h1 align="center">🏎️ Racing Queue</h1>
 
-ระบบจองคิวสำหรับร้านเกม Racing Simulation - ง่าย รวดเร็ว สะดวก
+<p align="center">
+  <strong>ระบบจองคิว Racing Simulator ที่ทันสมัยและใช้งานง่าย</strong>
+</p>
 
-## ✨ Features
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/Next.js-16.1-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react" alt="React" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript" alt="TypeScript" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Supabase-v2.89-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+</p>
 
-### 🎮 สำหรับลูกค้า (`/customer`)
-- เลือกเครื่อง Racing Simulator ที่ต้องการจอง
-- ดูสถานะเครื่อง (ว่าง/กำลังใช้งาน/ซ่อมบำรุง)
-- กรอกข้อมูลจองคิวง่ายๆ
-- ติดตามสถานะคิวแบบ Real-time
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/TailwindCSS-4.0-38B2AC?style=flat-square&logo=tailwind-css" alt="TailwindCSS" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome" /></a>
+</p>
 
-### ⚙️ สำหรับแอดมิน (`/backend`)
-- Dashboard แสดงภาพรวม
-- จัดการคิว (เริ่ม/เสร็จสิ้น/ยกเลิก)
-- จัดการเครื่องเล่น (เปิด/ปิด/ซ่อมบำรุง)
+---
 
-### 🎨 Design
-- **Racing Theme**: สีสันสดใส Neon Glow
-- **Dark Mode**: รองรับโหมดมืด
-- **Animations**: ใช้ react-spring สำหรับ micro-interactions
-- **Full-screen Layout**: ออกแบบแบบ Web App
+## 📖 Overview
 
-## 🚀 Getting Started
+**Racing Queue** คือระบบจัดการคิวสำหรับร้านเกม Racing Simulation ที่ออกแบบมาให้ใช้งานง่าย รวดเร็ว และมีประสิทธิภาพ รองรับทั้งฝั่งลูกค้าและแอดมิน พร้อม Real-time updates
 
-```bash
-# Install dependencies
-npm install
+### ✨ Key Features
 
-# Run development server
-npm run dev
+| Feature | Description |
+|---------|-------------|
+| 🎮 **Queue Management** | จองคิว ติดตามสถานะ ยกเลิกได้ทันที |
+| 📊 **Admin Dashboard** | ควบคุมห้องเกมแบบ Real-time |
+| 🌙 **Dark Mode** | รองรับโหมดมืด/สว่าง |
+| 📱 **Responsive** | ใช้งานได้ทุกอุปกรณ์ |
+| ⚡ **Quick Booking** | จองด่วนแบบ Focus Mode |
+| 🔐 **Authentication** | ระบบ Login/Register ด้วย Supabase |
+| 🔄 **Real-time** | อัพเดตสถานะแบบ Real-time |
 
-# Type check
-npm run type-check
+---
 
-# Build for production
-npm run build
-```
+## 🖥️ Screenshots
 
-เข้าใช้งานที่ http://localhost:3000
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><strong>🏠 Home Page</strong></td>
+      <td align="center"><strong>🎮 Customer Booking</strong></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/home.png" alt="Home" width="400"/></td>
+      <td><img src="docs/screenshots/customer.png" alt="Customer" width="400"/></td>
+    </tr>
+    <tr>
+      <td align="center"><strong>⚙️ Admin Dashboard</strong></td>
+      <td align="center"><strong>🎛️ Game Room Control</strong></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/backend.png" alt="Backend" width="400"/></td>
+      <td><img src="docs/screenshots/control.png" alt="Control" width="400"/></td>
+    </tr>
+  </table>
+</div>
 
-## 📁 Project Structure
-
-```
-├── app/                          # Next.js App Router
-│   ├── page.tsx                  # Home page
-│   ├── customer/                 # Customer routes
-│   │   ├── page.tsx              # Booking page
-│   │   └── queue/[id]/page.tsx   # Queue status page
-│   └── backend/                  # Admin routes
-│       └── page.tsx              # Admin dashboard
-├── src/
-│   ├── application/              # Application layer
-│   │   └── repositories/         # Repository interfaces
-│   ├── infrastructure/           # Infrastructure layer
-│   │   └── repositories/mock/    # Mock implementations
-│   └── presentation/             # Presentation layer
-│       ├── components/           # UI Components
-│       ├── presenters/           # Presenter pattern
-│       └── providers/            # Context providers
-└── public/styles/                # TailwindCSS styles
-```
+---
 
 ## 🏗️ Architecture
 
-โปรเจคนี้ใช้ **Clean Architecture** pattern:
+โปรเจคนี้ใช้ **Clean Architecture** pattern เพื่อให้โค้ดมีความยืดหยุ่นและบำรุงรักษาง่าย:
 
 ```
-┌─────────────────────────────────────────────┐
-│            Presentation Layer               │
-│   (Components, Presenters, Views)           │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────┐
-│            Application Layer                │
-│        (Repository Interfaces)              │
-└─────────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────┐
-│           Infrastructure Layer              │
-│   (Mock Repositories / Supabase)            │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    PRESENTATION LAYER                        │
+│         (Views, Components, Presenters, Stores)              │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│   │    Views    │  │  Presenters │  │   Stores    │         │
+│   │  (React UI) │  │  (Business) │  │  (Zustand)  │         │
+│   └─────────────┘  └─────────────┘  └─────────────┘         │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                    APPLICATION LAYER                         │
+│              (Repository Interfaces, Use Cases)              │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │              IRepository Interfaces                  │   │
+│   │  IMachineRepository  │  IQueueRepository  │ IAuth    │   │
+│   └─────────────────────────────────────────────────────┘   │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                   INFRASTRUCTURE LAYER                       │
+│           (Supabase, Mock Data, External APIs)               │
+│   ┌─────────────────────┐  ┌─────────────────────┐          │
+│   │  Supabase Repos     │  │    Mock Repos       │          │
+│   │  (Production)       │  │   (Development)     │          │
+│   └─────────────────────┘  └─────────────────────┘          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 🛠️ Tech Stack
+### 📁 Project Structure
 
-| Technology | Purpose |
-|------------|---------|
-| **Next.js 16** | React Framework |
-| **TypeScript** | Type Safety |
-| **TailwindCSS 4** | Styling |
-| **react-spring** | Animations |
-| **next-themes** | Dark Mode |
-| **Supabase** | Database (optional) |
-| **Zustand** | State Management |
+```
+racing-simulation-queue-nextjs/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   ├── auth/                    # Authentication pages
+│   ├── backend/                 # Admin dashboard
+│   ├── customer/                # Customer pages
+│   └── quick-booking/           # Quick booking page
+│
+├── src/
+│   ├── application/             # Application layer
+│   │   └── repositories/        # Repository interfaces
+│   │
+│   ├── domain/                  # Domain layer
+│   │   └── types/               # TypeScript types & Supabase types
+│   │
+│   ├── infrastructure/          # Infrastructure layer
+│   │   ├── repositories/        # Repository implementations
+│   │   │   ├── mock/            # Mock data for development
+│   │   │   └── supabase/        # Supabase implementations
+│   │   └── supabase/            # Supabase client
+│   │
+│   ├── presentation/            # Presentation layer
+│   │   ├── components/          # React components
+│   │   ├── presenters/          # Business logic presenters
+│   │   ├── providers/           # Context providers
+│   │   └── stores/              # Zustand stores
+│   │
+│   └── config/                  # Configuration files
+│
+├── supabase/                    # Supabase configuration
+│   ├── config.toml              # Local Supabase config
+│   ├── migrations/              # Database migrations
+│   └── seeds/                   # Seed data
+│
+├── scripts/                     # Deployment scripts
+│   ├── deploy-vercel.sh         # Vercel deployment
+│   ├── deploy-supabase.sh       # Supabase deployment
+│   └── setup-env.sh             # Environment setup
+│
+└── public/                      # Static assets
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18.x or later
+- **npm** 9.x or later (or yarn/pnpm)
+- **Supabase CLI** (for local development)
+- **Vercel CLI** (for deployment)
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/racing-simulation-queue-nextjs.git
+cd racing-simulation-queue-nextjs
+
+# 2. Install dependencies
+npm install
+
+# 3. Copy environment file
+cp .env.example .env.local
+
+# 4. Start local Supabase (optional, for local development)
+npm run supabase-start
+
+# 5. Run development server
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see the app.
+
+---
 
 ## 📝 Available Scripts
 
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server with Turbopack |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run type-check` | Run TypeScript type checking |
+| `npm run lint` | Run ESLint |
+| `npm run supabase-start` | Start local Supabase instance |
+| `npm run supabase-stop` | Stop local Supabase instance |
+| `npm run supabase-reset` | Reset local database with migrations |
+| `npm run supabase-migrate` | Run database migrations |
+| `npm run supabase-generate` | Generate TypeScript types from Supabase |
+| `npm run deploy:vercel` | Deploy to Vercel (production) |
+| `npm run deploy:supabase` | Deploy database migrations to Supabase |
+| `npm run deploy:all` | Deploy both Vercel and Supabase |
+| `npm run setup:env` | Setup environment variables |
+
+---
+
+## 🌐 Deployment
+
+### Environment Variables
+
+Create a `.env.local` file with the following variables:
+
 ```bash
-npm run dev              # Start development server
-npm run build            # Build for production
-npm run start            # Start production server
-npm run type-check       # Run TypeScript check
-npm run lint             # Run ESLint
-npm run supabase-start   # Start local Supabase
-npm run supabase-reset   # Reset Supabase database
+# Supabase Configuration (Required)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Application Configuration
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+NEXT_PUBLIC_APP_NAME="Racing Simulation Queue"
+
+# Auth Configuration
+NEXT_PUBLIC_AUTH_EMAIL_ENABLED=true
+NEXT_PUBLIC_AUTH_REGISTRATION_ENABLED=false
+NEXT_PUBLIC_AUTH_FORGOT_PASSWORD_ENABLED=true
 ```
+
+### Deploy to Vercel
+
+```bash
+# Using the deployment script
+npm run deploy:vercel
+
+# Or manually
+vercel --prod
+```
+
+### Deploy to Supabase
+
+```bash
+# Using the deployment script
+npm run deploy:supabase
+
+# Or manually
+supabase db push
+```
+
+### Full Deployment
+
+```bash
+# Deploy everything at once
+npm run deploy:all
+```
+
+---
 
 ## 🎯 Routes
 
-| Route | Description |
-|-------|-------------|
-| `/` | Home page with machine overview |
-| `/customer` | Customer booking page |
-| `/customer/queue/[id]` | Queue status page |
-| `/backend` | Admin dashboard |
+| Route | Description | Access |
+|-------|-------------|--------|
+| `/` | Home page with machine overview | Public |
+| `/customer` | Customer booking page | Public |
+| `/customer/queue/[id]` | Queue status page | Public |
+| `/customer/queue-status` | Queue status lookup | Public |
+| `/customer/queue-history` | Booking history | Public |
+| `/quick-booking` | Quick booking (Focus Mode) | Public |
+| `/backend` | Admin dashboard | Protected |
+| `/profile` | User profile | Protected |
+| `/auth/login` | Login page | Public |
+| `/auth/register` | Register page | Public |
+| `/auth/forgot-password` | Forgot password | Public |
 
-## 🌙 Dark Mode
+---
 
-รองรับ Dark Mode โดยใช้ `next-themes`:
-- คลิกปุ่ม Theme Toggle ที่ Header
-- บันทึก preference ไว้ใน localStorage
-- รองรับ System preference
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Framework** | Next.js 16.1 (App Router) |
+| **Language** | TypeScript 5.x |
+| **Styling** | TailwindCSS 4.0 |
+| **State Management** | Zustand 5.x |
+| **Database** | Supabase (PostgreSQL) |
+| **Authentication** | Supabase Auth |
+| **Animations** | react-spring |
+| **Forms** | react-hook-form + Zod |
+| **Theming** | next-themes |
+| **3D Graphics** | Three.js + React Three Fiber |
+
+---
 
 ## 📦 Data Models
 
 ### Machine
+
 ```typescript
 interface Machine {
   id: string;
@@ -140,38 +299,85 @@ interface Machine {
   position: number;
   status: 'available' | 'occupied' | 'maintenance';
   isActive: boolean;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
 ### Queue
+
 ```typescript
 interface Queue {
   id: string;
   machineId: string;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   bookingTime: string;
   duration: number;
   status: 'waiting' | 'playing' | 'completed' | 'cancelled';
   position: number;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
-## 🔧 Configuration
+---
 
-### Environment Variables
+## 🧪 Testing
 
-สำหรับ Supabase integration:
+```bash
+# Run TypeScript type checking
+npm run type-check
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Run ESLint
+npm run lint
+
+# Build for production (includes all checks)
+npm run build
 ```
-
-## 📄 License
-
-MIT License
 
 ---
 
-Made with ❤️ by Racing Queue Team
+## 🔒 Security
+
+- **Row Level Security (RLS)** enabled on all Supabase tables
+- **Protected routes** using Next.js middleware
+- **JWT authentication** via Supabase Auth
+- **Environment variables** for sensitive data
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👥 Team
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>Racing Queue Team</strong><br />
+      <sub>Built with ❤️ in Thailand</sub>
+    </td>
+  </tr>
+</table>
+
+---
+
+<p align="center">
+  <strong>🏎️ Racing Queue - จองคิว ง่าย รวดเร็ว ทันใจ</strong>
+</p>
