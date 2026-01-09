@@ -220,8 +220,8 @@ interface QueueCardProps {
 function QueueCard({ queue, formatTime, onFocus, onCancel }: QueueCardProps) {
   const isNextUp = queue.queueAhead === 0;
   
-  // Estimate wait time
-  const estimatedWaitMinutes = queue.queueAhead * 20;
+  // Use estimated wait time from presenter (calculated from actual durations)
+  const estimatedWaitMinutes = queue.estimatedWaitMinutes;
 
   return (
     <div
@@ -352,8 +352,8 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
     }).format(new Date(queue.bookingTime));
   };
 
-  // Estimate wait time
-  const estimatedWaitMinutes = queue.queueAhead * 20;
+  // Use estimated wait time from presenter (calculated from actual durations)
+  const estimatedWaitMinutes = queue.estimatedWaitMinutes;
   const estimatedWaitText = estimatedWaitMinutes > 0 
     ? `ประมาณ ${estimatedWaitMinutes} นาที`
     : 'ใกล้ถึงคิวแล้ว!';

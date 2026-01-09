@@ -112,6 +112,7 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
             status: viewModel.queue.status,
             position: viewModel.queue.position,
             queueAhead: viewModel.queueAhead,
+            estimatedWaitMinutes: viewModel.estimatedWaitMinutes,
           }}
           onRefresh={actions.loadData}
           onCancel={handleCancel}
@@ -165,8 +166,8 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
   const queue = viewModel.queue;
   const machineName = viewModel.machine?.name || 'Unknown';
   const queueAhead = viewModel.queueAhead;
+  const estimatedWaitMinutes = viewModel.estimatedWaitMinutes;
   const statusConfig = getStatusConfig(queue.status);
-  const estimatedWaitMinutes = queueAhead * 20;
   const isNextUp = queueAhead === 0 && queue.status === 'waiting';
 
   return (
@@ -319,6 +320,7 @@ interface CustomerFocusModeProps {
     status: string;
     position: number;
     queueAhead: number;
+    estimatedWaitMinutes: number;
   };
   onRefresh: () => Promise<void>;
   onCancel: () => Promise<void>;
@@ -367,8 +369,8 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
     }).format(new Date(queue.bookingTime));
   };
 
-  // Estimate wait time
-  const estimatedWaitMinutes = queue.queueAhead * 20;
+  // Use estimated wait time from queue (calculated by presenter from actual durations)
+  const estimatedWaitMinutes = queue.estimatedWaitMinutes;
   const estimatedWaitText = estimatedWaitMinutes > 0 
     ? `ประมาณ ${estimatedWaitMinutes} นาที`
     : 'ใกล้ถึงคิวแล้ว!';

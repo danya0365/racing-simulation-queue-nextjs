@@ -20,6 +20,8 @@ export interface QueueStatusData {
   status: 'waiting' | 'playing' | 'completed' | 'cancelled';
   position: number;
   queueAhead: number;
+  /** Estimated wait time in minutes - sum of durations from playing + waiting queues ahead */
+  estimatedWaitMinutes: number;
 }
 
 export interface QueueStatusViewModel {
@@ -86,19 +88,44 @@ export class QueueStatusPresenter {
   }
 
   /**
-   * Calculate queue ahead for a specific queue
+   * Calculate queue ahead count and estimated wait time for a specific queue
+   * Returns { queueAhead, estimatedWaitMinutes }
    */
-  async calculateQueueAhead(queue: Queue): Promise<number> {
+  async calculateQueueAhead(queue: Queue): Promise<{ queueAhead: number; estimatedWaitMinutes: number }> {
     try {
       const allQueues = await this.queueRepository.getAll();
-      const machineQueues = allQueues.filter(
-        q => q.machineId === queue.machineId && 
-        q.status === 'waiting' && 
-        q.position < queue.position
+      const machineQueues = allQueues.filter(q => q.machineId === queue.machineId);
+      
+      // Get waiting queues ahead (lower position = ahead)
+      const waitingAhead = machineQueues.filter(
+        q => q.status === 'waiting' && q.position < queue.position
       );
-      return machineQueues.length;
+      
+      // Get playing queue (if any)
+      const playingQueue = machineQueues.find(q => q.status === 'playing');
+      
+      // Calculate estimated wait time
+      let estimatedWaitMinutes = 0;
+      
+      // Add playing queue duration (assume just started for simplicity)
+      if (playingQueue) {
+        estimatedWaitMinutes += playingQueue.duration;
+      }
+      
+      // Add all waiting queues ahead
+      for (const q of waitingAhead) {
+        estimatedWaitMinutes += q.duration;
+      }
+      
+      return {
+        queueAhead: waitingAhead.length + (playingQueue ? 1 : 0),
+        estimatedWaitMinutes
+      };
     } catch {
-      return Math.max(0, queue.position - 1);
+      return { 
+        queueAhead: Math.max(0, queue.position - 1), 
+        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 // Fallback: 30 min per queue
+      };
     }
   }
 
@@ -126,7 +153,7 @@ export class QueueStatusPresenter {
         if (!queue) continue;
 
         const machine = await this.getMachineById(queue.machineId);
-        const queueAhead = await this.calculateQueueAhead(queue);
+        const { queueAhead, estimatedWaitMinutes } = await this.calculateQueueAhead(queue);
 
         results.push({
           id: queue.id,
@@ -140,6 +167,7 @@ export class QueueStatusPresenter {
           status: queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
           position: queue.position,
           queueAhead,
+          estimatedWaitMinutes,
         });
       } catch (error) {
         console.error(`Error loading queue ${queueId}:`, error);
