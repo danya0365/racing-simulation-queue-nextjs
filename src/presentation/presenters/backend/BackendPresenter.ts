@@ -31,15 +31,27 @@ export class BackendPresenter {
    * Get view model for the backend page
    */
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get dashboard data (Stats + Light Machine Check)
    */
   async getDashboardData(): Promise<Partial<BackendViewModel>> {
     try {
       // Parallel fetch: Stats + Machines (needed for stats display sometimes) + Waiting Queues count
-      const [backendStats, machines] = await Promise.all([
+      const [backendStats, machines] = await this.withTimeout(Promise.all([
         this.queueRepository.getBackendStats(),
         this.machineRepository.getAll(),
-      ]);
+      ]));
 
       const machineStats: MachineStats = {
         totalMachines: backendStats?.total_machines || 0,
@@ -60,7 +72,7 @@ export class BackendPresenter {
       // But getActiveAndRecent is cheap enough (today's data).
       // Let's use getWaiting just for the count if stats didn't have it, but stats has it.
       // We need `activeQueues` for "Recent Queues" list in dashboard.
-      const activeQueues = await this.queueRepository.getActiveAndRecent();
+      const activeQueues = await this.withTimeout(this.queueRepository.getActiveAndRecent());
 
       return {
         machineStats,
@@ -81,10 +93,10 @@ export class BackendPresenter {
    */
   async getControlData(): Promise<Partial<BackendViewModel>> {
     try {
-      const [machines, activeQueues] = await Promise.all([
+      const [machines, activeQueues] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.queueRepository.getActiveAndRecent(),
-      ]);
+      ]));
 
       // Recalculate basic stats on client for immediate consistency
       const machineStats: MachineStats = {

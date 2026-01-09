@@ -44,16 +44,28 @@ export class CustomerPresenter {
   ) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get view model for the customer page
    */
   async getViewModel(): Promise<CustomerViewModel> {
     try {
-      const [machines, availableMachines, machineStats, dashboardInfo] = await Promise.all([
+      const [machines, availableMachines, machineStats, dashboardInfo] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getAvailable(),
         this.machineRepository.getStats(),
         this.machineRepository.getDashboardInfo(),
-      ]);
+      ]));
 
       // Map dashboard info to dictionary
       const machineQueueInfo: Record<string, MachineQueueInfo> = {};

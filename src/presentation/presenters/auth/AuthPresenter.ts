@@ -38,11 +38,23 @@ export class AuthPresenter {
   constructor(private readonly repository: IAuthRepository) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get initial view model for auth pages
    */
   async getViewModel(): Promise<AuthViewModel> {
     try {
-      const session = await this.repository.getSession();
+      const session = await this.withTimeout(this.repository.getSession());
 
       if (session) {
         return {
@@ -112,7 +124,7 @@ export class AuthPresenter {
    */
   async signUp(data: SignUpData): Promise<AuthResult> {
     try {
-      return await this.repository.signUp(data);
+      return await this.withTimeout(this.repository.signUp(data));
     } catch (error) {
       console.error('Sign up error:', error);
       return {

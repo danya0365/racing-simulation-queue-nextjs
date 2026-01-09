@@ -37,11 +37,23 @@ export class SingleQueuePresenter {
   }
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get queue by ID
    */
   async getQueueById(id: string): Promise<Queue | null> {
     try {
-      return await this.queueRepository.getById(id);
+      return await this.withTimeout(this.queueRepository.getById(id));
     } catch (error) {
       console.error('Error getting queue:', error);
       throw error;
@@ -53,7 +65,7 @@ export class SingleQueuePresenter {
    */
   async getMachineById(id: string): Promise<Machine | null> {
     try {
-      return await this.machineRepository.getById(id);
+      return await this.withTimeout(this.machineRepository.getById(id));
     } catch (error) {
       console.error('Error getting machine:', error);
       throw error;
@@ -65,7 +77,7 @@ export class SingleQueuePresenter {
    */
   async getAllQueues(): Promise<Queue[]> {
     try {
-      return await this.queueRepository.getAll();
+      return await this.withTimeout(this.queueRepository.getAll());
     } catch (error) {
       console.error('Error getting all queues:', error);
       throw error;
@@ -78,8 +90,9 @@ export class SingleQueuePresenter {
    */
   async calculateQueueAhead(queue: Queue): Promise<{ queueAhead: number; estimatedWaitMinutes: number }> {
     try {
-      const allQueues = await this.getAllQueues();
-      const machineQueues = allQueues.filter(q => q.machineId === queue.machineId);
+      // Optimize: Get only queues for this machine instead of all
+      // And use timeout
+      const machineQueues = await this.withTimeout(this.queueRepository.getByMachineId(queue.machineId));
       
       // Get waiting queues ahead (lower position = ahead)
       const waitingAhead = machineQueues.filter(
@@ -119,7 +132,7 @@ export class SingleQueuePresenter {
    */
   async cancelQueue(queueId: string, customerId?: string): Promise<void> {
     try {
-      await this.queueRepository.cancel(queueId, customerId);
+      await this.withTimeout(this.queueRepository.cancel(queueId, customerId));
     } catch (error) {
       console.error('Error cancelling queue:', error);
       throw error;

@@ -27,17 +27,29 @@ export class HomePresenter {
   ) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get view model for the home page
    */
   async getViewModel(): Promise<HomeViewModel> {
     try {
       // Get data in parallel for better performance
-      const [allMachines, machineStats, waitingQueues, queueStats] = await Promise.all([
+      const [allMachines, machineStats, waitingQueues, queueStats] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getStats(),
         this.queueRepository.getWaiting(),
         this.queueRepository.getStats(),
-      ]);
+      ]));
 
       // Filter only active machines for client display
       // isActive = false means hidden from clients completely

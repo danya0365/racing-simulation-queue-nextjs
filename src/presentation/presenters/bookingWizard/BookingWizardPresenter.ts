@@ -33,14 +33,26 @@ export class BookingWizardPresenter {
   ) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get view model for the booking wizard
    */
   async getViewModel(): Promise<BookingWizardViewModel> {
     try {
-      const [machines, allQueues] = await Promise.all([
+      const [machines, allQueues] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.queueRepository.getToday(),
-      ]);
+      ]));
 
       // Calculate queue info for each machine
       const machineQueueInfo: Record<string, MachineQueueInfo> = {};
