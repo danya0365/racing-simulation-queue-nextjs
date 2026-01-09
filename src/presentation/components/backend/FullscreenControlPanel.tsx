@@ -3,6 +3,8 @@
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Portal } from '../ui/Portal';
+import { QueueDetailModal } from './QueueDetailModal';
 
 /**
  * FullscreenControlPanel - Focus Mode for Game Room Control
@@ -42,6 +44,7 @@ export function FullscreenControlPanel({
   isModal = true,
 }: FullscreenControlPanelProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [viewQueueMachineId, setViewQueueMachineId] = useState<string | null>(null);
 
   // Update time every second
   useEffect(() => {
@@ -239,6 +242,15 @@ export function FullscreenControlPanel({
 
                     {/* Action Buttons */}
                     <div className="space-y-2 pt-1">
+                      {/* View Queue Button - Always show unless maintenance */}
+                      {!isMaintenance && (
+                        <button
+                          onClick={() => setViewQueueMachineId(machine.id)}
+                          className="w-full py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-medium flex items-center justify-center gap-2 transition-all border border-blue-500/30"
+                        >
+                          🔍 ดูคิว ({waitingQueues.length})
+                        </button>
+                      )}
                       {/* Call Next */}
                       {nextInQueue && !currentPlayer && !isMaintenance && (
                         <button
@@ -338,6 +350,16 @@ export function FullscreenControlPanel({
           </div>
         </div>
       </div>
+      {/* Queue Detail Modal */}
+      {viewQueueMachineId && (
+        <Portal>
+          <QueueDetailModal
+            machine={viewModel.machines.find(m => m.id === viewQueueMachineId)!}
+            queues={viewModel.activeQueues.filter(q => q.machineId === viewQueueMachineId)}
+            onClose={() => setViewQueueMachineId(null)}
+          />
+        </Portal>
+      )}
     </div>
   );
 }

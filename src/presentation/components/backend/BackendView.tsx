@@ -19,6 +19,7 @@ import { useCustomersPresenter } from '@/src/presentation/presenters/customers/u
 import Link from 'next/link';
 import { useState } from 'react';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
+import { QueueDetailModal } from './QueueDetailModal';
 
 interface BackendViewProps {
   initialViewModel?: BackendViewModel;
@@ -243,6 +244,7 @@ interface LiveControlTabProps {
 function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMachineStatus, onResetQueue, onRefresh }: LiveControlTabProps) {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [resetConfirmMachineId, setResetConfirmMachineId] = useState<string | null>(null);
+  const [viewQueueMachineId, setViewQueueMachineId] = useState<string | null>(null); // New state to track which machine's queue to view
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -499,6 +501,16 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
                     📢 เรียกคิวถัดไป
                   </AnimatedButton>
                 )}
+                {!isMaintenance && (
+                   <AnimatedButton 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => setViewQueueMachineId(machine.id)}
+                    className="flex-1"
+                  >
+                    🔍 ดูคิว ({waitingQueues.length})
+                  </AnimatedButton>
+                )}
                 <AnimatedButton 
                   variant={isMaintenance ? 'success' : 'ghost'} 
                   size="sm"
@@ -554,9 +566,23 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
           );
         })}
       </div>
+
+      {/* Queue Detail Modal */}
+      {viewQueueMachineId && (
+        <Portal>
+          <QueueDetailModal
+            machine={viewModel.machines.find(m => m.id === viewQueueMachineId)!}
+            queues={getMachineQueues(viewQueueMachineId)}
+            onClose={() => setViewQueueMachineId(null)}
+          />
+        </Portal>
+      )}
     </div>
   );
 }
+
+// Queue Detail Modal
+
 
 // Queues Tab
 interface QueuesTabProps {
