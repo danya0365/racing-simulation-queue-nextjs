@@ -6,6 +6,7 @@ import type { QueueStatus } from '@/src/application/repositories/IQueueRepositor
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
+import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import {
@@ -1170,6 +1171,7 @@ function CustomersTab() {
   // Filter and pagination state
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
   const itemsPerPage = 10;
 
   const formatDate = (dateString: string) => {
@@ -1377,7 +1379,7 @@ function CustomersTab() {
                   >
                     {customer.isVip ? '⭐ ยกเลิก' : '⭐ VIP'}
                   </AnimatedButton>
-                  <AnimatedButton variant="danger" size="sm" onClick={() => actions.deleteCustomer(customer.id)}>
+                  <AnimatedButton variant="danger" size="sm" onClick={() => setCustomerToDelete({ id: customer.id, name: customer.name })}>
                     🗑️
                   </AnimatedButton>
                 </div>
@@ -1461,6 +1463,22 @@ function CustomersTab() {
           />
         </Portal>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!customerToDelete}
+        title="ยืนยันการลบข้อมูล"
+        description={`คุณต้องการลบข้อมูลลูกค้า "${customerToDelete?.name}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`}
+        confirmText="ลบข้อมูล"
+        variant="danger"
+        onConfirm={async () => {
+          if (customerToDelete) {
+            await actions.deleteCustomer(customerToDelete.id);
+            setCustomerToDelete(null);
+          }
+        }}
+        onClose={() => setCustomerToDelete(null)}
+      />
 
       {/* Add Modal */}
       {isAddModalOpen && (

@@ -142,8 +142,6 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
    * Delete a customer
    */
   const deleteCustomer = useCallback(async (id: string) => {
-    if (!confirm('ต้องการลบลูกค้านี้?')) return;
-
     setError(null);
 
     try {
