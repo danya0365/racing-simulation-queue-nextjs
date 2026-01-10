@@ -228,3 +228,85 @@ VALUES
   ('00000000-0000-0000-0000-000000000105', 'Racing Sim 5', 'เครื่อง F1 Simulator VIP พร้อมระบบ Motion Platform', 5, 'available', TRUE),
   ('00000000-0000-0000-0000-000000000106', 'Racing Sim 6', 'เครื่อง Endurance Simulator ระดับ Pro สำหรับ E-Sports', 6, 'maintenance', FALSE)
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- RACING SYSTEM: Seed Customers (Additional)
+-- ============================================================================
+INSERT INTO public.customers (id, name, phone, visit_count, total_play_time, is_vip, created_at)
+VALUES
+  ('00000000-0000-0000-0000-000000000201', 'สมชาย ใจดี', '0812345678', 12, 720, TRUE, NOW() - INTERVAL '60 days'),
+  ('00000000-0000-0000-0000-000000000202', 'สมหญิง รักเกม', '0823456789', 8, 480, TRUE, NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000203', 'วิชัย เร็วแรง', '0834567890', 5, 300, FALSE, NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000204', 'มานี มีสุข', '0845678901', 3, 180, FALSE, NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000205', 'ณัฐพล สปีด', '0856789012', 1, 60, FALSE, NOW() - INTERVAL '5 days'),
+  ('00000000-0000-0000-0000-000000000206', 'กิตติ F1', '0867890123', 20, 1200, TRUE, NOW() - INTERVAL '90 days'),
+  ('00000000-0000-0000-0000-000000000207', 'อนันดา ขาซิ่ง', '0878901234', 2, 120, FALSE, NOW() - INTERVAL '10 days'),
+  ('00000000-0000-0000-0000-000000000208', 'แพรวพราว เรซซิ่ง', '0889012345', 15, 900, TRUE, NOW() - INTERVAL '40 days'),
+  ('00000000-0000-0000-0000-000000000209', 'โชติช่วง ชำนาญ', '0890123456', 4, 240, FALSE, NOW() - INTERVAL '15 days'),
+  ('00000000-0000-0000-0000-000000000210', 'ธันวา พาสนุก', '0801234567', 1, 30, FALSE, NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- RACING SYSTEM: Seed Historical Queues (Last 30 Days)
+-- ============================================================================
+-- This block generates random historical data
+DO $$
+DECLARE
+    v_machine_id UUID;
+    v_customer_id UUID;
+    v_day RECORD;
+    v_hour RECORD;
+    v_status public.queue_status;
+    v_duration INTEGER;
+BEGIN
+    -- Loop through the last 30 days
+    FOR v_day IN SELECT generate_series(CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE, '1 day')::date as d LOOP
+        
+        -- Generate 5-15 bookings per day
+        FOR i IN 1..(floor(random() * 11 + 5)) LOOP
+            
+            -- Pick a random machine
+            SELECT id INTO v_machine_id FROM public.machines ORDER BY random() LIMIT 1;
+            
+            -- Pick a random customer (including potential guests who aren't in the table, but for seed we use existing)
+            SELECT id INTO v_customer_id FROM public.customers ORDER BY random() LIMIT 1;
+            
+            -- Status distribution: mostly completed, some cancelled
+            IF random() < 0.15 THEN
+                v_status := 'cancelled';
+            ELSE
+                v_status := 'completed';
+            END IF;
+
+            -- If it's today, allow waiting/playing
+            IF v_day.d = CURRENT_DATE THEN
+                IF random() < 0.2 THEN
+                    v_status := 'waiting';
+                ELSIF random() < 0.4 THEN
+                    v_status := 'playing';
+                END IF;
+            END IF;
+
+            -- Duration: 30, 60, 90, 120
+            v_duration := (ARRAY[30, 60, 90, 120])[floor(random() * 4 + 1)];
+
+            INSERT INTO public.queues (
+                machine_id, 
+                customer_id, 
+                booking_time, 
+                duration, 
+                status, 
+                position, 
+                created_at
+            ) VALUES (
+                v_machine_id,
+                v_customer_id,
+                v_day.d + (floor(random() * 12 + 10) || ' hours')::interval + (floor(random() * 60) || ' minutes')::interval,
+                v_duration,
+                v_status,
+                1,
+                v_day.d + (floor(random() * 24) || ' hours')::interval
+            );
+        END LOOP;
+    END LOOP;
+END $$;

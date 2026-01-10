@@ -17,9 +17,11 @@ import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendP
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { useCustomersPresenter } from '@/src/presentation/presenters/customers/useCustomersPresenter';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 import { QueueDetailModal } from './QueueDetailModal';
+import { QuickBookingQRCode } from './QuickBookingQRCode';
 
 interface BackendViewProps {
   initialViewModel?: BackendViewModel;
@@ -28,6 +30,11 @@ interface BackendViewProps {
 export function BackendView({ initialViewModel }: BackendViewProps) {
   const [state, actions] = useBackendPresenter(initialViewModel);
   const viewModel = state.viewModel;
+
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+  const handlePrintQR = useReactToPrint({
+    contentRef: qrCodeRef,
+  });
 
   // NOTE: Removed pageSpring for better performance
   // Using CSS animations instead (animate-page-in)
@@ -81,6 +88,9 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             </div>
 
             <div className="flex gap-3">
+              <GlowButton color="cyan" onClick={() => handlePrintQR && handlePrintQR()}>
+                🖨️ Print QR
+              </GlowButton>
               <Link href="/backend/control">
                 <GlowButton color="purple">
                   🎛️ ควบคุมห้องเกม
@@ -180,6 +190,11 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           </div>
         </div>
       )}
+
+      {/* Hidden Printable Component */}
+      <div style={{ display: 'none' }}>
+        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/quick-booking" />
+      </div>
     </div>
   );
 }
