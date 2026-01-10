@@ -391,7 +391,8 @@ export class SupabaseAuthRepository implements IAuthRepository {
         .select('*')
         .eq('auth_id', user.id)
         .eq('is_active', true)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error || !profile) {
         return null;
