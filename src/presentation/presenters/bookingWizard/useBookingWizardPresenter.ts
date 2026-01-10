@@ -51,7 +51,7 @@ const STEPS: BookingStep[] = ['phone', 'machine', 'duration', 'confirm'];
  * ✅ Following Clean Architecture pattern
  */
 export function useBookingWizardPresenter(): [BookingWizardPresenterState, BookingWizardPresenterActions] {
-  const { customerInfo, setCustomerInfo, addBooking } = useCustomerStore();
+  const { customerInfo, setCustomerInfo, addBooking, isInitialized } = useCustomerStore();
   
   const [viewModel, setViewModel] = useState<BookingWizardViewModel | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,8 +61,8 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
   const [success, setSuccess] = useState<{ queueId: string; position: number } | null>(null);
   
   const [bookingData, setBookingData] = useState<BookingData>({
-    customerPhone: customerInfo.phone || '',
-    customerName: customerInfo.name || '',
+    customerPhone: '',
+    customerName: '',
     machineId: '',
     machineName: '',
     duration: 30,
@@ -70,6 +70,17 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
     estimatedWait: 0,
     queuePosition: 1,
   });
+
+  // Update booking data from store when initialized
+  useEffect(() => {
+    if (isInitialized) {
+      setBookingData(prev => ({
+        ...prev,
+        customerPhone: customerInfo.phone || '',
+        customerName: customerInfo.name || '',
+      }));
+    }
+  }, [isInitialized, customerInfo]);
 
   /**
    * Load data from presenter

@@ -27,6 +27,7 @@ interface CustomerStore {
   customerInfo: CustomerInfo;
   activeBookings: ActiveBooking[];
   bookingHistory: ActiveBooking[];
+  isInitialized: boolean;
   
   // Actions
   setCustomerInfo: (info: Partial<CustomerInfo>) => void;
@@ -60,6 +61,7 @@ export const useCustomerStore = create<CustomerStore>()(
       customerInfo: initialCustomerInfo,
       activeBookings: [],
       bookingHistory: [],
+      isInitialized: false, // Track if persisted data is loaded
       
       setCustomerInfo: (info) =>
         set((state) => ({
@@ -139,6 +141,11 @@ export const useCustomerStore = create<CustomerStore>()(
     }),
     {
       name: 'racing-queue-customer', // localStorage key
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isInitialized = true;
+        }
+      },
     }
   )
 );
