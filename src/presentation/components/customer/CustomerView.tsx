@@ -83,16 +83,6 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex flex-wrap gap-3">
-              <AnimatedButton 
-                variant="ghost" 
-                onClick={actions.openSearchModal}
-                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-              >
-                🔍 ค้นหาคิว
-              </AnimatedButton>
-            </div>
           </div>
         </div>
       </section>
