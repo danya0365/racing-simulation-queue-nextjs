@@ -83,6 +83,11 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
                 🎮 จองคิวเลย
               </GlowButton>
             </Link>
+            <Link href="/qr-scan">
+              <GlowButton color="purple" size="lg">
+                📱 QR Scan
+              </GlowButton>
+            </Link>
           </div>
         </div>
       </section>
