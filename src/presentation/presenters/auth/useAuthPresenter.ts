@@ -7,7 +7,8 @@ import type {
   UpdateProfileData
 } from '@/src/application/repositories/IAuthRepository';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useAuthStore } from '../../stores/auth-store';
 import { AuthViewModel } from './AuthPresenter';
 import { createClientAuthPresenter } from './AuthPresenterClientFactory';
 
@@ -91,12 +92,9 @@ export function useAuthPresenter(
     }
     return '/customer';
   }, []);
-  // State
-  const [user, setUser] = useState<AuthUser | null>(initialViewModel?.user || null);
-  const [profile, setProfile] = useState<AuthProfile | null>(initialViewModel?.profile || null);
-  const [session, setSession] = useState<AuthSession | null>(initialViewModel?.session || null);
-  const [isAuthenticated, setIsAuthenticated] = useState(initialViewModel?.isAuthenticated || false);
-  const [isLoading, setIsLoading] = useState(!initialViewModel);
+  // Global State from Zustand
+  const { user, profile, session, isAuthenticated, isLoading } = useAuthStore();
+
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,27 +112,7 @@ export function useAuthPresenter(
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
 
-  /**
-   * Load initial auth state
-   */
-  const loadAuthState = useCallback(async () => {
-    if (initialViewModel) {
-      setIsLoading(false);
-      return;
-    }
 
-    try {
-      const viewModel = await presenter.getViewModel();
-      setUser(viewModel.user);
-      setProfile(viewModel.profile);
-      setSession(viewModel.session);
-      setIsAuthenticated(viewModel.isAuthenticated);
-    } catch (err) {
-      console.error('Error loading auth state:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [initialViewModel]);
 
   /**
    * Sign up with email and password
@@ -153,7 +131,7 @@ export function useAuthPresenter(
           setVerificationEmail(email);
           setSuccessMessage(result.message || 'กรุณายืนยันอีเมลเพื่อเปิดใช้งานบัญชี');
         } else {
-          setUser(result.user || null);
+          // State update happens via event listener
           setSuccessMessage(result.message || 'สมัครสมาชิกสำเร็จ');
           router.push(getRedirectUrl());
         }
@@ -183,10 +161,7 @@ export function useAuthPresenter(
       const result = await presenter.signIn({ email, password });
 
       if (result.success) {
-        setUser(result.user || null);
-        setProfile(result.session?.profile || null);
-        setSession(result.session || null);
-        setIsAuthenticated(true);
+        // State update happens via event listener
         setSuccessMessage(result.message || 'เข้าสู่ระบบสำเร็จ');
         router.push(getRedirectUrl());
         return true;
@@ -244,10 +219,7 @@ export function useAuthPresenter(
       const result = await presenter.verifyOTP({ phone, token });
 
       if (result.success) {
-        setUser(result.user || null);
-        setProfile(result.session?.profile || null);
-        setSession(result.session || null);
-        setIsAuthenticated(true);
+        // State update happens via event listener
         setOtpSent(false);
         setOtpPhone('');
         setSuccessMessage(result.message || 'ยืนยัน OTP สำเร็จ');
@@ -297,10 +269,7 @@ export function useAuthPresenter(
       const result = await presenter.signOut();
 
       if (result.success) {
-        setUser(null);
-        setProfile(null);
-        setSession(null);
-        setIsAuthenticated(false);
+        // State update happens via event listener
         setSuccessMessage(result.message || 'ออกจากระบบสำเร็จ');
         router.push('/');
       } else {
@@ -379,7 +348,8 @@ export function useAuthPresenter(
 
     try {
       const updatedProfile = await presenter.updateProfile(data);
-      setProfile(updatedProfile);
+      // Manually update store for profile changes as auth event might not fire for profile table changes
+      useAuthStore.getState().setProfile(updatedProfile);
       setSuccessMessage('อัปเดตโปรไฟล์สำเร็จ');
       return true;
     } catch (err) {
@@ -396,13 +366,8 @@ export function useAuthPresenter(
    */
   const refreshSession = useCallback(async (): Promise<void> => {
     try {
-      const newSession = await presenter.refreshSession();
-      if (newSession) {
-        setSession(newSession);
-        setUser(newSession.user);
-        setProfile(newSession.profile);
-        setIsAuthenticated(true);
-      }
+      await presenter.refreshSession();
+      // Store update handled by global listener
     } catch (err) {
       console.error('Error refreshing session:', err);
     }
@@ -490,30 +455,7 @@ export function useAuthPresenter(
     return presenter.validatePhone(phone);
   }, []);
 
-  /**
-   * Subscribe to auth state changes
-   */
-  useEffect(() => {
-    loadAuthState();
 
-    const unsubscribe = presenter.onAuthStateChange((newSession) => {
-      if (newSession) {
-        setUser(newSession.user);
-        setProfile(newSession.profile);
-        setSession(newSession);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setSession(null);
-        setIsAuthenticated(false);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const state: AuthPresenterState = useMemo(() => ({
     user,

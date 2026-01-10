@@ -2,13 +2,15 @@ import { Database } from '@/src/domain/types/supabase';
 
 import { createBrowserClient } from '@supabase/ssr';
 
+import { SupabaseClient } from '@supabase/supabase-js';
+
 // กำหนดค่าเริ่มต้นสำหรับ Supabase URL และ API key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-for-build.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key-for-build';
 
-let client: any = null;
+let client: SupabaseClient<Database> | null = null;
 
-export function createClient() {
+export function createClient(): SupabaseClient<Database> {
   if (client) return client;
 
   console.log('Initializing Supabase Client (Singleton)...');
