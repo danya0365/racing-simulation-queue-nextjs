@@ -201,9 +201,9 @@ export class CustomerPresenter {
   /**
    * Search queues by phone number (Optimized via RPC)
    */
-  async searchQueuesByPhone(phone: string): Promise<Queue[]> {
+  async searchQueuesByPhone(phone: string, localCustomerId?: string): Promise<Queue[]> {
     try {
-      return await this.queueRepository.searchByPhone(phone);
+      return await this.queueRepository.searchByPhone(phone, localCustomerId);
     } catch (error) {
       console.error('Error searching queues by phone:', error);
       throw error;

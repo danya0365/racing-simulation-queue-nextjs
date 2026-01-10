@@ -34,8 +34,25 @@ $$;
 
 -- Function to search queues by phone number (normalized)
 -- Prevents loading all queues to client
-CREATE OR REPLACE FUNCTION rpc_search_queues_by_phone(p_phone text)
-RETURNS SETOF queues
+CREATE OR REPLACE FUNCTION rpc_search_queues_by_phone(
+  p_phone text,
+  p_local_customer_id uuid DEFAULT NULL
+)
+RETURNS TABLE (
+    id UUID,
+    machine_id UUID,
+    customer_id UUID,
+    machine_name TEXT,
+    customer_name TEXT,
+    customer_phone_masked TEXT,
+    booking_time TIMESTAMP WITH TIME ZONE,
+    duration INTEGER,
+    status public.queue_status,
+    queue_position INTEGER,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -43,12 +60,36 @@ BEGIN
   -- Normalize input phone: remove non-digits
   -- And compare with normalized table phone
   RETURN QUERY
-  SELECT q.*
+  SELECT 
+    q.id,
+    q.machine_id,
+    q.customer_id,
+    m.name as machine_name,
+    c.name as customer_name,
+    public.mask_phone(c.phone) as customer_phone_masked,
+    q.booking_time,
+    q.duration,
+    q.status,
+    q.position as queue_position,
+    q.notes,
+    q.created_at,
+    q.updated_at
   FROM queues q
   JOIN customers c ON q.customer_id = c.id
+  JOIN machines m ON q.machine_id = m.id
   WHERE 
+    -- Phone match
     regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace(p_phone, '\D', '', 'g') || '%'
+    AND (
+      -- Security Condition 1: Guest Ownership
+      -- Must match local_customer_id AND have no profile linked
+      (p_local_customer_id IS NOT NULL AND c.id = p_local_customer_id AND c.profile_id IS NULL)
+      OR
+      -- Security Condition 2: Authenticated User
+      -- Must own the profile linked to the customer
+      (auth.uid() IS NOT NULL AND c.profile_id = auth.uid())
+    )
   ORDER BY q.booking_time DESC
-  LIMIT 50; -- Limit results for safety
+  LIMIT 50;
 END;
 $$;

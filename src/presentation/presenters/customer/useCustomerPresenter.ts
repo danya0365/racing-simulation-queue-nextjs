@@ -197,12 +197,13 @@ export function useCustomerPresenter(
     try {
       const newQueue = await presenter.createBooking(data);
       
-      // Save customer info for next time
       setCustomerInfo({
         name: data.customerName,
         phone: data.customerPhone,
+        id: newQueue.customerId, // Save customer ID for security verification
       });
-      
+
+
       // Get machine name for display
       const machine = viewModel?.machines.find(m => m.id === data.machineId);
       
@@ -285,7 +286,13 @@ export function useCustomerPresenter(
     setSearchResults([]);
 
     try {
-      const results = await presenter.searchQueuesByPhone(phone);
+      // Get local customer ID from customer info (primary) or first active booking (fallback)
+      // This acts as a security token for guest users to view their own data
+      const { customerInfo } = useCustomerStore.getState();
+
+      const securityTokenId = customerInfo.id;
+
+      const results = await presenter.searchQueuesByPhone(phone, securityTokenId);
       if (results.length === 0) {
         setSearchError('ไม่พบคิวที่ตรงกับเบอร์โทรศัพท์นี้');
       } else {
@@ -313,7 +320,7 @@ export function useCustomerPresenter(
     } finally {
       setIsSearching(false);
     }
-  }, [viewModel?.machines, addToHistory]);
+  }, [viewModel?.machines, addToHistory, activeBookings]);
 
   /**
    * Search queue by ID or position

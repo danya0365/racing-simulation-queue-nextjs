@@ -112,10 +112,13 @@ export class SupabaseQueueRepository implements IQueueRepository {
     }
   }
 
-  async searchByPhone(phone: string): Promise<Queue[]> {
+  async searchByPhone(phone: string, localCustomerId?: string): Promise<Queue[]> {
     try {
       const { data, error } = await this.supabase
-        .rpc('rpc_search_queues_by_phone', { p_phone: phone });
+        .rpc('rpc_search_queues_by_phone', { 
+          p_phone: phone,
+          p_local_customer_id: localCustomerId || undefined 
+        });
       
       if (error) {
         console.error('Error searching queues by phone:', error);

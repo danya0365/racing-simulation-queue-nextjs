@@ -80,7 +80,7 @@ export interface IQueueRepository {
   /**
    * Search queues by phone number (RPC optimized)
    */
-  searchByPhone(phone: string): Promise<Queue[]>;
+  searchByPhone(phone: string, localCustomerId?: string): Promise<Queue[]>;
 
   /**
    * Get all queues

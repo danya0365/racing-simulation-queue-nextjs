@@ -207,6 +207,7 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
             isSearching={state.isSearching}
             searchResults={state.searchResults}
             searchError={state.searchError}
+            defaultPhone={customerInfo.phone}
             onSearchByPhone={actions.searchByPhone}
             onSearchById={actions.searchById}
             onClearResults={actions.clearSearchResults}
@@ -343,6 +344,7 @@ interface SearchModalProps {
   isSearching: boolean;
   searchResults: Queue[];
   searchError: string | null;
+  defaultPhone?: string;
   onSearchByPhone: (phone: string) => Promise<void>;
   onSearchById: (id: string) => Promise<void>;
   onClearResults: () => void;
@@ -353,13 +355,14 @@ function SearchModal({
   isSearching, 
   searchResults, 
   searchError, 
+  defaultPhone = '',
   onSearchByPhone, 
   onSearchById,
   onClearResults,
   onClose 
 }: SearchModalProps) {
   const [searchType, setSearchType] = useState<'phone' | 'id'>('phone');
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState(defaultPhone);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
