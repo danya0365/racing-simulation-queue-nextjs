@@ -43,11 +43,12 @@ BEGIN
   -- Normalize input phone: remove non-digits
   -- And compare with normalized table phone
   RETURN QUERY
-  SELECT *
-  FROM queues
+  SELECT q.*
+  FROM queues q
+  JOIN customers c ON q.customer_id = c.id
   WHERE 
-    regexp_replace(customer_phone_masked, '\D', '', 'g') LIKE '%' || regexp_replace(p_phone, '\D', '', 'g') || '%'
-  ORDER BY booking_time DESC
+    regexp_replace(c.phone, '\D', '', 'g') LIKE '%' || regexp_replace(p_phone, '\D', '', 'g') || '%'
+  ORDER BY q.booking_time DESC
   LIMIT 50; -- Limit results for safety
 END;
 $$;
