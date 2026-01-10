@@ -131,12 +131,12 @@ export function QueueHistoryView() {
 
                   {/* Bookings */}
                   <div className="space-y-3">
-                    {bookings.map((booking) => {
+                    {bookings.map((booking, index) => {
                       const statusConfig = getStatusConfig(booking.status);
                       
                       return (
                         <div
-                          key={booking.id}
+                          key={`${booking.id}-${index}`}
                           className={`rounded-xl border border-border p-4 ${statusConfig.bg}`}
                         >
                           <div className="flex items-start justify-between gap-4">
