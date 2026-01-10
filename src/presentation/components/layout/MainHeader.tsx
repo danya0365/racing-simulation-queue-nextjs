@@ -69,7 +69,7 @@ export function MainHeader() {
 
           {/* Auth Section */}
           {authState.isLoading ? (
-            <div className="w-8 h-8 rounded-full bg-muted-light animate-pulse" />
+            null
           ) : authState.isAuthenticated ? (
             /* User Menu - Logged In */
             <div className="relative">
