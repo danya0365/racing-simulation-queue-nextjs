@@ -156,7 +156,7 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
   useEffect(() => {
     const interval = setInterval(() => {
       loadData();
-    }, 5000);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 

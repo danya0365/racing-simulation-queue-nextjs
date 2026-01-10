@@ -241,7 +241,7 @@ export function useBackendPresenter(
   useEffect(() => {
     const interval = setInterval(() => {
       refreshData();
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [refreshData]);

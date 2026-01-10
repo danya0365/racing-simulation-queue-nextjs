@@ -513,7 +513,7 @@ export function useAuthPresenter(
     return () => {
       unsubscribe();
     };
-  }, [loadAuthState]);
+  }, []);
 
   const state: AuthPresenterState = useMemo(() => ({
     user,
