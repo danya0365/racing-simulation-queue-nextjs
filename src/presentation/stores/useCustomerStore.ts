@@ -6,6 +6,7 @@ import { persist } from 'zustand/middleware';
 interface CustomerInfo {
   phone: string;
   name: string;
+  id: string; // Stored DB customer UUID to enable secure lookups
 }
 
 interface ActiveBooking {
@@ -27,6 +28,7 @@ interface CustomerStore {
   customerInfo: CustomerInfo;
   activeBookings: ActiveBooking[];
   bookingHistory: ActiveBooking[];
+  isInitialized: boolean;
   
   // Actions
   setCustomerInfo: (info: Partial<CustomerInfo>) => void;
@@ -48,6 +50,7 @@ interface CustomerStore {
 const initialCustomerInfo: CustomerInfo = {
   phone: '',
   name: '',
+  id: '',
 };
 
 /**
@@ -60,6 +63,7 @@ export const useCustomerStore = create<CustomerStore>()(
       customerInfo: initialCustomerInfo,
       activeBookings: [],
       bookingHistory: [],
+      isInitialized: false, // Track if persisted data is loaded
       
       setCustomerInfo: (info) =>
         set((state) => ({
@@ -125,9 +129,13 @@ export const useCustomerStore = create<CustomerStore>()(
         }),
       
       addToHistory: (booking) =>
-        set((state) => ({
-          bookingHistory: [booking, ...state.bookingHistory].slice(0, 50),
-        })),
+        set((state) => {
+          // Remove if exists first (to update data or just move to top)
+          const filteredHistory = state.bookingHistory.filter(b => b.id !== booking.id);
+          return {
+            bookingHistory: [booking, ...filteredHistory].slice(0, 50),
+          };
+        }),
       
       clearHistory: () =>
         set({ bookingHistory: [] }),
@@ -139,6 +147,11 @@ export const useCustomerStore = create<CustomerStore>()(
     }),
     {
       name: 'racing-queue-customer', // localStorage key
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isInitialized = true;
+        }
+      },
     }
   )
 );

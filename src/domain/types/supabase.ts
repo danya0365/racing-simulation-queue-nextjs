@@ -499,18 +499,21 @@ export type Database = {
         Returns: Json
       }
       rpc_search_queues_by_phone: {
-        Args: { p_phone: string }
+        Args: { p_phone: string; p_local_customer_id?: string }
         Returns: {
-          booking_time: string
-          created_at: string | null
-          customer_id: string
-          duration: number
           id: string
           machine_id: string
-          notes: string | null
-          position: number
+          customer_id: string
+          machine_name: string
+          customer_name: string
+          customer_phone_masked: string
+          booking_time: string
+          duration: number
           status: Database["public"]["Enums"]["queue_status"]
-          updated_at: string | null
+          queue_position: number
+          notes: string
+          created_at: string
+          updated_at: string
         }[]
       }
       rpc_update_queue_status_admin: {

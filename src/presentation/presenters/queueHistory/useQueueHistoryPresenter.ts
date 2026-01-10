@@ -3,9 +3,9 @@
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { useCallback, useState } from 'react';
 import {
-    QueueHistoryItem,
-    QueueHistoryPresenter,
-    QueueHistoryViewModel
+  QueueHistoryItem,
+  QueueHistoryPresenter,
+  QueueHistoryViewModel
 } from './QueueHistoryPresenter';
 
 // Initialize presenter instance once (singleton pattern)
@@ -30,10 +30,11 @@ export interface QueueHistoryPresenterActions {
 export function useQueueHistoryPresenter(): [QueueHistoryPresenterState, QueueHistoryPresenterActions] {
   const [filter, setFilterState] = useState<'all' | 'completed' | 'cancelled'>('all');
   
-  const { bookingHistory, clearHistory: storeClearHistory } = useCustomerStore();
+  const { bookingHistory, clearHistory: storeClearHistory, isInitialized } = useCustomerStore();
 
   // Convert ActiveBooking to QueueHistoryItem
-  const historyItems: QueueHistoryItem[] = bookingHistory.map(b => ({
+  // But wait for hydration first to avoid empty initial render overwriting or hydration mismatch
+  const historyItems: QueueHistoryItem[] = isInitialized ? bookingHistory.map(b => ({
     id: b.id,
     machineId: b.machineId,
     machineName: b.machineName,
@@ -44,7 +45,7 @@ export function useQueueHistoryPresenter(): [QueueHistoryPresenterState, QueueHi
     position: b.position,
     status: b.status,
     createdAt: b.createdAt,
-  }));
+  })) : [];
 
   // Get view model
   const viewModel = presenter.getViewModel(historyItems, filter);

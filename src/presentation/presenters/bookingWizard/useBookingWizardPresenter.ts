@@ -3,7 +3,7 @@
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    BookingWizardViewModel
+  BookingWizardViewModel
 } from './BookingWizardPresenter';
 import { createClientBookingWizardPresenter } from './BookingWizardPresenterClientFactory';
 
@@ -51,7 +51,7 @@ const STEPS: BookingStep[] = ['phone', 'machine', 'duration', 'confirm'];
  * ✅ Following Clean Architecture pattern
  */
 export function useBookingWizardPresenter(): [BookingWizardPresenterState, BookingWizardPresenterActions] {
-  const { customerInfo, setCustomerInfo, addBooking } = useCustomerStore();
+  const { customerInfo, setCustomerInfo, addBooking, isInitialized } = useCustomerStore();
   
   const [viewModel, setViewModel] = useState<BookingWizardViewModel | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,8 +61,8 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
   const [success, setSuccess] = useState<{ queueId: string; position: number } | null>(null);
   
   const [bookingData, setBookingData] = useState<BookingData>({
-    customerPhone: customerInfo.phone || '',
-    customerName: customerInfo.name || '',
+    customerPhone: '',
+    customerName: '',
     machineId: '',
     machineName: '',
     duration: 30,
@@ -70,6 +70,17 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
     estimatedWait: 0,
     queuePosition: 1,
   });
+
+  // Update booking data from store when initialized
+  useEffect(() => {
+    if (isInitialized) {
+      setBookingData(prev => ({
+        ...prev,
+        customerPhone: customerInfo.phone || '',
+        customerName: customerInfo.name || '',
+      }));
+    }
+  }, [isInitialized, customerInfo]);
 
   /**
    * Load data from presenter
@@ -128,7 +139,7 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
       const bookingTime = new Date();
       bookingTime.setMinutes(bookingTime.getMinutes() + 5);
 
-      const result = await presenter.createBooking({
+      const newQueue = await presenter.createBooking({
         machineId: bookingData.machineId,
         customerName: bookingData.customerName,
         customerPhone: bookingData.customerPhone,
@@ -140,25 +151,26 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
       setCustomerInfo({
         phone: bookingData.customerPhone,
         name: bookingData.customerName,
+        id: newQueue.customerId, // Save customer ID for security verification
       });
 
       // Add to active bookings
       addBooking({
-        id: result.id,
-        machineId: result.machineId,
+        id: newQueue.id,
+        machineId: newQueue.machineId,
         machineName: bookingData.machineName,
-        customerName: result.customerName,
-        customerPhone: result.customerPhone,
-        bookingTime: result.bookingTime,
-        duration: result.duration,
-        position: result.position,
-        status: result.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
+        customerName: newQueue.customerName,
+        customerPhone: newQueue.customerPhone,
+        bookingTime: newQueue.bookingTime,
+        duration: newQueue.duration,
+        position: newQueue.position,
+        status: newQueue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
         createdAt: new Date().toISOString(),
       });
 
       setSuccess({
-        queueId: result.id,
-        position: result.position,
+        queueId: newQueue.id,
+        position: newQueue.position,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';

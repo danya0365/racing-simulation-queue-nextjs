@@ -5,7 +5,6 @@ import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useCustomerPresenter } from '@/src/presentation/presenters/customer/useCustomerPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 /**
@@ -13,9 +12,8 @@ import { useState } from 'react';
  * Simplified, fast booking experience - minimal UI for quick queue booking
  */
 export function QuickBookingView() {
-  const router = useRouter();
   const [state, actions] = useCustomerPresenter();
-  const { customerInfo, setCustomerInfo } = useCustomerStore();
+  const { customerInfo } = useCustomerStore();
   const viewModel = state.viewModel;
 
   // Form state
@@ -49,8 +47,6 @@ export function QuickBookingView() {
     setError(null);
 
     try {
-      // Save customer info for future bookings
-      setCustomerInfo({ name: name.trim(), phone: phone.trim() });
 
       // Submit booking
       await actions.submitBooking({
