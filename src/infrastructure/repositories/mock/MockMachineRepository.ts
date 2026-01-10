@@ -8,6 +8,7 @@ import {
     CreateMachineData,
     IMachineRepository,
     Machine,
+    MachineDashboardDTO,
     MachineStats,
     MachineStatus,
     UpdateMachineData,
@@ -184,6 +185,22 @@ export class MockMachineRepository implements IMachineRepository {
 
     this.machines[index] = updatedMachine;
     return updatedMachine;
+  }
+
+  async getByIds(ids: string[]): Promise<Machine[]> {
+    await this.delay(100);
+    return this.machines.filter(m => ids.includes(m.id));
+  }
+
+  async getDashboardInfo(): Promise<MachineDashboardDTO[]> {
+    await this.delay(100);
+    return this.machines.map(m => ({
+      machineId: m.id,
+      waitingCount: Math.floor(Math.random() * 3),
+      playingCount: m.status === 'occupied' ? 1 : 0,
+      estimatedWaitMinutes: m.status === 'occupied' ? 30 : 0,
+      nextPosition: 10
+    }));
   }
 
   // Helper method to simulate network delay

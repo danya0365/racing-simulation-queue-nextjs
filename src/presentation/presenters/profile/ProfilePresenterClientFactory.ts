@@ -7,12 +7,11 @@
 'use client';
 
 import { SupabaseAuthRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAuthRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { supabase } from '@/src/infrastructure/supabase/client';
 import { ProfilePresenter } from './ProfilePresenter';
 
 export class ProfilePresenterClientFactory {
   static create(): ProfilePresenter {
-    const supabase = createClient();
     const repository = new SupabaseAuthRepository(supabase);
     return new ProfilePresenter(repository);
   }

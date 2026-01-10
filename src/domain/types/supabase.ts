@@ -310,6 +310,10 @@ export type Database = {
         Args: { p_page?: number; p_limit?: number }
         Returns: Json
       }
+      get_private_url: {
+        Args: { bucket: string; object_path: string; expires_in?: number }
+        Returns: string
+      }
       get_profile_role: {
         Args: { profile_id: string }
         Returns: Database["public"]["Enums"]["profile_role"]
@@ -358,6 +362,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      rpc_cancel_queue_guest: {
+        Args: { p_queue_id: string; p_customer_id: string }
+        Returns: boolean
+      }
       rpc_create_booking: {
         Args: {
           p_customer_name: string
@@ -367,6 +375,24 @@ export type Database = {
           p_notes?: string
         }
         Returns: Json
+      }
+      rpc_get_active_and_recent_queues: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          machine_id: string
+          customer_id: string
+          customer_name: string
+          customer_phone: string
+          machine_name: string
+          booking_time: string
+          duration: number
+          status: Database["public"]["Enums"]["queue_status"]
+          queue_position: number
+          notes: string
+          created_at: string
+          updated_at: string
+        }[]
       }
       rpc_get_active_machines: {
         Args: Record<PropertyKey, never>
@@ -396,11 +422,53 @@ export type Database = {
           visit_count: number
         }[]
       }
+      rpc_get_backend_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_machines: number
+          available_machines: number
+          occupied_machines: number
+          maintenance_machines: number
+          total_queues: number
+          waiting_queues: number
+          playing_queues: number
+          completed_queues: number
+          cancelled_queues: number
+        }[]
+      }
+      rpc_get_machine_dashboard_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          machine_id: string
+          waiting_count: number
+          playing_count: number
+          estimated_wait_minutes: number
+          next_position: number
+        }[]
+      }
+      rpc_get_my_queue_status: {
+        Args: { p_queue_ids: string[] }
+        Returns: {
+          id: string
+          machine_id: string
+          customer_id: string
+          machine_name: string
+          customer_name: string
+          customer_phone: string
+          booking_time: string
+          duration: number
+          status: string
+          queue_position: number
+          queue_ahead: number
+          estimated_wait_minutes: number
+        }[]
+      }
       rpc_get_queue_details: {
         Args: { p_queue_id: string }
         Returns: {
           id: string
           machine_id: string
+          customer_id: string
           machine_name: string
           customer_name: string
           customer_phone_masked: string
@@ -424,6 +492,25 @@ export type Database = {
           duration: number
           status: Database["public"]["Enums"]["queue_status"]
           queue_position: number
+        }[]
+      }
+      rpc_reset_machine_queue: {
+        Args: { p_machine_id: string }
+        Returns: Json
+      }
+      rpc_search_queues_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          booking_time: string
+          created_at: string | null
+          customer_id: string
+          duration: number
+          id: string
+          machine_id: string
+          notes: string | null
+          position: number
+          status: Database["public"]["Enums"]["queue_status"]
+          updated_at: string | null
         }[]
       }
       rpc_update_queue_status_admin: {

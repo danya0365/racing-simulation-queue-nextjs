@@ -21,6 +21,12 @@ export interface Queue {
   updatedAt: string;
 }
 
+export interface QueueWithStatusDTO extends Queue {
+  machineName: string;
+  queueAhead: number;
+  estimatedWaitMinutes: number;
+}
+
 export interface QueueStats {
   totalQueues: number;
   waitingQueues: number;
@@ -60,6 +66,21 @@ export interface IQueueRepository {
    * Get queue by ID
    */
   getById(id: string): Promise<Queue | null>;
+
+  /**
+   * Get queues by IDs
+   */
+  getByIds(ids: string[]): Promise<Queue[]>;
+
+  /**
+   * Get queues by IDs with calculated status (RPC)
+   */
+  getByIdsWithStatus(ids: string[]): Promise<QueueWithStatusDTO[]>;
+
+  /**
+   * Search queues by phone number (RPC optimized)
+   */
+  searchByPhone(phone: string): Promise<Queue[]>;
 
   /**
    * Get all queues
@@ -132,4 +153,9 @@ export interface IQueueRepository {
    * Cancels waiting, completes playing, resets position
    */
   resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }>;
+
+  /**
+   * Get backend dashboard stats (RPC)
+   */
+  getBackendStats(): Promise<any>;
 }

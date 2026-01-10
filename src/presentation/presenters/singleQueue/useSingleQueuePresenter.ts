@@ -153,7 +153,7 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
   useEffect(() => {
     const interval = setInterval(() => {
       loadData();
-    }, 15000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [loadData]);
 

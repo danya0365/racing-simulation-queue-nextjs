@@ -540,3 +540,61 @@ export function CustomersTabSkeleton() {
     </div>
   );
 }
+
+/**
+ * Profile Page Skeleton
+ */
+export function ProfileSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-purple-500/20 py-12">
+        <div className="relative z-10 max-w-4xl mx-auto px-4">
+          <div className="text-center">
+            {/* Avatar */}
+            <SkeletonCircle size="w-24 h-24 mx-auto mb-4" />
+            <Skeleton className="h-8 w-48 mx-auto mb-2" />
+            <SkeletonText width="w-40 mx-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        {/* Profile Info Card */}
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+          <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-b border-border flex items-center justify-between">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-9 w-20 rounded-lg" />
+          </div>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3 border-b border-border/50">
+                <SkeletonText width="w-24" />
+                <SkeletonText width="w-32" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Actions Card */}
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+          <div className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-border">
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2 p-4 bg-background rounded-xl border border-border">
+                <Skeleton className="w-12 h-12 rounded-lg" />
+                <SkeletonText width="w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Logout Button */}
+        <Skeleton className="h-14 w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}

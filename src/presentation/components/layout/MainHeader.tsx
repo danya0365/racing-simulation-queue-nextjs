@@ -1,6 +1,5 @@
 'use client';
 
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -12,30 +11,8 @@ import { MobileMenu } from './MobileMenu';
 export function MainHeader() {
   const router = useRouter();
   const [authState, authActions] = useAuthPresenter();
-  const [isHovered, setIsHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
-  // Logo animation on hover
-  const logoSpring = useSpring({
-    transform: isHovered ? 'scale(1.05) rotate(-2deg)' : 'scale(1) rotate(0deg)',
-    config: config.wobbly,
-  });
-
-  // Glow effect for logo
-  const glowSpring = useSpring({
-    textShadow: isHovered 
-      ? '0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.4)'
-      : '0 0 10px rgba(0, 212, 255, 0.4)',
-    config: config.slow,
-  });
-
-  // User dropdown animation
-  const userMenuSpring = useSpring({
-    opacity: isUserMenuOpen ? 1 : 0,
-    transform: isUserMenuOpen ? 'translateY(0px) scale(1)' : 'translateY(-10px) scale(0.95)',
-    config: config.stiff,
-  });
 
   const handleLogout = async () => {
     await authActions.signOut();
@@ -51,25 +28,19 @@ export function MainHeader() {
     <>
       <header className="h-16 bg-surface/80 backdrop-blur-lg border-b border-border/50 flex items-center justify-between px-4 md:px-8 z-50">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3">
-          <animated.div
-            style={logoSpring}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="flex items-center gap-3"
-          >
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="flex items-center gap-3 transition-transform duration-200 group-hover:scale-105">
             {/* Racing Icon */}
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg">
               <span className="text-2xl">🏎️</span>
             </div>
             
-            <animated.span 
-              style={glowSpring}
-              className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent hidden sm:block"
+            <span 
+              className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent hidden sm:block transition-all duration-300 group-hover:drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]"
             >
               Racing Queue
-            </animated.span>
-          </animated.div>
+            </span>
+          </div>
         </Link>
 
         {/* Navigation */}
@@ -98,7 +69,7 @@ export function MainHeader() {
 
           {/* Auth Section */}
           {authState.isLoading ? (
-            <div className="w-8 h-8 rounded-full bg-muted-light animate-pulse" />
+            null
           ) : authState.isAuthenticated ? (
             /* User Menu - Logged In */
             <div className="relative">
@@ -116,7 +87,7 @@ export function MainHeader() {
                 </span>
                 {/* Dropdown Arrow */}
                 <svg 
-                  className={`w-4 h-4 text-text-muted transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} 
+                  className={`w-4 h-4 text-text-muted transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   stroke="currentColor"
@@ -134,9 +105,8 @@ export function MainHeader() {
                     onClick={() => setIsUserMenuOpen(false)}
                   />
                   
-                  <animated.div
-                    style={userMenuSpring}
-                    className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl shadow-black/20 z-50 overflow-hidden"
+                  <div
+                    className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl shadow-black/20 z-50 overflow-hidden animate-modal-in"
                   >
                     {/* User Info */}
                     <div className="px-4 py-3 border-b border-border bg-muted-light/30">
@@ -181,7 +151,7 @@ export function MainHeader() {
                         {authState.isSubmitting ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}
                       </button>
                     </div>
-                  </animated.div>
+                  </div>
                 </>
               )}
             </div>
@@ -214,24 +184,13 @@ interface NavLinkProps {
 }
 
 function NavLink({ href, children }: NavLinkProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const spring = useSpring({
-    transform: isHovered ? 'translateY(-2px)' : 'translateY(0px)',
-    color: isHovered ? 'rgb(0, 212, 255)' : 'rgb(156, 163, 175)',
-    config: config.gentle,
-  });
-
   return (
     <Link href={href}>
-      <animated.span
-        style={spring}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className="text-sm font-medium transition-colors cursor-pointer inline-block"
+      <span
+        className="text-sm font-medium text-gray-400 hover:text-cyan-400 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer inline-block"
       >
         {children}
-      </animated.span>
+      </span>
     </Link>
   );
 }

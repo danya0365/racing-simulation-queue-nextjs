@@ -2,7 +2,6 @@
 
 import { ProfileViewModel } from '@/src/presentation/presenters/profile/ProfilePresenter';
 import { useProfilePresenter } from '@/src/presentation/presenters/profile/useProfilePresenter';
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -20,13 +19,6 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
   });
 
   const viewModel = state.viewModel;
-
-  // Animation for cards
-  const cardSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(20px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
-    config: config.gentle,
-  });
 
   // Initialize form when starting edit
   const handleStartEditing = () => {
@@ -69,7 +61,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
   if (state.error && !viewModel) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <animated.div style={cardSpring} className="w-full max-w-md bg-surface border border-border rounded-2xl p-8 text-center">
+        <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-8 text-center animate-modal-in">
           <div className="text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-foreground mb-2">เกิดข้อผิดพลาด</h1>
           <p className="text-muted mb-6">{state.error}</p>
@@ -80,7 +72,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
             <span>🔄</span>
             <span>ลองใหม่อีกครั้ง</span>
           </button>
-        </animated.div>
+        </div>
       </div>
     );
   }
@@ -89,7 +81,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
   if (!viewModel?.isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <animated.div style={cardSpring} className="w-full max-w-md bg-surface border border-border rounded-2xl p-8 text-center">
+        <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-8 text-center animate-modal-in">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-foreground mb-2">ต้องเข้าสู่ระบบ</h1>
           <p className="text-muted mb-6">กรุณาเข้าสู่ระบบเพื่อดูโปรไฟล์ของคุณ</p>
@@ -100,7 +92,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
             <span>🚀</span>
             <span>เข้าสู่ระบบ</span>
           </Link>
-        </animated.div>
+        </div>
       </div>
     );
   }
@@ -114,14 +106,14 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
       <div className="relative overflow-hidden bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-purple-500/20 py-12">
         <div className="absolute inset-0 bg-[url('/styles/grid-pattern.svg')] opacity-10" />
         <div className="relative z-10 max-w-4xl mx-auto px-4">
-          <animated.div style={cardSpring} className="text-center">
+          <div className="text-center animate-hero-in">
             {/* Avatar */}
             <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-4xl font-bold text-white shadow-2xl shadow-cyan-500/30 mb-4">
               {userInitial}
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-1">{displayName}</h1>
             <p className="text-muted">{viewModel.user?.email}</p>
-          </animated.div>
+          </div>
         </div>
       </div>
 
@@ -140,7 +132,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
         )}
 
         {/* Profile Info Card */}
-        <animated.div style={cardSpring} className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden animate-section-in">
           <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-b border-border flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <span>👤</span>
@@ -223,10 +215,10 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
               </>
             )}
           </div>
-        </animated.div>
+        </div>
 
         {/* Quick Actions Card */}
-        <animated.div style={cardSpring} className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden animate-section-in">
           <div className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-border">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <span>⚡</span>
@@ -264,10 +256,10 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
               <span className="text-sm font-medium text-foreground">จองด่วน</span>
             </Link>
           </div>
-        </animated.div>
+        </div>
 
         {/* Logout Button */}
-        <animated.div style={cardSpring}>
+        <div>
           <button
             onClick={handleLogout}
             disabled={state.isSubmitting}
@@ -278,7 +270,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
             </svg>
             <span>{state.isSubmitting ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}</span>
           </button>
-        </animated.div>
+        </div>
       </div>
     </div>
   );

@@ -5,9 +5,7 @@ import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { HomePageSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { HomeViewModel } from '@/src/presentation/presenters/home/HomePresenter';
 import { useHomePresenter } from '@/src/presentation/presenters/home/useHomePresenter';
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
-import { useState } from 'react';
 
 interface HomeViewProps {
   initialViewModel?: HomeViewModel;
@@ -16,9 +14,6 @@ interface HomeViewProps {
 export function HomeView({ initialViewModel }: HomeViewProps) {
   const [state, actions] = useHomePresenter(initialViewModel);
   const viewModel = state.viewModel;
-
-  // NOTE: Removed heroSpring and statsSpring for performance
-  // Using CSS animations instead (animate-hero-in, animate-section-in)
 
   // Loading state - using Skeleton UI instead of spinner
   if (state.loading && !viewModel) {
@@ -61,7 +56,7 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
           }} />
         </div>
 
-        {/* Content - Using CSS animation instead of react-spring */}
+        {/* Content - Using CSS animation */}
         <div className="relative z-10 text-center px-4 py-12 animate-hero-in">
           {/* Racing icon */}
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 mb-6 animate-float shadow-2xl shadow-cyan-500/30">
@@ -97,7 +92,7 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
         </div>
       </section>
 
-      {/* Stats Section - Using CSS animation instead of react-spring */}
+      {/* Stats Section */}
       <section className="px-4 md:px-8 py-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-6">
@@ -205,7 +200,7 @@ export function HomeView({ initialViewModel }: HomeViewProps) {
   );
 }
 
-// Stats Card Component
+// Stats Card Component - Using CSS instead of react-spring
 interface StatsCardProps {
   icon: string;
   label: string;
@@ -214,22 +209,14 @@ interface StatsCardProps {
 }
 
 function StatsCard({ icon, label, value, color }: StatsCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const spring = useSpring({
-    transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-    config: config.wobbly,
-  });
-
   return (
-    <animated.div
-      style={spring}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <div
       className={`
         relative overflow-hidden rounded-xl p-4
         bg-gradient-to-br ${color}
         shadow-lg cursor-default
+        transition-transform duration-200 ease-out
+        hover:scale-105
       `}
     >
       <div className="absolute inset-0 bg-black/20" />
@@ -238,7 +225,7 @@ function StatsCard({ icon, label, value, color }: StatsCardProps) {
         <div className="text-3xl font-bold">{value}</div>
         <div className="text-sm opacity-80">{label}</div>
       </div>
-    </animated.div>
+    </div>
   );
 }
 
@@ -256,10 +243,7 @@ interface MachineCardProps {
   onSelect: () => void;
 }
 
-function MachineCard({ machine, index, onSelect }: MachineCardProps) {
-  // Using CSS animation with staggered delay instead of react-spring
-  const delayClass = `animate-delay-${Math.min(index * 50, 300)}`;
-
+function MachineCard({ machine, onSelect }: MachineCardProps) {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'available':
@@ -294,67 +278,64 @@ function MachineCard({ machine, index, onSelect }: MachineCardProps) {
   };
 
   const statusConfig = getStatusConfig(machine.status);
-  // Check status for different behaviors
   const isAvailable = machine.status === 'available';
   const isOccupied = machine.status === 'occupied';
   const isMaintenance = machine.status === 'maintenance';
 
   return (
-      <AnimatedCard
-        onClick={isAvailable ? onSelect : undefined}
-        glowColor={statusConfig.glow}
-        disabled={isMaintenance}
-        className="p-6"
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg ${
-              isMaintenance 
-                ? 'bg-gradient-to-br from-gray-500 to-slate-600' 
-                : isOccupied
-                ? 'bg-gradient-to-br from-orange-500 to-amber-600'
-                : 'bg-gradient-to-br from-cyan-500 to-blue-600'
-            }`}>
-              🎮
-            </div>
-            <div>
-              <h3 className="font-bold text-lg text-foreground">{machine.name}</h3>
-              <p className="text-sm text-muted">เครื่องที่ {machine.position}</p>
-            </div>
+    <AnimatedCard
+      onClick={isAvailable ? onSelect : undefined}
+      disabled={isMaintenance}
+      className="p-6"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg ${
+            isMaintenance 
+              ? 'bg-gradient-to-br from-gray-500 to-slate-600' 
+              : isOccupied
+              ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+              : 'bg-gradient-to-br from-cyan-500 to-blue-600'
+          }`}>
+            🎮
           </div>
-
-          {/* Status Badge */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${statusConfig.color} text-white text-xs font-medium`}>
-            <span>{statusConfig.icon}</span>
-            <span>{statusConfig.label}</span>
+          <div>
+            <h3 className="font-bold text-lg text-foreground">{machine.name}</h3>
+            <p className="text-sm text-muted">เครื่องที่ {machine.position}</p>
           </div>
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-muted mb-4 line-clamp-2">
-          {machine.description}
-        </p>
+        {/* Status Badge */}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${statusConfig.color} text-white text-xs font-medium`}>
+          <span>{statusConfig.icon}</span>
+          <span>{statusConfig.label}</span>
+        </div>
+      </div>
 
-        {/* Action - Different for each status */}
-        {isAvailable ? (
-          <Link href="/customer/booking" className="block">
-            <GlowButton color="cyan" size="sm" className="w-full">
-              🎯 จองคิวเครื่องนี้
-            </GlowButton>
-          </Link>
-        ) : isOccupied ? (
-          <Link href="/customer/booking" className="block">
-            <GlowButton color="purple" size="sm" className="w-full">
-              📋 ต่อคิวรอ
-            </GlowButton>
-          </Link>
-        ) : (
-          <div className="text-center py-2 text-gray-400 text-sm">
-            🔧 ปิดปรับปรุงชั่วคราว
-          </div>
-        )}
-      </AnimatedCard>
+      {/* Description */}
+      <p className="text-sm text-muted mb-4 line-clamp-2">
+        {machine.description}
+      </p>
+
+      {/* Action - Different for each status */}
+      {isAvailable ? (
+        <Link href="/customer/booking" className="block">
+          <GlowButton color="cyan" size="sm" className="w-full">
+            🎯 จองคิวเครื่องนี้
+          </GlowButton>
+        </Link>
+      ) : isOccupied ? (
+        <Link href="/customer/booking" className="block">
+          <GlowButton color="purple" size="sm" className="w-full">
+            📋 ต่อคิวรอ
+          </GlowButton>
+        </Link>
+      ) : (
+        <div className="text-center py-2 text-gray-400 text-sm">
+          🔧 ปิดปรับปรุงชั่วคราว
+        </div>
+      )}
+    </AnimatedCard>
   );
 }
-

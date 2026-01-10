@@ -1,11 +1,12 @@
 import {
-    CreateQueueData,
-    IQueueRepository,
-    PaginatedResult,
-    Queue,
-    QueueStats,
-    QueueStatus,
-    UpdateQueueData
+  CreateQueueData,
+  IQueueRepository,
+  PaginatedResult,
+  Queue,
+  QueueStats,
+  QueueStatus,
+  QueueWithStatusDTO,
+  UpdateQueueData
 } from '@/src/application/repositories/IQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -14,38 +15,117 @@ export class SupabaseQueueRepository implements IQueueRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
   async getById(id: string): Promise<Queue | null> {
-    // Try using the guest RPC first to bypass RLS for customer info
-    const { data: rpcData, error: rpcError } = await this.supabase
-      .rpc('rpc_get_queue_details', { p_queue_id: id });
+    try {
+      // Try using the guest RPC first to bypass RLS for customer info
+      const { data: rpcData, error: rpcError } = await this.supabase
+        .rpc('rpc_get_queue_details', { p_queue_id: id });
+      
+      if (!rpcError && rpcData) {
+        // Handle both array (legacy TABLE return) and object (new JSONB return)
+        const q = Array.isArray(rpcData) ? (rpcData.length > 0 ? rpcData[0] : null) : rpcData;
+        
+        if (q) {
+          return {
+            id: q.id,
+            machineId: q.machine_id,
+            customerId: q.customer_id,
+            customerName: q.customer_name,
+            customerPhone: q.customer_phone_masked,
+            bookingTime: q.booking_time,
+            duration: q.duration,
+            status: q.status as QueueStatus,
+            position: q.queue_position,
+            notes: q.notes || '',
+            createdAt: q.created_at,
+            updatedAt: q.updated_at,
+          };
+        }
+      }
 
-    if (!rpcError && rpcData && (rpcData as any).length > 0) {
-      const q = (rpcData as any)[0];
-      return {
-        id: q.id,
-        machineId: q.machine_id,
-        customerId: q.customer_id,
-        customerName: q.customer_name,
-        customerPhone: q.customer_phone_masked,
-        bookingTime: q.booking_time,
-        duration: q.duration,
-        status: q.status as QueueStatus,
-        position: q.queue_position,
-        notes: q.notes || '',
-        createdAt: q.created_at,
-        updatedAt: q.updated_at,
-      };
+      // Fallback or Admin view (full data)
+      const { data, error } = await this.supabase
+        .from('queues')
+        .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
+        .eq('id', id)
+        .single();
+      
+      if (error || !data) return null;
+
+      return this.mapToDomain(data);
+    } catch (e) {
+      throw e;
     }
+  }
 
-    // Fallback or Admin view (full data)
-    const { data, error } = await this.supabase
-      .from('queues')
-      .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
-      .eq('id', id)
-      .single();
+  async getByIds(ids: string[]): Promise<Queue[]> {
+    if (ids.length === 0) return [];
 
-    if (error || !data) return null;
+    try {
+      const { data, error } = await this.supabase
+        .from('queues')
+        .select('*, machines!queues_machine_id_fkey(name), customers(name, phone)')
+        .in('id', ids);
+      
+      if (error) {
+        console.error('Error fetching queues by IDs:', error);
+        return [];
+      }
+      return data.map(this.mapToDomain);
+    } catch (e) {
+      console.error('Exception fetching queues by IDs:', e);
+      return [];
+    }
+  }
 
-    return this.mapToDomain(data);
+  async getByIdsWithStatus(ids: string[]): Promise<QueueWithStatusDTO[]> {
+    if (ids.length === 0) return [];
+
+    try {
+      // Cast to any to bypass type check for new RPC
+      const { data, error } = await this.supabase.rpc('rpc_get_my_queue_status', { p_queue_ids: ids });
+
+      if (error) {
+        console.error('Error fetching queues with status RPC:', error);
+        return [];
+      }
+
+      return data.map(row => ({
+        id: row.id,
+        machineId: row.machine_id,
+        customerId: row.customer_id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        bookingTime: row.booking_time,
+        duration: row.duration,
+        status: row.status as QueueStatus,
+        position: row.queue_position,
+        notes: '',
+        createdAt: new Date().toISOString(), // RPC doesn't return this, not needed for status
+        updatedAt: new Date().toISOString(),
+        machineName: row.machine_name,
+        queueAhead: row.queue_ahead,
+        estimatedWaitMinutes: row.estimated_wait_minutes
+      }));
+    } catch (e) {
+      console.error('Exception fetching queues with status RPC:', e);
+      return [];
+    }
+  }
+
+  async searchByPhone(phone: string): Promise<Queue[]> {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('rpc_search_queues_by_phone', { p_phone: phone });
+      
+      if (error) {
+        console.error('Error searching queues by phone:', error);
+        return [];
+      }
+      return (data || []).map(this.mapToDomain);
+    } catch (e) {
+      console.error('Exception searching queues by phone:', e);
+      return [];
+    }
   }
 
   async getAll(): Promise<Queue[]> {
@@ -333,5 +413,21 @@ export class SupabaseQueueRepository implements IQueueRepository {
       cancelledCount: waitingData?.length || 0,
       completedCount: playingData?.length || 0,
     };
+  }
+
+  async getBackendStats(): Promise<any> {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('rpc_get_backend_dashboard_stats');
+      
+      if (error) {
+        console.error('Error getting backend stats:', error);
+        return null;
+      }
+      return Array.isArray(data) && data.length > 0 ? data[0] : null;
+    } catch (e) {
+      console.error('Exception getting backend stats:', e);
+      return null;
+    }
   }
 }

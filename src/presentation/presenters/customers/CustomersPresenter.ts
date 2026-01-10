@@ -27,11 +27,23 @@ export class CustomersPresenter {
   ) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get all customers
    */
   async getAllCustomers(): Promise<Customer[]> {
     try {
-      return await this.customerRepository.getAll();
+      return await this.withTimeout(this.customerRepository.getAll());
     } catch (error) {
       console.error('Error getting customers:', error);
       throw error;
@@ -43,7 +55,7 @@ export class CustomersPresenter {
    */
   async getStats(): Promise<CustomerStats> {
     try {
-      return await this.customerRepository.getStats();
+      return await this.withTimeout(this.customerRepository.getStats());
     } catch (error) {
       console.error('Error getting customer stats:', error);
       throw error;
@@ -55,7 +67,7 @@ export class CustomersPresenter {
    */
   async searchCustomers(query: string): Promise<Customer[]> {
     try {
-      return await this.customerRepository.search(query);
+      return await this.withTimeout(this.customerRepository.search(query));
     } catch (error) {
       console.error('Error searching customers:', error);
       throw error;
@@ -67,7 +79,7 @@ export class CustomersPresenter {
    */
   async createCustomer(data: CreateCustomerData): Promise<Customer> {
     try {
-      return await this.customerRepository.create(data);
+      return await this.withTimeout(this.customerRepository.create(data));
     } catch (error) {
       console.error('Error creating customer:', error);
       throw error;
@@ -79,7 +91,7 @@ export class CustomersPresenter {
    */
   async updateCustomer(id: string, data: UpdateCustomerData): Promise<Customer> {
     try {
-      return await this.customerRepository.update(id, data);
+      return await this.withTimeout(this.customerRepository.update(id, data));
     } catch (error) {
       console.error('Error updating customer:', error);
       throw error;
@@ -91,7 +103,7 @@ export class CustomersPresenter {
    */
   async deleteCustomer(id: string): Promise<boolean> {
     try {
-      return await this.customerRepository.delete(id);
+      return await this.withTimeout(this.customerRepository.delete(id));
     } catch (error) {
       console.error('Error deleting customer:', error);
       throw error;
@@ -109,6 +121,7 @@ export class CustomersPresenter {
    * Get view model
    */
   async getViewModel(): Promise<CustomersViewModel> {
+    // Methods are already wrapped with timeout
     const [customers, stats] = await Promise.all([
       this.getAllCustomers(),
       this.getStats(),

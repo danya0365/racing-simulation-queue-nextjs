@@ -5,11 +5,11 @@
  */
 
 import {
-    AuthProfile,
-    AuthSession,
-    AuthUser,
-    IAuthRepository,
-    UpdateProfileData,
+  AuthProfile,
+  AuthSession,
+  AuthUser,
+  IAuthRepository,
+  UpdateProfileData,
 } from '@/src/application/repositories/IAuthRepository';
 import { Metadata } from 'next';
 
@@ -28,11 +28,23 @@ export class ProfilePresenter {
   constructor(private readonly authRepository: IAuthRepository) {}
 
   /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
    * Get view model for the page
    */
   async getViewModel(): Promise<ProfileViewModel> {
     try {
-      const session = await this.authRepository.getSession();
+      const session = await this.withTimeout(this.authRepository.getSession());
       
       if (!session) {
         return {
@@ -75,7 +87,7 @@ export class ProfilePresenter {
    */
   async updateProfile(data: UpdateProfileData): Promise<AuthProfile> {
     try {
-      return await this.authRepository.updateProfile(data);
+      return await this.withTimeout(this.authRepository.updateProfile(data));
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;
@@ -87,7 +99,7 @@ export class ProfilePresenter {
    */
   async signOut(): Promise<void> {
     try {
-      await this.authRepository.signOut();
+      await this.withTimeout(this.authRepository.signOut());
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;

@@ -30,29 +30,111 @@ export class BackendPresenter {
   /**
    * Get view model for the backend page
    */
-  async getViewModel(): Promise<BackendViewModel> {
+  /**
+   * Helper to wrap promise with timeout
+   */
+  private async withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Connection timed out (${ms}ms)`)), ms)
+      )
+    ]);
+  }
+
+  /**
+   * Get dashboard data (Stats + Light Machine Check)
+   */
+  async getDashboardData(): Promise<Partial<BackendViewModel>> {
     try {
-      const [machines, machineStats, queues, queueStats, activeQueues, waitingQueues] = await Promise.all([
+      // Parallel fetch: Stats + Machines (needed for stats display sometimes) + Waiting Queues count
+      const [backendStats, machines] = await this.withTimeout(Promise.all([
+        this.queueRepository.getBackendStats(),
         this.machineRepository.getAll(),
-        this.machineRepository.getStats(),
-        this.queueRepository.getAll(),
-        this.queueRepository.getStats(),
+      ]));
+
+      const machineStats: MachineStats = {
+        totalMachines: backendStats?.total_machines || 0,
+        availableMachines: backendStats?.available_machines || 0,
+        occupiedMachines: backendStats?.occupied_machines || 0,
+        maintenanceMachines: backendStats?.maintenance_machines || 0,
+      };
+
+      const queueStats: QueueStats = {
+        totalQueues: backendStats?.total_queues || 0,
+        waitingQueues: backendStats?.waiting_queues || 0,
+        playingQueues: backendStats?.playing_queues || 0,
+        completedQueues: backendStats?.completed_queues || 0,
+        cancelledQueues: backendStats?.cancelled_queues || 0,
+      };
+
+      // For dashboard, we might want top 5 recent queues.
+      // But getActiveAndRecent is cheap enough (today's data).
+      // Let's use getWaiting just for the count if stats didn't have it, but stats has it.
+      // We need `activeQueues` for "Recent Queues" list in dashboard.
+      const activeQueues = await this.withTimeout(this.queueRepository.getActiveAndRecent());
+
+      return {
+        machineStats,
+        queueStats,
+        machines, // Needed for counts if stats fail or for logic
+        activeQueues, // For recent activity list
+        waitingQueues: activeQueues.filter(q => q.status === 'waiting'),
+        queues: activeQueues,
+      };
+    } catch (error) {
+      console.error('Error getting dashboard data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get control room data (Realtime machines + queues)
+   */
+  async getControlData(): Promise<Partial<BackendViewModel>> {
+    try {
+      const [machines, activeQueues] = await this.withTimeout(Promise.all([
+        this.machineRepository.getAll(),
         this.queueRepository.getActiveAndRecent(),
-        this.queueRepository.getWaiting(),
-      ]);
+      ]));
+
+      // Recalculate basic stats on client for immediate consistency
+      const machineStats: MachineStats = {
+        totalMachines: machines.length,
+        availableMachines: machines.filter(m => m.status === 'available').length,
+        occupiedMachines: machines.filter(m => m.status === 'occupied').length,
+        maintenanceMachines: machines.filter(m => m.status === 'maintenance').length,
+      };
 
       return {
         machines,
-        machineStats,
-        queues,
-        queueStats,
         activeQueues,
-        waitingQueues,
+        waitingQueues: activeQueues.filter(q => q.status === 'waiting'),
+        queues: activeQueues,
+        machineStats
       };
     } catch (error) {
-      console.error('Error getting backend view model:', error);
+      console.error('Error getting control data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get view model for the backend page (Unified loader)
+   * This is kept for backward compatibility but internal logic can use partials
+   */
+  async getViewModel(): Promise<BackendViewModel> {
+    // Default to loading control data as it's the most comprehensive set commonly needed
+    const data = await this.getControlData();
+    // Fill missing stats with defaults if needed
+    return {
+      machines: data.machines || [],
+      machineStats: data.machineStats || { totalMachines: 0, availableMachines: 0, occupiedMachines: 0, maintenanceMachines: 0 },
+      queues: data.queues || [],
+      queueStats: { totalQueues: 0, waitingQueues: 0, playingQueues: 0, completedQueues: 0, cancelledQueues: 0 },
+      activeQueues: data.activeQueues || [],
+      waitingQueues: data.waitingQueues || [],
+    };
   }
 
   /**

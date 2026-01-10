@@ -1,6 +1,5 @@
 'use client';
 
-import { animated, config, useSpring } from '@react-spring/web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthPresenter } from '../../presenters/auth/useAuthPresenter';
@@ -14,16 +13,6 @@ interface MobileMenuProps {
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const router = useRouter();
   const [authState, authActions] = useAuthPresenter();
-
-  const backdropSpring = useSpring({
-    opacity: isOpen ? 1 : 0,
-    config: config.gentle,
-  });
-
-  const menuSpring = useSpring({
-    transform: isOpen ? 'translateX(0%)' : 'translateX(100%)',
-    config: config.gentle,
-  });
 
   const handleLogout = async () => {
     await authActions.signOut();
@@ -40,16 +29,14 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   return (
     <div className="fixed inset-0 z-50 md:hidden">
       {/* Backdrop */}
-      <animated.div
-        style={backdropSpring}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in"
         onClick={onClose}
       />
 
       {/* Menu Panel */}
-      <animated.div
-        style={menuSpring}
-        className="absolute right-0 top-0 h-full w-72 bg-surface border-l border-border shadow-2xl flex flex-col"
+      <div
+        className="absolute right-0 top-0 h-full w-72 bg-surface border-l border-border shadow-2xl flex flex-col animate-slide-in-right"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -139,7 +126,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </button>
           )}
         </div>
-      </animated.div>
+      </div>
     </div>
   );
 }

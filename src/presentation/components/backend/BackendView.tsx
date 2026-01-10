@@ -1211,6 +1211,19 @@ function CustomersTab() {
     return <CustomersTabSkeleton />;
   }
 
+  // Error state
+  if (state.error && !viewModel) {
+    return (
+      <div className="text-center py-16">
+        <div className="text-6xl mb-4">⚠️</div>
+        <p className="text-error mb-4">{state.error}</p>
+        <AnimatedButton onClick={actions.loadData}>
+          🔄 ลองใหม่อีกครั้ง
+        </AnimatedButton>
+      </div>
+    );
+  }
+
   const allCustomers = viewModel?.customers || [];
   const stats = viewModel?.stats;
 

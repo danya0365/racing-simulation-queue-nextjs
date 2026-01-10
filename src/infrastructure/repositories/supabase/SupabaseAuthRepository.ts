@@ -5,18 +5,18 @@
  */
 
 import type {
-    AuthProfile,
-    AuthResult,
-    AuthSession,
-    AuthUser,
-    IAuthRepository,
-    OTPSignInData,
-    ResetPasswordData,
-    SignInData,
-    SignUpData,
-    UpdatePasswordData,
-    UpdateProfileData,
-    VerifyOTPData,
+  AuthProfile,
+  AuthResult,
+  AuthSession,
+  AuthUser,
+  IAuthRepository,
+  OTPSignInData,
+  ResetPasswordData,
+  SignInData,
+  SignUpData,
+  UpdatePasswordData,
+  UpdateProfileData,
+  VerifyOTPData,
 } from '@/src/application/repositories/IAuthRepository';
 import type { Database } from '@/src/domain/types/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -391,7 +391,8 @@ export class SupabaseAuthRepository implements IAuthRepository {
         .select('*')
         .eq('auth_id', user.id)
         .eq('is_active', true)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error || !profile) {
         return null;
@@ -608,28 +609,81 @@ export class SupabaseAuthRepository implements IAuthRepository {
     }
   }
 
+  private authListener: { unsubscribe: () => void } | null = null;
+  private subscribers: ((session: AuthSession | null) => void)[] = [];
+  private isProcessingAuthChange = false;
+  private lastSession: AuthSession | null = null;
+
   /**
    * Subscribe to auth state changes
+   * Implements Singleton Listener pattern with State Replay
    */
   onAuthStateChange(callback: (session: AuthSession | null) => void): () => void {
-    const { data: { subscription } } = this.supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          const profile = await this.getProfile();
-          callback({
-            user: this.mapUser(session.user),
-            profile,
-            accessToken: session.access_token,
-            refreshToken: session.refresh_token,
-            expiresAt: session.expires_at || 0,
-          });
-        } else {
-          callback(null);
-        }
-      }
-    );
+    // 1. Add subscriber
+    this.subscribers.push(callback);
 
-    return () => subscription.unsubscribe();
+    // 2. Replay last known state immediately if available
+    // This allows components mounting LATER to get the current user instantly
+    if (this.lastSession) {
+      callback(this.lastSession);
+    } else if (this.authListener) {
+        // If listener is active but no session (logged out), notify null
+        // But be careful not to notify null if we are just "loading"
+        // For now, we only replay if we have a session.
+        // Logic can be improved to have "lastState" which includes null.
+    }
+
+    // 3. Initialize listener if not active
+    if (!this.authListener) {
+      const { data: { subscription } } = this.supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (this.isProcessingAuthChange) return;
+          this.isProcessingAuthChange = true;
+
+          try {
+            if (session) {
+              // Fetch profile only once per event
+              const profile = await this.getProfile();
+              const authSession: AuthSession = {
+                user: this.mapUser(session.user),
+                profile,
+                accessToken: session.access_token,
+                refreshToken: session.refresh_token,
+                expiresAt: session.expires_at || 0,
+              };
+
+              // Update cache
+              this.lastSession = authSession;
+
+              // Notify all subscribers
+              this.subscribers.forEach(sub => sub(authSession));
+            } else {
+              // Update cache
+              this.lastSession = null;
+              
+              // Notify all subscribers of logout
+              this.subscribers.forEach(sub => sub(null));
+            }
+          } catch (error) {
+            console.error('Error in auth state change handler:', error);
+          } finally {
+            this.isProcessingAuthChange = false;
+          }
+        }
+      );
+      this.authListener = subscription;
+    }
+
+    // Return unsubscribe function
+    return () => {
+      this.subscribers = this.subscribers.filter(sub => sub !== callback);
+      
+      // Cleanup logic optional - kept for persistent connection
+      if (this.subscribers.length === 0 && this.authListener) {
+          // We can choose to keep it alive or kill it. 
+          // Since AuthInitializer keeps one subscription alive, this block might be hit only if AuthInitializer unmounts (rare).
+      }
+    };
   }
 
   /**

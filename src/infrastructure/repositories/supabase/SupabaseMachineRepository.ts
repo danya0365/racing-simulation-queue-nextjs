@@ -24,6 +24,22 @@ export class SupabaseMachineRepository implements IMachineRepository {
     return this.mapToDomain(data);
   }
 
+  async getByIds(ids: string[]): Promise<Machine[]> {
+    if (ids.length === 0) return [];
+    
+    const { data, error } = await this.supabase
+      .from('machines')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      console.error('Error fetching machines by IDs:', error);
+      return [];
+    }
+
+    return (data || []).map(this.mapToDomain);
+  }
+
   async getAll(): Promise<Machine[]> {
     const { data, error } = await this.supabase
       .from('machines')
@@ -113,6 +129,24 @@ export class SupabaseMachineRepository implements IMachineRepository {
 
   async updateStatus(id: string, status: MachineStatus): Promise<Machine> {
     return this.update(id, { status });
+  }
+
+  async getDashboardInfo(): Promise<import("@/src/application/repositories/IMachineRepository").MachineDashboardDTO[]> {
+    const { data, error } = await this.supabase
+      .rpc('rpc_get_machine_dashboard_info');
+
+    if (error) {
+      console.error('Error fetching machine dashboard info:', error);
+      return [];
+    }
+
+    return (data as any[]).map(row => ({
+      machineId: row.machine_id,
+      waitingCount: row.waiting_count,
+      playingCount: row.playing_count,
+      estimatedWaitMinutes: row.estimated_wait_minutes,
+      nextPosition: row.next_position,
+    }));
   }
 
   private mapToDomain(raw: any): Machine {
