@@ -1,14 +1,12 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BookingWizardPresenter,
   BookingWizardViewModel
 } from './BookingWizardPresenter';
 import { createClientBookingWizardPresenter } from './BookingWizardPresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientBookingWizardPresenter();
 
 export type BookingStep = 'phone' | 'machine' | 'duration' | 'confirm';
 
@@ -47,10 +45,24 @@ const STEPS: BookingStep[] = ['phone', 'machine', 'duration', 'confirm'];
 
 /**
  * Custom hook for BookingWizard presenter
- * Provides state management and actions for Booking Wizard operations
- * ✅ Following Clean Architecture pattern
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Proper cleanup on unmount
  */
-export function useBookingWizardPresenter(): [BookingWizardPresenterState, BookingWizardPresenterActions] {
+export function useBookingWizardPresenter(
+  presenterOverride?: BookingWizardPresenter
+): [BookingWizardPresenterState, BookingWizardPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientBookingWizardPresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const { customerInfo, setCustomerInfo, addBooking, isInitialized } = useCustomerStore();
   
   const [viewModel, setViewModel] = useState<BookingWizardViewModel | null>(null);
@@ -91,15 +103,21 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
 
     try {
       const vm = await presenter.getViewModel();
-      setViewModel(vm);
+      if (isMountedRef.current) {
+        setViewModel(vm);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading booking wizard data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading booking wizard data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Go to next step
@@ -151,7 +169,7 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
       setCustomerInfo({
         phone: bookingData.customerPhone,
         name: bookingData.customerName,
-        id: newQueue.customerId, // Save customer ID for security verification
+        id: newQueue.customerId,
       });
 
       // Add to active bookings
@@ -168,23 +186,37 @@ export function useBookingWizardPresenter(): [BookingWizardPresenterState, Booki
         createdAt: new Date().toISOString(),
       });
 
-      setSuccess({
-        queueId: newQueue.id,
-        position: newQueue.position,
-      });
+      if (isMountedRef.current) {
+        setSuccess({
+          queueId: newQueue.id,
+          position: newQueue.position,
+        });
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
-      setError(errorMessage);
-      console.error('Error submitting booking:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
+        setError(errorMessage);
+        console.error('Error submitting booking:', err);
+      }
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
-  }, [bookingData, setCustomerInfo, addBooking]);
+  }, [bookingData, setCustomerInfo, addBooking, presenter]);
 
   // Load data on mount
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {

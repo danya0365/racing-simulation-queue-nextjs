@@ -1,11 +1,9 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useState } from 'react';
-import { QueueStatusViewModel } from './QueueStatusPresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { QueueStatusPresenter, QueueStatusViewModel } from './QueueStatusPresenter';
 import { createClientQueueStatusPresenter } from './QueueStatusPresenterClientFactory';
-
-const presenter = createClientQueueStatusPresenter();
 
 export interface QueueStatusPresenterState {
   viewModel: QueueStatusViewModel | null;
@@ -26,10 +24,25 @@ export interface QueueStatusPresenterActions {
 
 /**
  * Custom hook for QueueStatus presenter
- * Provides state management and actions for Queue Status operations
- * ✅ Following Clean Architecture pattern
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Visibility-aware polling
+ * - Proper cleanup on unmount
  */
-export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStatusPresenterActions] {
+export function useQueueStatusPresenter(
+  presenterOverride?: QueueStatusPresenter
+): [QueueStatusPresenterState, QueueStatusPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientQueueStatusPresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<QueueStatusViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,29 +50,25 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const { activeBookings, removeBooking, updateBooking, isInitialized } = useCustomerStore();
+  const { removeBooking, updateBooking, isInitialized } = useCustomerStore();
   
   /**
    * Load data from presenter
    */
   const loadData = useCallback(async () => {
-    // Don't load if not initialized yet
     if (!useCustomerStore.getState().isInitialized) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // Get queue IDs from local storage directly to ensure fresh state
       const currentActiveBookings = useCustomerStore.getState().activeBookings;
       const queueIds = currentActiveBookings.map(b => b.id);
       
-      // Load queue status data
       const queues = await presenter.loadQueueStatusData(queueIds);
-      // Update local store with latest status
+      
       queues.forEach(queue => {
         const local = currentActiveBookings.find(b => b.id === queue.id);
-        // Only update if something actually changed
         if (!local || local.status !== queue.status || local.position !== queue.position) {
           updateBooking(queue.id, {
             status: queue.status,
@@ -68,29 +77,32 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
         }
       });
 
-      // Also include queues that couldn't be fetched from server
       const fetchedIds = new Set(queues.map(q => q.id));
       const localOnlyQueues = currentActiveBookings
         .filter(b => !fetchedIds.has(b.id))
         .map(b => ({
           ...b,
           queueAhead: Math.max(0, b.position - 1),
-          estimatedWaitMinutes: Math.max(0, b.position - 1) * 30, // Fallback: 30 min per queue
+          estimatedWaitMinutes: Math.max(0, b.position - 1) * 30,
         }));
 
-      // Need to import QueueStatusData interface or use any here if strict
       const allQueues = [...queues, ...localOnlyQueues];
-      
-      // Get view model
       const vm = presenter.getViewModel(allQueues);
-      setViewModel(vm);
+      
+      if (isMountedRef.current) {
+        setViewModel(vm);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter, updateBooking]);
 
   /**
    * Cancel a queue
@@ -102,7 +114,6 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     setError(null);
 
     try {
-      // Get customer ID from local store for ownership verification
       const currentActiveBookings = useCustomerStore.getState().activeBookings;
       const booking = currentActiveBookings.find(b => b.id === queueId);
       const customerId = booking?.customerId;
@@ -112,12 +123,16 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
       setFocusQueueId(null);
       await loadData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [loadData, removeBooking]);
+  }, [loadData, removeBooking, presenter]);
 
   /**
    * Enter focus mode
@@ -126,9 +141,10 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     if (isTransitioning) return;
     setIsTransitioning(true);
     setFocusQueueId(queueId);
-    // Reset transitioning after a short delay
     setTimeout(() => {
-      setIsTransitioning(false);
+      if (isMountedRef.current) {
+        setIsTransitioning(false);
+      }
     }, 300);
   }, [isTransitioning]);
 
@@ -139,38 +155,82 @@ export function useQueueStatusPresenter(): [QueueStatusPresenterState, QueueStat
     if (isTransitioning) return;
     setIsTransitioning(true);
     setFocusQueueId(null);
-    // Reset transitioning after a short delay
     setTimeout(() => {
-      setIsTransitioning(false);
+      if (isMountedRef.current) {
+        setIsTransitioning(false);
+      }
     }, 300);
   }, [isTransitioning]);
 
-
-
-  // Auto refresh every 15 seconds
+  // ✅ Visibility-aware auto refresh every 15 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadData();
-    }, 15000);
-    return () => clearInterval(interval);
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const startPolling = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadData();
+        }
+      }, 15000);
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+        startPolling();
+      } else {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadData]);
+
+  // Update time every second (only when visible)
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const startTimeUpdate = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible' && isMountedRef.current) {
+          setCurrentTime(new Date());
+        }
+      }, 1000);
+    };
+    
+    startTimeUpdate();
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
-    // Update time every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Reload data when store is initialized or hydrated
+  // Reload data when store is initialized
   useEffect(() => {
     if (isInitialized) {
       loadData();
     }
   }, [isInitialized, loadData]);
 
-  
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   return [
     {
       viewModel,

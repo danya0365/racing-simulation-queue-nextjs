@@ -1,15 +1,12 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   QueueHistoryItem,
   QueueHistoryPresenter,
   QueueHistoryViewModel
 } from './QueueHistoryPresenter';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = new QueueHistoryPresenter();
 
 export interface QueueHistoryPresenterState {
   viewModel: QueueHistoryViewModel;
@@ -24,16 +21,24 @@ export interface QueueHistoryPresenterActions {
 
 /**
  * Custom hook for QueueHistory presenter
- * Provides state management and actions for Queue History operations
- * ✅ Following Clean Architecture pattern
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
  */
-export function useQueueHistoryPresenter(): [QueueHistoryPresenterState, QueueHistoryPresenterActions] {
+export function useQueueHistoryPresenter(
+  presenterOverride?: QueueHistoryPresenter
+): [QueueHistoryPresenterState, QueueHistoryPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? new QueueHistoryPresenter(),
+    [presenterOverride]
+  );
+  
   const [filter, setFilterState] = useState<'all' | 'completed' | 'cancelled'>('all');
   
   const { bookingHistory, clearHistory: storeClearHistory, isInitialized } = useCustomerStore();
 
-  // Convert ActiveBooking to QueueHistoryItem
-  // But wait for hydration first to avoid empty initial render overwriting or hydration mismatch
   const historyItems: QueueHistoryItem[] = isInitialized ? bookingHistory.map(b => ({
     id: b.id,
     machineId: b.machineId,
@@ -47,31 +52,21 @@ export function useQueueHistoryPresenter(): [QueueHistoryPresenterState, QueueHi
     createdAt: b.createdAt,
   })) : [];
 
-  // Get view model
   const viewModel = presenter.getViewModel(historyItems, filter);
 
-  /**
-   * Set filter
-   */
   const setFilter = useCallback((newFilter: 'all' | 'completed' | 'cancelled') => {
     setFilterState(newFilter);
   }, []);
 
-  /**
-   * Clear history
-   */
   const clearHistory = useCallback(() => {
     if (confirm('คุณต้องการลบประวัติทั้งหมดหรือไม่?')) {
       storeClearHistory();
     }
   }, [storeClearHistory]);
 
-  /**
-   * Group by date
-   */
   const groupByDate = useCallback((history: QueueHistoryItem[]) => {
     return presenter.groupByDate(history);
-  }, []);
+  }, [presenter]);
 
   return [
     {

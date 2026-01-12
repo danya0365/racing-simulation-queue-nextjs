@@ -9,11 +9,8 @@ import type {
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { useAuthStore } from '../../stores/auth-store';
-import { AuthViewModel } from './AuthPresenter';
+import { AuthPresenter, AuthViewModel } from './AuthPresenter';
 import { createClientAuthPresenter } from './AuthPresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientAuthPresenter();
 
 export interface AuthPresenterState {
   user: AuthUser | null;
@@ -24,50 +21,34 @@ export interface AuthPresenterState {
   error: string | null;
   successMessage: string | null;
   isSubmitting: boolean;
-  // Form states
   showPassword: boolean;
   showConfirmPassword: boolean;
   passwordStrength: 'weak' | 'medium' | 'strong' | null;
-  // OTP states
   otpSent: boolean;
   otpPhone: string;
-  // Email verification
   needsEmailVerification: boolean;
   verificationEmail: string;
 }
 
 export interface AuthPresenterActions {
-  // Auth actions
   signUp: (email: string, password: string, fullName?: string, phone?: string) => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<boolean>;
   signInWithOTP: (phone: string) => Promise<boolean>;
   verifyOTP: (phone: string, token: string) => Promise<boolean>;
   signInWithOAuth: (provider: 'google' | 'facebook' | 'github' | 'line') => Promise<void>;
   signOut: () => Promise<void>;
-  
-  // Password actions
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<boolean>;
-  
-  // Profile actions
   updateProfile: (data: UpdateProfileData) => Promise<boolean>;
   refreshSession: () => Promise<void>;
-  
-  // Email verification
   resendEmailVerification: (email: string) => Promise<boolean>;
-  
-  // OTP actions
   resetOTPState: () => void;
-  
-  // UI actions
   toggleShowPassword: () => void;
   toggleShowConfirmPassword: () => void;
   checkPasswordStrength: (password: string) => void;
   clearError: () => void;
   clearSuccessMessage: () => void;
   setError: (error: string) => void;
-  
-  // Validation
   validateEmail: (email: string) => { valid: boolean; error?: string };
   validatePassword: (password: string) => { valid: boolean; error?: string; strength: 'weak' | 'medium' | 'strong' };
   validatePhone: (phone: string) => { valid: boolean; error?: string };
@@ -75,48 +56,46 @@ export interface AuthPresenterActions {
 
 /**
  * Custom hook for authentication
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
  */
 export function useAuthPresenter(
-  initialViewModel?: AuthViewModel
+  initialViewModel?: AuthViewModel,
+  presenterOverride?: AuthPresenter
 ): [AuthPresenterState, AuthPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientAuthPresenter(),
+    [presenterOverride]
+  );
+  
   const router = useRouter();
   
-  // Get redirect URL from URL params - avoids useSearchParams which requires Suspense
   const getRedirectUrl = useCallback(() => {
     if (typeof window === 'undefined') return '/customer';
     const urlParams = new URLSearchParams(window.location.search);
     const redirectTo = urlParams.get('redirectTo');
-    // Safety check: only allow relative paths or same-origin URLs
     if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith(window.location.origin))) {
       return redirectTo;
     }
     return '/customer';
   }, []);
-  // Global State from Zustand
+
   const { user, profile, session, isAuthenticated, isLoading } = useAuthStore();
 
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
-
-  // OTP states
   const [otpSent, setOtpSent] = useState(false);
   const [otpPhone, setOtpPhone] = useState('');
-
-  // Email verification
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
 
-
-
-  /**
-   * Sign up with email and password
-   */
   const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -124,14 +103,12 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.signUp({ email, password, fullName, phone });
-
       if (result.success) {
         if (result.needsEmailVerification) {
           setNeedsEmailVerification(true);
           setVerificationEmail(email);
           setSuccessMessage(result.message || 'กรุณายืนยันอีเมลเพื่อเปิดใช้งานบัญชี');
         } else {
-          // State update happens via event listener
           setSuccessMessage(result.message || 'สมัครสมาชิกสำเร็จ');
           router.push(getRedirectUrl());
         }
@@ -147,11 +124,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router, getRedirectUrl]);
+  }, [router, getRedirectUrl, presenter]);
 
-  /**
-   * Sign in with email and password
-   */
   const signIn = useCallback(async (email: string, password: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -159,9 +133,7 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.signIn({ email, password });
-
       if (result.success) {
-        // State update happens via event listener
         setSuccessMessage(result.message || 'เข้าสู่ระบบสำเร็จ');
         router.push(getRedirectUrl());
         return true;
@@ -176,11 +148,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router, getRedirectUrl]);
+  }, [router, getRedirectUrl, presenter]);
 
-  /**
-   * Sign in with OTP
-   */
   const signInWithOTP = useCallback(async (phone: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -188,7 +157,6 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.signInWithOTP({ phone });
-
       if (result.success) {
         setOtpSent(true);
         setOtpPhone(phone);
@@ -205,11 +173,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Verify OTP
-   */
   const verifyOTP = useCallback(async (phone: string, token: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -217,9 +182,7 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.verifyOTP({ phone, token });
-
       if (result.success) {
-        // State update happens via event listener
         setOtpSent(false);
         setOtpPhone('');
         setSuccessMessage(result.message || 'ยืนยัน OTP สำเร็จ');
@@ -236,11 +199,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router, getRedirectUrl]);
+  }, [router, getRedirectUrl, presenter]);
 
-  /**
-   * Sign in with OAuth provider
-   */
   const signInWithOAuth = useCallback(async (provider: 'google' | 'facebook' | 'github' | 'line'): Promise<void> => {
     setIsSubmitting(true);
     setError(null);
@@ -256,20 +216,15 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Sign out
-   */
   const signOut = useCallback(async (): Promise<void> => {
     setIsSubmitting(true);
     setError(null);
 
     try {
       const result = await presenter.signOut();
-
       if (result.success) {
-        // State update happens via event listener
         setSuccessMessage(result.message || 'ออกจากระบบสำเร็จ');
         router.push('/');
       } else {
@@ -281,11 +236,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router]);
+  }, [router, presenter]);
 
-  /**
-   * Reset password
-   */
   const resetPassword = useCallback(async (email: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -293,7 +245,6 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.resetPassword({ email });
-
       if (result.success) {
         setSuccessMessage(result.message || 'ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว');
         return true;
@@ -308,11 +259,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Update password
-   */
   const updatePassword = useCallback(async (newPassword: string): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -320,7 +268,6 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.updatePassword({ newPassword });
-
       if (result.success) {
         setSuccessMessage(result.message || 'เปลี่ยนรหัสผ่านสำเร็จ');
         router.push('/auth/login');
@@ -336,11 +283,8 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, [router]);
+  }, [router, presenter]);
 
-  /**
-   * Update profile
-   */
   const updateProfile = useCallback(async (data: UpdateProfileData): Promise<boolean> => {
     setIsSubmitting(true);
     setError(null);
@@ -348,7 +292,6 @@ export function useAuthPresenter(
 
     try {
       const updatedProfile = await presenter.updateProfile(data);
-      // Manually update store for profile changes as auth event might not fire for profile table changes
       useAuthStore.getState().setProfile(updatedProfile);
       setSuccessMessage('อัปเดตโปรไฟล์สำเร็จ');
       return true;
@@ -359,23 +302,16 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Refresh session
-   */
   const refreshSession = useCallback(async (): Promise<void> => {
     try {
       await presenter.refreshSession();
-      // Store update handled by global listener
     } catch (err) {
       console.error('Error refreshing session:', err);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Resend email verification
-   */
   const resendEmailVerification = useCallback(async (email: string): Promise<boolean> => {
     if (!email) {
       setError('ไม่พบอีเมลสำหรับยืนยัน');
@@ -387,7 +323,6 @@ export function useAuthPresenter(
 
     try {
       const result = await presenter.resendEmailVerification(email);
-
       if (result.success) {
         setSuccessMessage(result.message || 'ส่งอีเมลยืนยันใหม่เรียบร้อยแล้ว');
         return true;
@@ -402,19 +337,13 @@ export function useAuthPresenter(
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Reset OTP state
-   */
   const resetOTPState = useCallback(() => {
     setOtpSent(false);
     setOtpPhone('');
   }, []);
 
-  /**
-   * UI Actions
-   */
   const toggleShowPassword = useCallback(() => {
     setShowPassword(prev => !prev);
   }, []);
@@ -426,7 +355,7 @@ export function useAuthPresenter(
   const checkPasswordStrength = useCallback((password: string) => {
     const result = presenter.validatePassword(password);
     setPasswordStrength(result.strength);
-  }, []);
+  }, [presenter]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -440,22 +369,17 @@ export function useAuthPresenter(
     setError(errorMsg);
   }, []);
 
-  /**
-   * Validation wrappers
-   */
   const validateEmail = useCallback((email: string) => {
     return presenter.validateEmail(email);
-  }, []);
+  }, [presenter]);
 
   const validatePassword = useCallback((password: string) => {
     return presenter.validatePassword(password);
-  }, []);
+  }, [presenter]);
 
   const validatePhone = useCallback((phone: string) => {
     return presenter.validatePhone(phone);
-  }, []);
-
-
+  }, [presenter]);
 
   const state: AuthPresenterState = useMemo(() => ({
     user,

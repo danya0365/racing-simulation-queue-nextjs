@@ -1,12 +1,9 @@
 'use client';
 
 import type { Machine } from '@/src/application/repositories/IMachineRepository';
-import { useCallback, useEffect, useState } from 'react';
-import { HomeViewModel } from './HomePresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HomePresenter, HomeViewModel } from './HomePresenter';
 import { createClientHomePresenter } from './HomePresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientHomePresenter();
 
 export interface HomePresenterState {
   viewModel: HomeViewModel | null;
@@ -27,11 +24,26 @@ export interface HomePresenterActions {
 
 /**
  * Custom hook for Home presenter
- * Provides state management and actions for Home page
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Visibility-aware polling
+ * - Proper cleanup on unmount
  */
 export function useHomePresenter(
-  initialViewModel?: HomeViewModel
+  initialViewModel?: HomeViewModel,
+  presenterOverride?: HomePresenter
 ): [HomePresenterState, HomePresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientHomePresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<HomeViewModel | null>(
     initialViewModel || null
   );
@@ -49,28 +61,43 @@ export function useHomePresenter(
 
     try {
       const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      if (isMountedRef.current) {
+        setViewModel(newViewModel);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading home data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading home data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
-   * Refresh data
+   * Refresh data (visibility-aware)
    */
   const refreshData = useCallback(async () => {
+    // ✅ Skip if tab not visible
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+    
     try {
       const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      if (isMountedRef.current) {
+        setViewModel(newViewModel);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Select a machine
@@ -97,21 +124,54 @@ export function useHomePresenter(
     setError(null);
   }, []);
 
-  // Load data on mount if no initial data
+  // Load data on mount
   useEffect(() => {
     if (!initialViewModel) {
       loadData();
     }
   }, [initialViewModel, loadData]);
 
-  // Auto-refresh every 30 seconds
+  // ✅ Visibility-aware auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData();
-    }, 30000);
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const startPolling = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          refreshData();
+        }
+      }, 30000);
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshData();
+        startPolling();
+      } else {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [refreshData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {

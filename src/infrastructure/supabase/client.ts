@@ -42,11 +42,10 @@ export function createClient(): SupabaseClient<Database> {
 // ใช้ใน component
 export const supabase = createClient(); // reuse เดิม
 
+// ✅ Debug helper - call manually when needed, not on module load
 export const logActiveConnections = () => {
-  const supabase = createClient()
-  
-  // ดู realtime channels ที่เปิดอยู่
-  console.log('Active channels:', supabase.getChannels())
-}
+  const client = createClient();
+  console.log('Active channels:', client.getChannels());
+};
 
-logActiveConnections()
+// Note: Removed automatic logActiveConnections() call to prevent side effects on import
