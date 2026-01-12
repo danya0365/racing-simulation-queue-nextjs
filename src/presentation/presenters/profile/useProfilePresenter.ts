@@ -1,12 +1,9 @@
 'use client';
 
 import type { UpdateProfileData } from '@/src/application/repositories/IAuthRepository';
-import { useCallback, useEffect, useState } from 'react';
-import { ProfileViewModel } from './ProfilePresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ProfilePresenter, ProfileViewModel } from './ProfilePresenter';
 import { createClientProfilePresenter } from './ProfilePresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientProfilePresenter();
 
 export interface ProfilePresenterState {
   viewModel: ProfileViewModel | null;
@@ -29,11 +26,25 @@ export interface ProfilePresenterActions {
 
 /**
  * Custom hook for Profile presenter
- * Provides state management and actions for Profile operations
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Proper cleanup on unmount
  */
 export function useProfilePresenter(
-  initialViewModel?: ProfileViewModel
+  initialViewModel?: ProfileViewModel,
+  presenterOverride?: ProfilePresenter
 ): [ProfilePresenterState, ProfilePresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientProfilePresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<ProfileViewModel | null>(
     initialViewModel || null
   );
@@ -52,15 +63,21 @@ export function useProfilePresenter(
 
     try {
       const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      if (isMountedRef.current) {
+        setViewModel(newViewModel);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading profile data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading profile data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Update profile
@@ -73,24 +90,29 @@ export function useProfilePresenter(
     try {
       const updatedProfile = await presenter.updateProfile(data);
       
-      // Update local state
-      setViewModel(prev => prev ? {
-        ...prev,
-        profile: updatedProfile,
-      } : null);
-      
-      setIsEditing(false);
-      setSuccessMessage('อัปเดตโปรไฟล์สำเร็จ');
+      if (isMountedRef.current) {
+        setViewModel(prev => prev ? {
+          ...prev,
+          profile: updatedProfile,
+        } : null);
+        
+        setIsEditing(false);
+        setSuccessMessage('อัปเดตโปรไฟล์สำเร็จ');
+      }
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error updating profile:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error updating profile:', err);
+      }
       return false;
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Sign out
@@ -101,20 +123,26 @@ export function useProfilePresenter(
 
     try {
       await presenter.signOut();
-      setViewModel({
-        user: null,
-        profile: null,
-        session: null,
-        isAuthenticated: false,
-      });
+      if (isMountedRef.current) {
+        setViewModel({
+          user: null,
+          profile: null,
+          session: null,
+          isAuthenticated: false,
+        });
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error signing out:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error signing out:', err);
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Start editing mode
@@ -147,6 +175,14 @@ export function useProfilePresenter(
       loadData();
     }
   }, [initialViewModel, loadData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {

@@ -1,12 +1,9 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { SingleQueueViewModel } from './SingleQueuePresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SingleQueuePresenter, SingleQueueViewModel } from './SingleQueuePresenter';
 import { createClientSingleQueuePresenter } from './SingleQueuePresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientSingleQueuePresenter();
 
 export interface SingleQueuePresenterState {
   viewModel: SingleQueueViewModel | null;
@@ -26,10 +23,26 @@ export interface SingleQueuePresenterActions {
 
 /**
  * Custom hook for SingleQueue presenter
- * Provides state management and actions for Single Queue Status operations
- * ✅ Following Clean Architecture pattern
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Visibility-aware polling
+ * - Proper cleanup on unmount
  */
-export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterState, SingleQueuePresenterActions] {
+export function useSingleQueuePresenter(
+  queueId: string,
+  presenterOverride?: SingleQueuePresenter
+): [SingleQueuePresenterState, SingleQueuePresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientSingleQueuePresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<SingleQueueViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +52,11 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
   const { activeBookings, removeBooking, updateBooking } = useCustomerStore();
   const localBooking = activeBookings.find(b => b.id === queueId);
   
-  // Use ref to keep track of local booking without triggering loadData recreation
   const localBookingRef = useRef(localBooking);
   useEffect(() => {
     localBookingRef.current = localBooking;
   }, [localBooking]);
 
-  /**
-   * Load queue data
-   */
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -57,7 +66,6 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
       const currentLocal = localBookingRef.current;
       
       if (vm.queue) {
-        // Only update local store if data actually changed to prevent loops
         if (!currentLocal || 
             currentLocal.status !== vm.queue.status || 
             currentLocal.position !== vm.queue.position) {
@@ -66,51 +74,57 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
             position: vm.queue.position,
           });
         }
-        setViewModel(vm);
+        if (isMountedRef.current) {
+          setViewModel(vm);
+        }
       } else if (currentLocal) {
-        // Use local storage data if server doesn't have it
         const queueAhead = Math.max(0, currentLocal.position - 1);
-        setViewModel({
-          queue: {
-            id: currentLocal.id,
-            machineId: currentLocal.machineId,
-            customerName: currentLocal.customerName,
-            customerPhone: currentLocal.customerPhone,
-            bookingTime: currentLocal.bookingTime,
-            duration: currentLocal.duration,
-            status: currentLocal.status,
-            position: currentLocal.position,
-            createdAt: currentLocal.createdAt,
-            updatedAt: currentLocal.createdAt,
-          },
-          machine: { 
-            id: currentLocal.machineId, 
-            name: currentLocal.machineName,
-            description: '',
-            position: 0,
-            status: 'available' as const,
-            isActive: true,
-            createdAt: '',
-            updatedAt: '',
-          },
-          queueAhead,
-          estimatedWaitMinutes: queueAhead * currentLocal.duration,
-        });
+        if (isMountedRef.current) {
+          setViewModel({
+            queue: {
+              id: currentLocal.id,
+              machineId: currentLocal.machineId,
+              customerName: currentLocal.customerName,
+              customerPhone: currentLocal.customerPhone,
+              bookingTime: currentLocal.bookingTime,
+              duration: currentLocal.duration,
+              status: currentLocal.status,
+              position: currentLocal.position,
+              createdAt: currentLocal.createdAt,
+              updatedAt: currentLocal.createdAt,
+            },
+            machine: { 
+              id: currentLocal.machineId, 
+              name: currentLocal.machineName,
+              description: '',
+              position: 0,
+              status: 'available' as const,
+              isActive: true,
+              createdAt: '',
+              updatedAt: '',
+            },
+            queueAhead,
+            estimatedWaitMinutes: queueAhead * currentLocal.duration,
+          });
+        }
       } else {
-        setError('ไม่พบข้อมูลคิว');
+        if (isMountedRef.current) {
+          setError('ไม่พบข้อมูลคิว');
+        }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading queue data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading queue data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [queueId, updateBooking]); // Removed localBooking from dependencies
+  }, [queueId, updateBooking, presenter]);
 
-  /**
-   * Cancel queue
-   */
   const cancelQueue = useCallback(async () => {
     if (!confirm('คุณต้องการยกเลิกคิวนี้หรือไม่?')) return;
 
@@ -122,24 +136,22 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
       await presenter.cancelQueue(queueId, customerId);
       removeBooking(queueId);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error cancelling queue:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error cancelling queue:', err);
+      }
     } finally {
-      setIsCancelling(false);
+      if (isMountedRef.current) {
+        setIsCancelling(false);
+      }
     }
-  }, [queueId, removeBooking]);
+  }, [queueId, removeBooking, presenter]);
 
-  /**
-   * Enter focus mode
-   */
   const enterFocusMode = useCallback(() => {
     setIsFocusMode(true);
   }, []);
 
-  /**
-   * Exit focus mode
-   */
   const exitFocusMode = useCallback(() => {
     setIsFocusMode(false);
   }, []);
@@ -149,13 +161,47 @@ export function useSingleQueuePresenter(queueId: string): [SingleQueuePresenterS
     loadData();
   }, [loadData]);
 
-  // Auto refresh every 15 seconds
+  // ✅ Visibility-aware auto refresh every 5 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadData();
-    }, 5000);
-    return () => clearInterval(interval);
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const startPolling = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadData();
+        }
+      }, 5000);
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+        startPolling();
+      } else {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [loadData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {

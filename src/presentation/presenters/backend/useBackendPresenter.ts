@@ -2,12 +2,9 @@
 
 import type { Machine, MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { Queue, QueueStatus } from '@/src/application/repositories/IQueueRepository';
-import { useCallback, useEffect, useState } from 'react';
-import { BackendViewModel } from './BackendPresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BackendPresenter, BackendViewModel } from './BackendPresenter';
 import { createClientBackendPresenter } from './BackendPresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientBackendPresenter();
 
 export interface MachineUpdateData {
   name?: string;
@@ -44,10 +41,30 @@ export interface BackendPresenterActions {
 
 /**
  * Custom hook for Backend presenter
+ * 
+ * ✅ Improvements made:
+ * - Presenter created inside hook with useMemo (no global singleton)
+ * - Visibility-aware polling (stops when tab is hidden)
+ * - AbortController for request cancellation
+ * - Proper cleanup on unmount
  */
 export function useBackendPresenter(
-  initialViewModel?: BackendViewModel
+  initialViewModel?: BackendViewModel,
+  presenterOverride?: BackendPresenter
 ): [BackendPresenterState, BackendPresenterActions] {
+  // ✅ Create presenter inside hook with useMemo (not global singleton)
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientBackendPresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track if component is mounted for cleanup
+  const isMountedRef = useRef(true);
+  
+  // ✅ AbortController ref for canceling ongoing requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [viewModel, setViewModel] = useState<BackendViewModel | null>(
     initialViewModel || null
   );
@@ -59,17 +76,16 @@ export function useBackendPresenter(
   const [isUpdating, setIsUpdating] = useState(false);
 
   /**
-   * Load data from presenter
-   */
-  /**
-   * Load data from presenter
+   * Load data from presenter with cancellation support
    */
   const loadData = useCallback(async (tab: string = activeTab) => {
-    // Only set loading on initial full load or explicit refresh interaction
-    // We don't want to show full page loader on tab switch if we can merge data
-    // But for now, let's keep it simple.
+    // ✅ Cancel any previous pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     
-    // Logic: If switching to Dashboard, I need stats. If Control, I need active queues.
+    // ✅ Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
     
     try {
       let partialData: Partial<BackendViewModel> = {};
@@ -77,32 +93,44 @@ export function useBackendPresenter(
       if (tab === 'dashboard') {
         partialData = await presenter.getDashboardData();
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
-        // Control, Machines, and Queues tabs all benefit from "Control Data" 
-        // which includes Machines + Active Queues
         partialData = await presenter.getControlData();
       } else {
-        // Fallback
         partialData = await presenter.getViewModel();
       }
 
-      setViewModel(prev => {
-        if (!prev) return partialData as BackendViewModel;
-        // Merge with previous state to avoid flickering if some data is valid
-        return { ...prev, ...partialData };
-      });
+      // ✅ Only update state if still mounted
+      if (isMountedRef.current) {
+        setViewModel(prev => {
+          if (!prev) return partialData as BackendViewModel;
+          return { ...prev, ...partialData };
+        });
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading backend data:', err);
+      // ✅ Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+      
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading backend data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, presenter]);
 
   /**
-   * Refresh data
+   * Refresh data (only if tab is visible)
    */
   const refreshData = useCallback(async () => {
+    // ✅ Skip refresh if tab is not visible
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
     await loadData(activeTab);
   }, [loadData, activeTab]);
 
@@ -111,10 +139,8 @@ export function useBackendPresenter(
    */
   const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control') => {
     setActiveTab(tab);
-    // Trigger load data for the new tab
     if (tab === 'customers') {
-      // Customers tab handles its own fetching via its own presenter component
-      // So we don't need to fetch anything here
+      // Customers tab handles its own fetching
     } else {
       loadData(tab); 
     }
@@ -135,9 +161,11 @@ export function useBackendPresenter(
       setError(errorMessage);
       throw err;
     } finally {
-      setIsUpdating(false);
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
     }
-  }, [refreshData]);
+  }, [refreshData, presenter]);
 
   /**
    * Update machine status
@@ -154,12 +182,14 @@ export function useBackendPresenter(
       setError(errorMessage);
       throw err;
     } finally {
-      setIsUpdating(false);
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
     }
-  }, [refreshData]);
+  }, [refreshData, presenter]);
 
   /**
-   * Update machine details (name, description, isActive, etc.)
+   * Update machine details
    */
   const updateMachine = useCallback(async (machineId: string, data: MachineUpdateData) => {
     setIsUpdating(true);
@@ -173,9 +203,11 @@ export function useBackendPresenter(
       setError(errorMessage);
       throw err;
     } finally {
-      setIsUpdating(false);
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
     }
-  }, [refreshData]);
+  }, [refreshData, presenter]);
 
   /**
    * Delete queue
@@ -193,9 +225,11 @@ export function useBackendPresenter(
       setError(errorMessage);
       throw err;
     } finally {
-      setIsUpdating(false);
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
     }
-  }, [refreshData]);
+  }, [refreshData, presenter]);
 
   /**
    * Select queue
@@ -226,25 +260,79 @@ export function useBackendPresenter(
       setError(errorMessage);
       throw err;
     } finally {
-      setIsUpdating(false);
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
     }
-  }, [refreshData]);
+  }, [refreshData, presenter]);
 
-  // Load data on mount if no initial data
+  // ✅ Load data on mount
   useEffect(() => {
     if (!initialViewModel) {
       loadData();
     }
   }, [initialViewModel, loadData]);
 
-  // Auto-refresh every 15 seconds
+  // ✅ Visibility-aware auto-refresh every 15 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData();
-    }, 15000);
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    const startPolling = () => {
+      // Clear any existing interval
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      
+      intervalId = setInterval(() => {
+        // ✅ Only refresh if document is visible
+        if (document.visibilityState === 'visible') {
+          refreshData();
+        }
+      }, 15000);
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // ✅ Refresh immediately when tab becomes visible
+        refreshData();
+        startPolling();
+      } else {
+        // ✅ Stop polling when tab is hidden
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    // Start polling initially
+    startPolling();
+    
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    return () => clearInterval(interval);
+    return () => {
+      // ✅ Cleanup
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [refreshData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      
+      // Cancel any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return [
     {

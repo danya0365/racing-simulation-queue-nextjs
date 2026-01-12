@@ -1,12 +1,9 @@
 'use client';
 
 import type { CreateCustomerData, Customer, UpdateCustomerData } from '@/src/application/repositories/ICustomerRepository';
-import { useCallback, useEffect, useState } from 'react';
-import { CustomersViewModel } from './CustomersPresenter';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CustomersPresenter, CustomersViewModel } from './CustomersPresenter';
 import { createClientCustomersPresenter } from './CustomersPresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientCustomersPresenter();
 
 export interface CustomersPresenterState {
   viewModel: CustomersViewModel | null;
@@ -34,10 +31,24 @@ export interface CustomersPresenterActions {
 
 /**
  * Custom hook for Customers presenter
- * Provides state management and actions for Customer management operations
- * ✅ Following Clean Architecture pattern
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Proper cleanup on unmount
  */
-export function useCustomersPresenter(): [CustomersPresenterState, CustomersPresenterActions] {
+export function useCustomersPresenter(
+  presenterOverride?: CustomersPresenter
+): [CustomersPresenterState, CustomersPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientCustomersPresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<CustomersViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +66,21 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
 
     try {
       const vm = await presenter.getViewModel();
-      setViewModel(vm);
+      if (isMountedRef.current) {
+        setViewModel(vm);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading customers data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading customers data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Search customers
@@ -75,17 +92,23 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
     try {
       if (query.trim()) {
         const customers = await presenter.searchCustomers(query);
-        setViewModel(prev => prev ? { ...prev, customers } : null);
+        if (isMountedRef.current) {
+          setViewModel(prev => prev ? { ...prev, customers } : null);
+        }
       } else {
         const customers = await presenter.getAllCustomers();
-        setViewModel(prev => prev ? { ...prev, customers } : null);
+        if (isMountedRef.current) {
+          setViewModel(prev => prev ? { ...prev, customers } : null);
+        }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error searching customers:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error searching customers:', err);
+      }
     }
-  }, []);
+  }, [presenter]);
 
   /**
    * Create a new customer
@@ -95,15 +118,19 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
 
     try {
       await presenter.createCustomer(data);
-      setIsAddModalOpen(false);
+      if (isMountedRef.current) {
+        setIsAddModalOpen(false);
+      }
       await loadData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error creating customer:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error creating customer:', err);
+      }
       throw err;
     }
-  }, [loadData]);
+  }, [loadData, presenter]);
 
   /**
    * Update a customer
@@ -115,12 +142,14 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
       await presenter.updateCustomer(id, data);
       await loadData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error updating customer:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error updating customer:', err);
+      }
       throw err;
     }
-  }, [loadData]);
+  }, [loadData, presenter]);
 
   /**
    * Toggle VIP status
@@ -132,11 +161,13 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
       await presenter.toggleVipStatus(customer);
       await loadData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error toggling VIP status:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error toggling VIP status:', err);
+      }
     }
-  }, [loadData]);
+  }, [loadData, presenter]);
 
   /**
    * Delete a customer
@@ -148,11 +179,13 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
       await presenter.deleteCustomer(id);
       await loadData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error deleting customer:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error deleting customer:', err);
+      }
     }
-  }, [loadData]);
+  }, [loadData, presenter]);
 
   /**
    * Open detail modal
@@ -188,6 +221,14 @@ export function useCustomersPresenter(): [CustomersPresenterState, CustomersPres
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {

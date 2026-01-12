@@ -4,11 +4,8 @@ import type { Machine } from '@/src/application/repositories/IMachineRepository'
 import type { Queue } from '@/src/application/repositories/IQueueRepository';
 import { ActiveBooking, useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookingFormData, CustomerViewModel } from './CustomerPresenter';
+import { BookingFormData, CustomerPresenter, CustomerViewModel } from './CustomerPresenter';
 import { createClientCustomerPresenter } from './CustomerPresenterClientFactory';
-
-// Initialize presenter instance once (singleton pattern)
-const presenter = createClientCustomerPresenter();
 
 export interface SearchResult {
   queues: Queue[];
@@ -27,7 +24,6 @@ export interface CustomerPresenterState {
   activeBookings: ActiveBooking[];
   bookingHistory: ActiveBooking[];
   isCancelling: boolean;
-  // Search state
   searchResults: Queue[];
   isSearching: boolean;
   searchError: string | null;
@@ -45,7 +41,6 @@ export interface CustomerPresenterActions {
   refreshData: () => Promise<void>;
   cancelBooking: (queueId: string) => Promise<void>;
   syncBookingStatus: () => Promise<void>;
-  // Search actions
   searchByPhone: (phone: string) => Promise<void>;
   searchById: (id: string) => Promise<void>;
   clearSearchResults: () => void;
@@ -56,10 +51,26 @@ export interface CustomerPresenterActions {
 
 /**
  * Custom hook for Customer presenter
+ * 
+ * ✅ Improvements:
+ * - Presenter created inside hook with useMemo
+ * - Visibility-aware polling
+ * - Proper cleanup on unmount
  */
 export function useCustomerPresenter(
-  initialViewModel?: CustomerViewModel
+  initialViewModel?: CustomerViewModel,
+  presenterOverride?: CustomerPresenter
 ): [CustomerPresenterState, CustomerPresenterActions] {
+  // ✅ Create presenter inside hook
+  // Accept override for easier testing
+  const presenter = useMemo(
+    () => presenterOverride ?? createClientCustomerPresenter(),
+    [presenterOverride]
+  );
+  
+  // ✅ Track mounted state
+  const isMountedRef = useRef(true);
+
   const [viewModel, setViewModel] = useState<CustomerViewModel | null>(
     initialViewModel || null
   );
@@ -71,13 +82,11 @@ export function useCustomerPresenter(
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   
-  // Search state
   const [searchResults, setSearchResults] = useState<Queue[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
-  // Get active bookings from the store  
   const { 
     activeBookings, 
     bookingHistory,
@@ -89,55 +98,63 @@ export function useCustomerPresenter(
     clearHistory: clearStoreHistory,
   } = useCustomerStore();
   
-  // Optimize active bookings list with useMemo to prevent unnecessary re-renders
   const activeBookingsList = useMemo(() => 
     activeBookings.filter(b => b.status === 'waiting' || b.status === 'playing'),
     [activeBookings]
   );
 
-  /**
-   * Load data from presenter
-   */
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      if (isMountedRef.current) {
+        setViewModel(newViewModel);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error loading customer data:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading customer data:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [presenter]);
 
-  /**
-   * Refresh data
-   */
   const refreshData = useCallback(async () => {
+    // ✅ Skip if tab not visible
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+    
     try {
       const newViewModel = await presenter.getViewModel();
-      setViewModel(newViewModel);
+      if (isMountedRef.current) {
+        setViewModel(newViewModel);
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+      }
     }
-  }, []);
+  }, [presenter]);
 
-  // Use ref to keep track of the list for the periodic sync without triggering callback regeneration
   const activeBookingsRef = useRef(activeBookingsList);
   useEffect(() => {
     activeBookingsRef.current = activeBookingsList;
   }, [activeBookingsList]);
 
-  /**
-   * Sync booking status with server
-   * Updates local bookings with current status from server
-   */
   const syncBookingStatus = useCallback(async () => {
+    // ✅ Skip if tab not visible
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+    
     const list = activeBookingsRef.current;
     if (list.length === 0) return;
 
@@ -145,7 +162,6 @@ export function useCustomerPresenter(
       for (const booking of list) {
         const serverQueue = await presenter.getQueueById(booking.id);
         if (serverQueue) {
-          // Only update if something actually changed to avoid unnecessary state updates
           if (serverQueue.status !== booking.status || serverQueue.position !== booking.position) {
             updateBooking(booking.id, {
               status: serverQueue.status as ActiveBooking['status'],
@@ -159,18 +175,12 @@ export function useCustomerPresenter(
     } catch (err) {
       console.error('Error syncing booking status:', err);
     }
-  }, [updateBooking, removeBooking]);
+  }, [updateBooking, removeBooking, presenter]);
 
-  /**
-   * Select a machine
-   */
   const selectMachine = useCallback((machine: Machine | null) => {
     setSelectedMachine(machine);
   }, []);
 
-  /**
-   * Open booking modal
-   */
   const openBookingModal = useCallback((machine: Machine) => {
     setSelectedMachine(machine);
     setIsBookingModalOpen(true);
@@ -178,18 +188,12 @@ export function useCustomerPresenter(
     setBookingSuccess(null);
   }, []);
 
-  /**
-   * Close booking modal
-   */
   const closeBookingModal = useCallback(() => {
     setIsBookingModalOpen(false);
     setSelectedMachine(null);
     setError(null);
   }, []);
 
-  /**
-   * Submit booking
-   */
   const submitBooking = useCallback(async (data: BookingFormData) => {
     setIsSubmitting(true);
     setError(null);
@@ -200,14 +204,11 @@ export function useCustomerPresenter(
       setCustomerInfo({
         name: data.customerName,
         phone: data.customerPhone,
-        id: newQueue.customerId, // Save customer ID for security verification
+        id: newQueue.customerId,
       });
 
-
-      // Get machine name for display
       const machine = viewModel?.machines.find(m => m.id === data.machineId);
       
-      // Add to local store so customer can track it
       addBooking({
         id: newQueue.id,
         machineId: newQueue.machineId,
@@ -222,59 +223,54 @@ export function useCustomerPresenter(
         createdAt: new Date().toISOString(),
       });
       
-      setBookingSuccess(newQueue);
-      setIsBookingModalOpen(false);
+      if (isMountedRef.current) {
+        setBookingSuccess(newQueue);
+        setIsBookingModalOpen(false);
+      }
       await refreshData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Error submitting booking:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error submitting booking:', err);
+      }
       throw err;
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
-  }, [refreshData, setCustomerInfo, addBooking, viewModel?.machines]);
+  }, [refreshData, setCustomerInfo, addBooking, viewModel?.machines, presenter]);
 
-  /**
-   * Cancel booking
-   */
   const cancelBooking = useCallback(async (queueId: string) => {
     setIsCancelling(true);
     setError(null);
 
     try {
-      // Find customer ID for verification
       const booking = activeBookingsRef.current.find(b => b.id === queueId);
       const customerId = booking?.customerId;
       
-      // Call presenter to cancel
       await presenter.cancelQueue(queueId, customerId);
-      
-      // Remove from local store (will move to history automatically)
       removeBooking(queueId);
-      
-      // Refresh data
       await refreshData();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'ไม่สามารถยกเลิกคิวได้';
-      setError(errorMessage);
-      console.error('Error cancelling booking:', err);
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'ไม่สามารถยกเลิกคิวได้';
+        setError(errorMessage);
+        console.error('Error cancelling booking:', err);
+      }
       throw err;
     } finally {
-      setIsCancelling(false);
+      if (isMountedRef.current) {
+        setIsCancelling(false);
+      }
     }
-  }, [refreshData, removeBooking]);
+  }, [refreshData, removeBooking, presenter]);
 
-  /**
-   * Clear booking success state
-   */
   const clearBookingSuccess = useCallback(() => {
     setBookingSuccess(null);
   }, []);
 
-  /**
-   * Search queues by phone number
-   */
   const searchByPhone = useCallback(async (phone: string) => {
     if (!phone.trim()) {
       setSearchError('กรุณากรอกเบอร์โทรศัพท์');
@@ -286,45 +282,44 @@ export function useCustomerPresenter(
     setSearchResults([]);
 
     try {
-      // Get local customer ID from customer info (primary) or first active booking (fallback)
-      // This acts as a security token for guest users to view their own data
       const { customerInfo } = useCustomerStore.getState();
-
       const securityTokenId = customerInfo.id;
 
       const results = await presenter.searchQueuesByPhone(phone, securityTokenId);
-      if (results.length === 0) {
-        setSearchError('ไม่พบคิวที่ตรงกับเบอร์โทรศัพท์นี้');
-      } else {
-        setSearchResults(results);
-        
-        // Add found queues to history for easy access later
-        for (const q of results) {
-          const machine = viewModel?.machines.find(m => m.id === q.machineId);
-          addToHistory({
-            id: q.id,
-            machineId: q.machineId,
-            machineName: machine?.name || `Machine ${q.machineId}`,
-            customerName: q.customerName,
-            customerPhone: q.customerPhone,
-            bookingTime: q.bookingTime,
-            duration: q.duration,
-            position: q.position,
-            status: q.status as ActiveBooking['status'],
-            createdAt: q.createdAt || new Date().toISOString(),
-          });
+      if (isMountedRef.current) {
+        if (results.length === 0) {
+          setSearchError('ไม่พบคิวที่ตรงกับเบอร์โทรศัพท์นี้');
+        } else {
+          setSearchResults(results);
+          
+          for (const q of results) {
+            const machine = viewModel?.machines.find(m => m.id === q.machineId);
+            addToHistory({
+              id: q.id,
+              machineId: q.machineId,
+              machineName: machine?.name || `Machine ${q.machineId}`,
+              customerName: q.customerName,
+              customerPhone: q.customerPhone,
+              bookingTime: q.bookingTime,
+              duration: q.duration,
+              position: q.position,
+              status: q.status as ActiveBooking['status'],
+              createdAt: q.createdAt || new Date().toISOString(),
+            });
+          }
         }
       }
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการค้นหา');
+      if (isMountedRef.current) {
+        setSearchError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการค้นหา');
+      }
     } finally {
-      setIsSearching(false);
+      if (isMountedRef.current) {
+        setIsSearching(false);
+      }
     }
-  }, [viewModel?.machines, addToHistory, activeBookings]);
+  }, [viewModel?.machines, addToHistory, presenter]);
 
-  /**
-   * Search queue by ID or position
-   */
   const searchById = useCallback(async (id: string) => {
     if (!id.trim()) {
       setSearchError('กรุณากรอกหมายเลขคิว');
@@ -337,84 +332,110 @@ export function useCustomerPresenter(
 
     try {
       const result = await presenter.searchQueueById(id);
-      if (!result) {
-        setSearchError('ไม่พบคิวที่ตรงกับหมายเลขนี้');
-      } else {
-        setSearchResults([result]);
-        
-        // Add to history
-        const machine = viewModel?.machines.find(m => m.id === result.machineId);
-        addToHistory({
-          id: result.id,
-          machineId: result.machineId,
-          machineName: machine?.name || `Machine ${result.machineId}`,
-          customerName: result.customerName,
-          customerPhone: result.customerPhone,
-          bookingTime: result.bookingTime,
-          duration: result.duration,
-          position: result.position,
-          status: result.status as ActiveBooking['status'],
-          createdAt: result.createdAt || new Date().toISOString(),
-        });
+      if (isMountedRef.current) {
+        if (!result) {
+          setSearchError('ไม่พบคิวที่ตรงกับหมายเลขนี้');
+        } else {
+          setSearchResults([result]);
+          
+          const machine = viewModel?.machines.find(m => m.id === result.machineId);
+          addToHistory({
+            id: result.id,
+            machineId: result.machineId,
+            machineName: machine?.name || `Machine ${result.machineId}`,
+            customerName: result.customerName,
+            customerPhone: result.customerPhone,
+            bookingTime: result.bookingTime,
+            duration: result.duration,
+            position: result.position,
+            status: result.status as ActiveBooking['status'],
+            createdAt: result.createdAt || new Date().toISOString(),
+          });
+        }
       }
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการค้นหา');
+      if (isMountedRef.current) {
+        setSearchError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการค้นหา');
+      }
     } finally {
-      setIsSearching(false);
+      if (isMountedRef.current) {
+        setIsSearching(false);
+      }
     }
-  }, [viewModel?.machines, addToHistory]);
+  }, [viewModel?.machines, addToHistory, presenter]);
 
-  /**
-   * Clear search results
-   */
   const clearSearchResults = useCallback(() => {
     setSearchResults([]);
     setSearchError(null);
   }, []);
 
-  /**
-   * Open search modal
-   */
   const openSearchModal = useCallback(() => {
     setIsSearchModalOpen(true);
     setSearchResults([]);
     setSearchError(null);
   }, []);
 
-  /**
-   * Close search modal
-   */
   const closeSearchModal = useCallback(() => {
     setIsSearchModalOpen(false);
     setSearchResults([]);
     setSearchError(null);
   }, []);
 
-  /**
-   * Clear booking history
-   */
   const clearHistory = useCallback(() => {
     clearStoreHistory();
   }, [clearStoreHistory]);
 
-  // Load data on mount if no initial data
+  // Load data on mount
   useEffect(() => {
     if (!initialViewModel) {
       loadData();
     }
   }, [initialViewModel, loadData]);
 
-  // Sync booking status periodically
+  // ✅ Visibility-aware sync booking status
   useEffect(() => {
     if (activeBookingsList.length === 0) return;
 
-    // Initial sync
-    syncBookingStatus();
+    let intervalId: NodeJS.Timeout | null = null;
     
-    // Sync every 30 seconds
-    const interval = setInterval(syncBookingStatus, 30000);
-    return () => clearInterval(interval);
+    const startPolling = () => {
+      syncBookingStatus();
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          syncBookingStatus();
+        }
+      }, 30000);
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncBookingStatus();
+        startPolling();
+      } else {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+    
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [activeBookingsList.length, syncBookingStatus]);
+
+  // ✅ Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return [
     {
