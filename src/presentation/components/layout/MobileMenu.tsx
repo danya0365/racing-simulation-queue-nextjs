@@ -1,5 +1,6 @@
 'use client';
 
+import { NAV_LINKS } from '@/src/config/navigation.config';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthPresenter } from '../../presenters/auth/useAuthPresenter';
@@ -76,32 +77,36 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         ) : null}
 
         {/* Navigation Links */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <MobileNavLink href="/" onClick={onClose} icon="🏠">
-            หน้าแรก
-          </MobileNavLink>
-          <MobileNavLink href="/customer" onClick={onClose} icon="🎮">
-            จองคิว
-          </MobileNavLink>
-
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto border-b border-border">
+          <div className="pb-2 mb-2 border-b border-border/50">
+            <p className="text-[10px] font-bold text-muted uppercase px-4 mb-2 tracking-wider">เมนูหลัก</p>
+            {NAV_LINKS.map((link) => (
+              <MobileNavLink 
+                key={link.href} 
+                href={link.href} 
+                onClick={onClose} 
+                icon={link.icon}
+              >
+                {link.label}
+              </MobileNavLink>
+            ))}
+          </div>
+ 
           {/* Logged in user links */}
           {authState.isAuthenticated && (
-            <>
-              <MobileNavLink href="/customer/queue-status" onClick={onClose} icon="📋">
-                สถานะคิว
+            <div>
+              <p className="text-[10px] font-bold text-muted uppercase px-4 mb-2 tracking-wider">บัญชีของฉัน</p>
+              <MobileNavLink href="/customer/queue-status" onClick={onClose} icon="⚡">
+                สถานะคิวปัจจุบัน
               </MobileNavLink>
-              <MobileNavLink href="/customer/queue-history" onClick={onClose} icon="📜">
+              <MobileNavLink href="/customer/queue-history" onClick={onClose} icon="🕒">
                 ประวัติคิว
               </MobileNavLink>
               <MobileNavLink href="/profile" onClick={onClose} icon="👤">
                 โปรไฟล์
               </MobileNavLink>
-            </>
+            </div>
           )}
-
-          <MobileNavLink href="/backend" onClick={onClose} icon="⚙️">
-            แอดมิน
-          </MobileNavLink>
         </nav>
 
         {/* Bottom Section */}

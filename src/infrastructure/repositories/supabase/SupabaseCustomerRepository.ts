@@ -1,9 +1,9 @@
 import {
-    CreateCustomerData,
-    Customer,
-    CustomerStats,
-    ICustomerRepository,
-    UpdateCustomerData
+  CreateCustomerData,
+  Customer,
+  CustomerStats,
+  ICustomerRepository,
+  UpdateCustomerData
 } from '@/src/application/repositories/ICustomerRepository';
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { Database } from '@/src/domain/types/supabase';
@@ -180,19 +180,19 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return data.map(this.mapToDomain);
   }
 
-  private mapToDomain(raw: any): Customer {
+    private mapToDomain = (raw: Database['public']['Tables']['customers']['Row']): Customer => {
     return {
       id: raw.id,
       name: raw.name,
       phone: raw.phone,
-      email: raw.email,
+      email: raw.email || undefined,
       visitCount: raw.visit_count || 0,
       totalPlayTime: raw.total_play_time || 0,
-      lastVisit: raw.last_visit,
-      createdAt: raw.created_at,
-      updatedAt: raw.updated_at,
-      notes: raw.notes,
+      lastVisit: raw.last_visit || undefined,
+      createdAt: raw.created_at || '',
+      updatedAt: raw.updated_at || '',
+      notes: raw.notes || undefined,
       isVip: raw.is_vip || false,
     };
-  }
+  };
 }

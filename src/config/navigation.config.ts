@@ -1,0 +1,7 @@
+export const NAV_LINKS = [
+  { href: '/', label: 'หน้าแรก', icon: '🏠' },
+  { href: '/quick-advance-booking', label: 'จองคิว', icon: '🎮' },
+  { href: '/customer/advance-booking-status', label: 'สถานะการจอง', icon: '📋' },
+  { href: '/customer/advance-booking-history', label: 'ตารางจอง', icon: '📜' },
+  { href: '/backend', label: 'แอดมิน', icon: '⚙️' },
+] as const;

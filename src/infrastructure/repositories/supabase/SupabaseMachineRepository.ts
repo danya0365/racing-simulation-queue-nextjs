@@ -140,7 +140,7 @@ export class SupabaseMachineRepository implements IMachineRepository {
       return [];
     }
 
-    return (data as any[]).map(row => ({
+    return (data as Database['public']['Functions']['rpc_get_machine_dashboard_info']['Returns']).map(row => ({
       machineId: row.machine_id,
       waitingCount: row.waiting_count,
       playingCount: row.playing_count,
@@ -149,18 +149,18 @@ export class SupabaseMachineRepository implements IMachineRepository {
     }));
   }
 
-  private mapToDomain(raw: any): Machine {
+  private mapToDomain = (raw: Database['public']['Tables']['machines']['Row']): Machine => {
     return {
       id: raw.id,
       name: raw.name,
       description: raw.description || '',
       position: raw.position,
-      imageUrl: raw.image_url,
+      imageUrl: raw.image_url || undefined,
       isActive: raw.is_active,
       status: raw.status as MachineStatus,
-      currentQueueId: raw.current_queue_id,
-      createdAt: raw.created_at,
-      updatedAt: raw.updated_at,
+      currentQueueId: raw.current_queue_id || undefined,
+      createdAt: raw.created_at || '',
+      updatedAt: raw.updated_at || '',
     };
-  }
+  };
 }

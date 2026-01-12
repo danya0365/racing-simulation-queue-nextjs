@@ -129,10 +129,27 @@ export const BOOKING_VALIDATION = {
 } as const;
 
 /**
+ * Operating hours for advance booking
+ */
+export const OPERATING_HOURS = {
+  /** Opening hour (24h format) */
+  open: 10,
+  /** Closing hour (24h format) */
+  close: 22,
+  /** Duration of each time slot in minutes */
+  slotDurationMinutes: 30,
+  /** Whether the booking system is enabled */
+  isEnabled: true,
+  /** Whether to open 24 hours (overrides open/close) */
+  isOpen24Hours: true,
+} as const;
+
+/**
  * Export type for readonly config
  */
 export type BookingConfig = {
   durations: typeof DURATION_OPTIONS;
   defaultDuration: typeof DEFAULT_DURATION;
   validation: typeof BOOKING_VALIDATION;
+  operatingHours: typeof OPERATING_HOURS;
 };

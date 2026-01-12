@@ -1,4 +1,5 @@
 import {
+  BackendStatsDTO,
   CreateQueueData,
   IQueueRepository,
   PaginatedResult,
@@ -22,7 +23,9 @@ export class SupabaseQueueRepository implements IQueueRepository {
       
       if (!rpcError && rpcData) {
         // Handle both array (legacy TABLE return) and object (new JSONB return)
-        const q = Array.isArray(rpcData) ? (rpcData.length > 0 ? rpcData[0] : null) : rpcData;
+        const q = Array.isArray(rpcData)
+          ? (rpcData.length > 0 ? rpcData[0] as Database['public']['Functions']['rpc_get_queue_details']['Returns'][number] : null)
+          : rpcData as unknown as Database['public']['Functions']['rpc_get_queue_details']['Returns'][number];
         
         if (q) {
           return {
@@ -81,7 +84,6 @@ export class SupabaseQueueRepository implements IQueueRepository {
     if (ids.length === 0) return [];
 
     try {
-      // Cast to any to bypass type check for new RPC
       const { data, error } = await this.supabase.rpc('rpc_get_my_queue_status', { p_queue_ids: ids });
 
       if (error) {
@@ -89,7 +91,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
         return [];
       }
 
-      return data.map(row => ({
+      return (data as Database['public']['Functions']['rpc_get_my_queue_status']['Returns']).map(row => ({
         id: row.id,
         machineId: row.machine_id,
         customerId: row.customer_id,
@@ -218,7 +220,8 @@ export class SupabaseQueueRepository implements IQueueRepository {
     if (error) throw error;
     
     // Result is { success: boolean, queue_id: string, customer_id: string, position: number }
-    const queueId = (result as any).queue_id;
+    const createResult = result as any;
+    const queueId = createResult.queue_id;
     const queue = await this.getById(queueId);
     if (!queue) throw new Error('Failed to retrieve created queue');
     
@@ -353,22 +356,38 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return data[0].position + 1;
   }
 
-  private mapToDomain(raw: any): Queue {
+  private mapToDomain = (raw: {
+    id: string;
+    machine_id: string;
+    customer_id: string;
+    booking_time: string;
+    duration: number;
+    status: string;
+    position?: number;
+    queue_position?: number;
+    notes?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    customers?: { name: string; phone: string } | null;
+    customer_name?: string;
+    customer_phone?: string;
+    customer_phone_masked?: string;
+  }): Queue => {
     return {
       id: raw.id,
       machineId: raw.machine_id,
       customerId: raw.customer_id,
       customerName: raw.customers?.name || raw.customer_name || 'Unknown',
-      customerPhone: raw.customers?.phone || raw.customer_phone || '',
+      customerPhone: raw.customers?.phone || raw.customer_phone || raw.customer_phone_masked || '',
       bookingTime: raw.booking_time,
       duration: raw.duration,
       status: raw.status as QueueStatus,
-      position: raw.position || raw.queue_position,
+      position: raw.position || raw.queue_position || 0,
       notes: raw.notes || '',
-      createdAt: raw.created_at,
-      updatedAt: raw.updated_at,
+      createdAt: raw.created_at || '',
+      updatedAt: raw.updated_at || '',
     };
-  }
+  };
 
   async getActiveAndRecent(): Promise<Queue[]> {
     // Use direct query approach (works without RPC being registered in types)
@@ -418,7 +437,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
     };
   }
 
-  async getBackendStats(): Promise<any> {
+  async getBackendStats(): Promise<BackendStatsDTO | null> {
     try {
       const { data, error } = await this.supabase
         .rpc('rpc_get_backend_dashboard_stats');
@@ -427,7 +446,9 @@ export class SupabaseQueueRepository implements IQueueRepository {
         console.error('Error getting backend stats:', error);
         return null;
       }
-      return Array.isArray(data) && data.length > 0 ? data[0] : null;
+      
+      const stats = data as Database['public']['Functions']['rpc_get_backend_dashboard_stats']['Returns'];
+      return Array.isArray(stats) && stats.length > 0 ? stats[0] : null;
     } catch (e) {
       console.error('Exception getting backend stats:', e);
       return null;

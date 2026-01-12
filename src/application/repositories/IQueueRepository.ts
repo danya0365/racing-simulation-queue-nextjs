@@ -35,6 +35,18 @@ export interface QueueStats {
   cancelledQueues: number;
 }
 
+export interface BackendStatsDTO {
+  total_machines: number;
+  available_machines: number;
+  occupied_machines: number;
+  maintenance_machines: number;
+  total_queues: number;
+  waiting_queues: number;
+  playing_queues: number;
+  completed_queues: number;
+  cancelled_queues: number;
+}
+
 export interface CreateQueueData {
   machineId: string;
   customerName: string;
@@ -157,5 +169,5 @@ export interface IQueueRepository {
   /**
    * Get backend dashboard stats (RPC)
    */
-  getBackendStats(): Promise<any>;
+  getBackendStats(): Promise<BackendStatsDTO | null>;
 }

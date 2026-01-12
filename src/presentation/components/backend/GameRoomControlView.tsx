@@ -122,22 +122,22 @@ export function GameRoomControlView() {
 
   return (
     <div className='h-screen w-screen'>
-    <Portal>
-    <FullscreenControlPanel
-      viewModel={viewModel}
-      isUpdating={state.isUpdating}
-      onCallNext={handleCallNext}
-      onMarkDone={handleMarkDone}
-      onToggleMachine={handleToggleMachine}
-      onRefresh={actions.refreshData}
-      onExit={handleExit}
-      getCurrentPlayer={getCurrentPlayer}
-      getWaitingQueues={getWaitingQueues}
-      getNextInQueue={getNextInQueue}
-      formatTime={formatTime}
-      isModal={true}
-    />
-    </Portal>
+      <Portal>
+        <FullscreenControlPanel
+          viewModel={viewModel}
+          isUpdating={state.isUpdating}
+          onCallNext={handleCallNext}
+          onMarkDone={handleMarkDone}
+          onToggleMachine={handleToggleMachine}
+          onRefresh={actions.refreshData}
+          onExit={handleExit}
+          getCurrentPlayer={getCurrentPlayer}
+          getWaitingQueues={getWaitingQueues}
+          getNextInQueue={getNextInQueue}
+          formatTime={formatTime}
+          isModal={true}
+        />
+      </Portal>
     </div>
   );
 }

@@ -249,7 +249,7 @@ export function ProfileView({ initialViewModel }: ProfileViewProps) {
               <span className="text-sm font-medium text-foreground">ประวัติ</span>
             </Link>
             <Link 
-              href="/quick-booking"
+              href="/quick-advance-booking"
               className="flex flex-col items-center gap-2 p-4 bg-background rounded-xl border border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-center"
             >
               <span className="text-3xl">⚡</span>

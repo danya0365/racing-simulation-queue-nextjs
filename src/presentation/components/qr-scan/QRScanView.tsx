@@ -14,7 +14,7 @@ const SHOP_CONFIG = {
   address: 'อ.เมือง จ.นราธิวาส 96000',
   phone: '02-XXX-XXXX',
   openHours: 'เปิดบริการ 24 ชั่วโมง',
-  bookingUrl: '/quick-booking',
+  bookingUrl: '/quick-advance-booking',
 };
 
 // Printable QR Component - Optimized for single A4 page
@@ -322,7 +322,7 @@ export function QRScanView() {
               >
                 🖨️ พิมพ์ QR Code
               </GlowButton>
-              <Link href="/quick-booking">
+              <Link href="/quick-advance-booking">
                 <GlowButton color="purple" size="lg">
                   ⚡ จองคิวเลย
                 </GlowButton>
