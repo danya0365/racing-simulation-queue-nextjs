@@ -4,7 +4,7 @@ import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 
 // Shop configuration
@@ -205,14 +205,12 @@ PrintableQRCode.displayName = 'PrintableQRCode';
 // Main View Component
 export function QRScanView() {
   const printRef = useRef<HTMLDivElement>(null);
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
 
-  // Determine the booking URL
-  const getBookingUrl = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}${SHOP_CONFIG.bookingUrl}`;
-    }
-    return `https://racing-queue.vercel.app${SHOP_CONFIG.bookingUrl}`;
-  };
+  // Determine the booking URL only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setBookingUrl(`${window.location.origin}${SHOP_CONFIG.bookingUrl}`);
+  }, []);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -272,12 +270,18 @@ export function QRScanView() {
 
             {/* QR Code */}
             <div className="inline-block bg-white p-6 rounded-2xl shadow-2xl mb-8">
-              <QRCodeSVG
-                value={getBookingUrl()}
-                size={280}
-                level="H"
-                className="mx-auto"
-              />
+              {bookingUrl ? (
+                <QRCodeSVG
+                  value={bookingUrl}
+                  size={280}
+                  level="H"
+                  className="mx-auto"
+                />
+              ) : (
+                <div className="w-[280px] h-[280px] bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+                  <span className="text-gray-400">กำลังโหลด...</span>
+                </div>
+              )}
             </div>
 
             {/* Scan Text */}
@@ -293,7 +297,7 @@ export function QRScanView() {
             {/* URL Display */}
             <div className="bg-surface border border-border rounded-xl px-6 py-3 inline-block mb-8">
               <code className="text-cyan-400 text-sm md:text-base">
-                {getBookingUrl()}
+                {bookingUrl || 'กำลังโหลด...'}
               </code>
             </div>
 
@@ -435,7 +439,7 @@ export function QRScanView() {
 
       {/* Hidden Printable Component */}
       <div style={{ display: 'none' }}>
-        <PrintableQRCode ref={printRef} url={getBookingUrl()} />
+        {bookingUrl && <PrintableQRCode ref={printRef} url={bookingUrl} />}
       </div>
     </div>
   );
