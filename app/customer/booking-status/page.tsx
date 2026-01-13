@@ -1,4 +1,4 @@
-import { AdvanceBookingStatusView } from '@/src/presentation/components/customer/AdvanceBookingStatusView';
+import { BookingStatusView } from '@/src/presentation/components/customer/BookingStatusView';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: 'ดูสถานะการจองเวลาของคุณ',
 };
 
-export default function AdvanceBookingStatusPage() {
-  return <AdvanceBookingStatusView />;
+export default function BookingStatusPage() {
+  return <BookingStatusView />;
 }

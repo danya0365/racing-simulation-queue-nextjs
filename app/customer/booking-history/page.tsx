@@ -1,4 +1,4 @@
-import { AdvanceBookingHistoryView } from '@/src/presentation/components/customer/AdvanceBookingHistoryView';
+import { BookingHistoryView } from '@/src/presentation/components/customer/BookingHistoryView';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: 'ดูตารางและประวัติการจองเวลาทั้งหมด',
 };
 
-export default function AdvanceBookingHistoryPage() {
-  return <AdvanceBookingHistoryView />;
+export default function BookingHistoryPage() {
+  return <BookingHistoryView />;
 }

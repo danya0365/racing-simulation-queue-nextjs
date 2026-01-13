@@ -19,7 +19,7 @@ import { useCustomersPresenter } from '@/src/presentation/presenters/customers/u
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { AdvanceBookingsTab } from './AdvanceBookingsTab';
+import { BookingsTab } from './BookingsTab';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 import { QueueDetailModal } from './QueueDetailModal';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
@@ -171,7 +171,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             <CustomersTab />
           )}
           {state.activeTab === 'advanceBookings' && (
-            <AdvanceBookingsTab />
+            <BookingsTab />
           )}
         </div>
       </section>

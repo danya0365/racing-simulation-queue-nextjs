@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  * AdvanceBookingStatusView - View customer's advance bookings
  * Shows all advance bookings for the current customer (by phone)
  */
-export function AdvanceBookingStatusView() {
+export function BookingStatusView() {
   const { customerInfo } = useCustomerStore();
   const [bookings, setBookings] = useState<AdvanceBooking[]>([]);
   const [loading, setLoading] = useState(true);

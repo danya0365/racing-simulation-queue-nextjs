@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
  * AdvanceBookingHistoryView - Detailed booking schedule view
  * Shows schedule for a specific date with machine filter and time slots grid
  */
-export function AdvanceBookingHistoryView() {
+export function BookingHistoryView() {
   // Data state
   const [machines, setMachines] = useState<Machine[]>([]);
   const [schedule, setSchedule] = useState<DaySchedule | null>(null);

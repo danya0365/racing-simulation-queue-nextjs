@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { Portal } from '../ui/Portal';
 
-export function AdvanceBookingsTab() {
+export function BookingsTab() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all'); // Default to 'all'
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);

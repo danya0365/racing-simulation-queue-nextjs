@@ -11,11 +11,11 @@ import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-interface AdvanceBookingViewProps {
+interface BookingViewProps {
   initialViewModel?: AdvanceBookingViewModel;
 }
 
-export function AdvanceBookingView({ initialViewModel }: AdvanceBookingViewProps) {
+export function BookingView({ initialViewModel }: BookingViewProps) {
   const [state, actions] = useAdvanceBookingPresenter(initialViewModel);
   const { customerInfo } = useCustomerStore();
   const viewModel = state.viewModel;

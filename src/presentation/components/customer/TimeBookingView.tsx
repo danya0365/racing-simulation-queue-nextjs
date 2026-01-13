@@ -26,7 +26,7 @@ interface QuickAdvanceBookingViewProps {
  * - Presenter injected via factory (dependency injection)
  * - View only handles UI rendering
  */
-export function QuickAdvanceBookingView({ 
+export function TimeBookingView({ 
   initialViewModel, 
   presenterOverride 
 }: QuickAdvanceBookingViewProps) {

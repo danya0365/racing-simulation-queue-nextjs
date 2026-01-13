@@ -1,11 +1,11 @@
-import { QuickAdvanceBookingView } from '@/src/presentation/components/customer/QuickAdvanceBookingView';
+import { TimeBookingView } from '@/src/presentation/components/customer/TimeBookingView';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'จองเวลา | Racing Queue',
-  description: 'จองคิวล่วงหน้า เลือกวันเวลาที่สะดวก',
+  description: 'จองเวลาเล่น เลือกวันเวลาที่สะดวก',
 };
 
-export default function QuickAdvanceBookingPage() {
-  return <QuickAdvanceBookingView />;
+export default function TimeBookingPage() {
+  return <TimeBookingView />;
 }
