@@ -10,8 +10,8 @@ import { ConfirmationModal } from '@/src/presentation/components/ui/Confirmation
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import {
-  BackendSkeleton,
-  CustomersTabSkeleton
+    BackendSkeleton,
+    CustomersTabSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
@@ -19,7 +19,7 @@ import { useCustomersPresenter } from '@/src/presentation/presenters/customers/u
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { AdvanceBookingsTab } from './AdvanceBookingsTab';
+import { BookingsTab } from './BookingsTab';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 import { QueueDetailModal } from './QueueDetailModal';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
@@ -130,7 +130,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             active={state.activeTab === 'advanceBookings'}
             onClick={() => actions.setActiveTab('advanceBookings')}
           >
-            📅 จองล่วงหน้า
+            📅 จองเวลา
           </TabButton>
         </div>
       </section>
@@ -171,7 +171,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             <CustomersTab />
           )}
           {state.activeTab === 'advanceBookings' && (
-            <AdvanceBookingsTab />
+            <BookingsTab />
           )}
         </div>
       </section>
@@ -191,7 +191,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
 
       {/* Hidden Printable Component */}
       <div style={{ display: 'none' }}>
-        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/quick-advance-booking" />
+        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/time-booking" />
       </div>
     </div>
   );

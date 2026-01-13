@@ -5,14 +5,14 @@
  */
 
 import {
-  CreateQueueData,
-  IQueueRepository,
-  PaginatedResult,
-  Queue,
-  QueueStats,
-  QueueStatus,
-  QueueWithStatusDTO,
-  UpdateQueueData,
+    CreateQueueData,
+    IQueueRepository,
+    PaginatedResult,
+    Queue,
+    QueueStats,
+    QueueStatus,
+    QueueWithStatusDTO,
+    UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
 // Helper to create today's date with specific time
@@ -58,7 +58,7 @@ const createMockQueues = (): Queue[] => [
     duration: 60,
     status: 'waiting',
     position: 1,
-    notes: 'จองล่วงหน้า',
+    notes: 'จองเวลา',
     createdAt: todayAt(8, 0),
     updatedAt: todayAt(8, 0),
   },

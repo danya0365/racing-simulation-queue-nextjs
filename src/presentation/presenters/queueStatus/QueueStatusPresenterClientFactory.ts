@@ -1,12 +1,21 @@
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
-import { supabase } from '@/src/infrastructure/supabase/client';
+/**
+ * QueueStatusPresenterClientFactory
+ * Factory for creating QueueStatusPresenter instances on the client side
+ * 
+ * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ */
+
+'use client';
+
+import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
+import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
 import { QueueStatusPresenter } from './QueueStatusPresenter';
 
 export class QueueStatusPresenterClientFactory {
   static create(): QueueStatusPresenter {
-    const queueRepository = new SupabaseQueueRepository(supabase);
-    const machineRepository = new SupabaseMachineRepository(supabase);
+    // ✅ Using API repositories - no direct Supabase connection
+    const queueRepository = new ApiQueueRepository();
+    const machineRepository = new ApiMachineRepository();
 
     return new QueueStatusPresenter(queueRepository, machineRepository);
   }

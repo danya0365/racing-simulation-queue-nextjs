@@ -1,12 +1,21 @@
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
-import { supabase } from '@/src/infrastructure/supabase/client';
+/**
+ * CustomerPresenterClientFactory
+ * Factory for creating CustomerPresenter instances on the client side
+ * 
+ * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ */
+
+'use client';
+
+import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
+import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
 import { CustomerPresenter } from './CustomerPresenter';
 
 export class CustomerPresenterClientFactory {
   static create(): CustomerPresenter {
-    const machineRepository = new SupabaseMachineRepository(supabase);
-    const queueRepository = new SupabaseQueueRepository(supabase);
+    // ✅ Using API repositories - no direct Supabase connection
+    const machineRepository = new ApiMachineRepository();
+    const queueRepository = new ApiQueueRepository();
 
     return new CustomerPresenter(machineRepository, queueRepository);
   }

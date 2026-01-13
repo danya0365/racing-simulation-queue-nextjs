@@ -14,7 +14,7 @@ const SHOP_CONFIG = {
   address: 'อ.เมือง จ.นราธิวาส 96000',
   phone: '02-XXX-XXXX',
   openHours: 'เปิดบริการ 24 ชั่วโมง',
-  bookingUrl: '/quick-advance-booking',
+  bookingUrl: '/time-booking',
 };
 
 // Printable QR Component - Optimized for single A4 page
@@ -128,7 +128,7 @@ const PrintableQRCode = React.forwardRef<HTMLDivElement, { url: string }>(
             margin: '0 0 8px 0',
             textAlign: 'center',
           }}>
-            📅 สแกนเพื่อจองล่วงหน้า
+            📅 สแกนเพื่อจองเวลา
           </h2>
           <p style={{
             fontSize: '18px',
@@ -238,11 +238,11 @@ export function QRScanView() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                QR Code จองล่วงหน้า
+                QR Code จองเวลา
               </span>
             </h1>
             <p className="text-xl text-muted max-w-2xl mx-auto">
-              สแกน QR Code เพื่อจองล่วงหน้า เลือกวันและเวลาที่ต้องการ หรือพิมพ์ออกมาติดหน้าร้าน
+              สแกน QR Code เพื่อจองเวลา เลือกวันและเวลาที่ต้องการ หรือพิมพ์ออกมาติดหน้าร้าน
             </p>
           </div>
         </div>
@@ -287,7 +287,7 @@ export function QRScanView() {
             {/* Scan Text */}
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-foreground mb-2">
-                📅 สแกนเพื่อจองล่วงหน้า
+                📅 สแกนเพื่อจองเวลา
               </h3>
               <p className="text-muted">
                 ใช้กล้องโทรศัพท์สแกน QR Code ด้านบน เพื่อจองเวลาที่ต้องการ
@@ -326,9 +326,9 @@ export function QRScanView() {
               >
                 🖨️ พิมพ์ QR Code
               </GlowButton>
-              <Link href="/quick-advance-booking">
+              <Link href="/time-booking">
                 <GlowButton color="purple" size="lg">
-                  ⚡ จองล่วงหน้าเลย
+                  ⚡ จองเวลาเลย
                 </GlowButton>
               </Link>
             </div>
@@ -340,7 +340,7 @@ export function QRScanView() {
       <section className="px-4 md:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           <h3 className="text-xl font-bold text-foreground mb-6 text-center">
-            💡 วิธีจองล่วงหน้า
+            💡 วิธีจองเวลา
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AnimatedCard className="p-6 text-center">
@@ -378,7 +378,7 @@ export function QRScanView() {
       <section className="px-4 md:px-8 py-12 bg-gradient-to-br from-purple-500/5 via-background to-cyan-500/5">
         <div className="max-w-4xl mx-auto">
           <h3 className="text-xl font-bold text-foreground mb-6 text-center">
-            ✨ ข้อดีของการจองล่วงหน้า
+            ✨ ข้อดีของการจองเวลา
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <AnimatedCard className="p-6">

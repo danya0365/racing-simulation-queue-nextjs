@@ -2,9 +2,7 @@
 
 import { AdvanceBooking, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { HomeViewModel } from '@/src/presentation/presenters/home/HomePresenter';
@@ -31,14 +29,11 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
     return `${year}-${month}-${day}`;
   }, []);
 
-  // Repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(() => {
-    const supabase = createClient();
-    return {
-      advanceBookingRepo: new SupabaseAdvanceBookingRepository(supabase),
-      machineRepo: new SupabaseMachineRepository(supabase),
-    };
-  }, []);
+  // ✅ Use factory for repositories
+  const { advanceBookingRepo, machineRepo } = useMemo(
+    () => createAdvanceBookingRepositories(),
+    []
+  );
 
   // Load data
   const loadData = useCallback(async () => {
@@ -197,7 +192,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
                   )}
 
                   {/* CTA */}
-                  <Link href={`/quick-advance-booking`}>
+                  <Link href={`/time-booking`}>
                     <GlowButton color="purple" size="sm" className="w-full">
                       📅 จองเครื่องนี้
                     </GlowButton>
@@ -214,7 +209,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              ทำไมต้องจองล่วงหน้า?
+              ทำไมต้องจองเวลา?
             </span>
           </h2>
 
@@ -248,12 +243,12 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
             เลือกเวลาที่ต้องการและจองเลยตอนนี้!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/quick-advance-booking">
+            <Link href="/time-booking">
               <GlowButton color="pink" size="lg">
                 📅 จองเลย
               </GlowButton>
             </Link>
-            <Link href="/customer/advance-booking-history">
+            <Link href="/customer/booking-history">
               <GlowButton color="purple" size="lg">
                 📋 ดูตารางทั้งหมด
               </GlowButton>

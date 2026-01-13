@@ -15,7 +15,7 @@ export function MainFooter() {
 
       {/* Quick Links */}
       <div className="flex items-center gap-4">
-        <Link href="/quick-advance-booking" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
+        <Link href="/time-booking" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
           จองคิว
         </Link>
         <span className="text-border">|</span>
