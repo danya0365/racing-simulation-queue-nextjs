@@ -26,6 +26,10 @@ export function MainFooter() {
         <Link href="/backend" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
           แอดมิน
         </Link>
+        <span className="text-border">|</span>
+        <Link href="/docs" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
+          คู่มือ
+        </Link>
       </div>
 
       {/* Status Indicator */}
