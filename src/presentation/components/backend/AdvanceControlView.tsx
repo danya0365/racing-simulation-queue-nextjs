@@ -1,8 +1,9 @@
 'use client';
 
-import { AdvanceBooking, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { AdvanceBooking, BookingSessionLog, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { BookingDetailModal } from '@/src/presentation/components/backend/BookingDetailModal';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -21,11 +22,13 @@ export function AdvanceControlView() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map());
   const [allBookings, setAllBookings] = useState<AdvanceBooking[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<Map<string, BookingSessionLog[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [completeBookingId, setCompleteBookingId] = useState<string | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   // Get today's date in local YYYY-MM-DD
   const today = useMemo(() => {
@@ -71,6 +74,17 @@ export function AdvanceControlView() {
         schedulesMap.set(machine.id, schedule);
         allMachineBookings.push(...machineBookings);
       }));
+
+      // Fetch session logs for current bookings
+      const bookingIds = allMachineBookings.map(b => b.id);
+      const logs = await advanceBookingRepo.getSessionLogs(bookingIds);
+      const logsMap = new Map<string, BookingSessionLog[]>();
+      
+      bookingIds.forEach(id => {
+        logsMap.set(id, logs.filter(l => l.bookingId === id));
+      });
+
+      setSessionLogs(logsMap);
 
       setAllSchedules(schedulesMap);
       setAllBookings(allMachineBookings);
@@ -161,6 +175,68 @@ export function AdvanceControlView() {
       setIsUpdating(false);
       setCompleteBookingId(null);
     }
+  };
+
+  // Handle Start Session
+  const handleStartSession = async (bookingId: string) => {
+    setIsUpdating(true);
+    try {
+      await advanceBookingRepo.logSession(bookingId, 'START');
+      // Refresh data to show updated state
+      await loadData();
+    } catch (err) {
+      setError('ไม่สามารถบันทึกเวลาเริ่มได้');
+      console.error('Error starting session:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle Stop Session
+  const handleStopSession = async (bookingId: string) => {
+    setIsUpdating(true);
+    try {
+      await advanceBookingRepo.logSession(bookingId, 'STOP');
+      // Refresh data to show updated state
+      await loadData();
+    } catch (err) {
+      setError('ไม่สามารถบันทึกเวลาจบได้');
+      console.error('Error stopping session:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Get session info - Multi-session support
+  const getSessionInfo = (bookingId: string) => {
+    const logs = sessionLogs.get(bookingId) || [];
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+    
+    let totalMs = 0;
+    let lastStartTime: number | null = null;
+    let isRunning = false;
+    let lastStartLog = null;
+    let lastStopLog = null;
+
+    sortedLogs.forEach(log => {
+      const time = new Date(log.recordedAt).getTime();
+      if (log.action === 'START') {
+        if (lastStartTime === null) {
+          lastStartTime = time;
+          isRunning = true;
+          lastStartLog = log;
+        }
+      } else if (log.action === 'STOP') {
+        if (lastStartTime !== null) {
+          totalMs += (time - lastStartTime);
+          lastStartTime = null;
+          isRunning = false;
+          lastStopLog = log;
+        }
+      }
+    });
+
+    return { totalMs, isRunning, lastStartTime, lastStartLog, lastStopLog };
   };
 
   // Format time for display
@@ -328,12 +404,15 @@ export function AdvanceControlView() {
                   </div>
 
                   {/* Status Badge */}
-                  <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
-                    isOccupied
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-emerald-500 text-white'
-                  }`}>
-                    {isOccupied ? '🏁 กำลังเล่น' : '✅ ว่าง'}
+                  <div 
+                    className={`px-3 py-1.5 rounded-full text-sm font-bold transition-transform hover:scale-105 ${
+                      isOccupied
+                        ? 'bg-orange-500 text-white cursor-pointer hover:bg-orange-600'
+                        : 'bg-emerald-500 text-white'
+                    }`}
+                    onClick={() => isOccupied && currentBooking && setSelectedBookingId(currentBooking.id)}
+                  >
+                    {isOccupied ? '🏁 กำลังเล่น (คลิกดูรายละเอียด)' : '✅ ว่าง'}
                   </div>
                 </div>
               </div>
@@ -341,10 +420,13 @@ export function AdvanceControlView() {
               {/* Current Booking */}
               {currentBooking ? (
                 <div className="p-5 space-y-4">
-                  <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-4">
+                  <div 
+                    className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-4 cursor-pointer hover:bg-orange-500/30 transition-colors"
+                    onClick={() => setSelectedBookingId(currentBooking.id)}
+                  >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <p className="text-xs text-orange-400 font-medium mb-1">🏁 กำลังเล่น</p>
+                        <p className="text-xs text-orange-400 font-medium mb-1">🏁 กำลังเล่น (คลิกเพื่อจัดการ)</p>
                         <p className="text-lg font-bold text-white">{currentBooking.customerName}</p>
                         <p className="text-sm text-white/60">{currentBooking.customerPhone}</p>
                       </div>
@@ -355,10 +437,82 @@ export function AdvanceControlView() {
                         <p className="text-sm text-white/60">{getTimeRemaining(currentBooking.endTime)}</p>
                       </div>
                     </div>
+
+                    {/* Start/Stop Session Tracking */}
+                    <div className="flex gap-2 mb-3">
+                      {(() => {
+                        const { totalMs, isRunning, lastStartTime } = getSessionInfo(currentBooking.id);
+
+                        // Helper to format ms to MM:SS
+                        const formatDuration = (ms: number) => {
+                          const mins = Math.floor(ms / 60000);
+                          const secs = Math.floor((ms % 60000) / 1000);
+                          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        };
+
+                        // If NOT running
+                        if (!isRunning) {
+                          // If has prior duration (paused/resumable)
+                          if (totalMs > 0) {
+                            return (
+                               <div className="w-full space-y-2">
+                                  <div className="w-full bg-black/20 rounded-lg p-2 text-center flex justify-between items-center px-4">
+                                     <span className="text-xs text-white/50">สะสม:</span>
+                                     <span className="font-mono text-white font-bold">{formatDuration(totalMs)}</span>
+                                  </div>
+                                  <GlowButton 
+                                    color="orange" 
+                                    onClick={(e) => { e.stopPropagation(); handleStartSession(currentBooking.id); }}
+                                    disabled={isUpdating}
+                                    className="w-full"
+                                  >
+                                    ▶️ เริ่มจับเวลาต่อ (Resume)
+                                  </GlowButton>
+                               </div>
+                            );
+                          }
+
+                          // Fresh start
+                          return (
+                            <GlowButton 
+                              color="cyan" 
+                              onClick={(e) => { e.stopPropagation(); handleStartSession(currentBooking.id); }}
+                              disabled={isUpdating}
+                              className="w-full"
+                            >
+                              ▶️ เริ่มจับเวลา
+                            </GlowButton>
+                          );
+                        }
+
+                        // If running
+                        return (
+                          <div className="w-full space-y-2">
+                             <div className="flex justify-between items-center text-sm px-2">
+                                <span className="text-white/60">เริ่มล่าสุด: {lastStartTime ? new Date(lastStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                                <span className="text-emerald-400 animate-pulse">● กำลังจับเวลา</span>
+                             </div>
+                             {totalMs > 0 && (
+                                <div className="text-xs text-right px-2 text-white/40">
+                                  ก่อนหน้า: {formatDuration(totalMs)}
+                                </div>
+                             )}
+                             <GlowButton 
+                               color="red"
+                               onClick={(e) => { e.stopPropagation(); handleStopSession(currentBooking.id); }}
+                               disabled={isUpdating}
+                               className="w-full"
+                             >
+                               ⏸️ หยุดจับเวลาชั่วคราว
+                             </GlowButton>
+                          </div>
+                        );
+                      })()}
+                    </div>
                     
                     <GlowButton 
                       color="green" 
-                      onClick={() => setCompleteBookingId(currentBooking.id)}
+                      onClick={(e) => { e.stopPropagation(); setCompleteBookingId(currentBooking.id); }}
                       disabled={isUpdating}
                       className="w-full"
                     >
@@ -397,7 +551,8 @@ export function AdvanceControlView() {
                       {upcomingBookings.map((booking) => (
                         <div 
                           key={booking.id}
-                          className="bg-white/5 border border-white/10 rounded-lg p-3 flex justify-between items-center"
+                          className="bg-white/5 border border-white/10 rounded-lg p-3 flex justify-between items-center cursor-pointer hover:bg-white/10 hover:border-purple-500/50 transition-all"
+                          onClick={() => setSelectedBookingId(booking.id)}
                         >
                           <div>
                             <p className="font-medium text-white text-sm">{booking.customerName}</p>
@@ -451,6 +606,18 @@ export function AdvanceControlView() {
         onClose={() => setCompleteBookingId(null)}
         isLoading={isUpdating}
       />
+
+      {/* Booking Detail Modal */}
+      {selectedBookingId && (
+        <BookingDetailModal
+          booking={allBookings.find(b => b.id === selectedBookingId)!}
+          logs={sessionLogs.get(selectedBookingId) || []}
+          onClose={() => setSelectedBookingId(null)}
+          onStart={handleStartSession}
+          onStop={handleStopSession}
+          isLoading={isUpdating}
+        />
+      )}
     </div>
   );
 }

@@ -66,6 +66,38 @@ export type Database = {
           },
         ]
       }
+      booking_session_logs: {
+        Row: {
+          action: string
+          booking_id: string
+          created_by: string | null
+          id: string
+          recorded_at: string | null
+        }
+        Insert: {
+          action: string
+          booking_id: string
+          created_by?: string | null
+          id?: string
+          recorded_at?: string | null
+        }
+        Update: {
+          action?: string
+          booking_id?: string
+          created_by?: string | null
+          id?: string
+          recorded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_session_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "advance_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -521,6 +553,14 @@ export type Database = {
           cancelled_queues: number
         }[]
       }
+      rpc_get_booking_session_logs: {
+        Args: { p_booking_ids: string[] }
+        Returns: {
+          booking_id: string
+          action: string
+          recorded_at: string
+        }[]
+      }
       rpc_get_customer_advance_bookings: {
         Args: { p_phone: string }
         Returns: {
@@ -592,6 +632,10 @@ export type Database = {
           status: Database["public"]["Enums"]["queue_status"]
           queue_position: number
         }[]
+      }
+      rpc_log_booking_session: {
+        Args: { p_booking_id: string; p_action: string }
+        Returns: Json
       }
       rpc_reset_machine_queue: {
         Args: { p_machine_id: string }

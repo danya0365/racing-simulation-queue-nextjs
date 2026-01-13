@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { MouseEvent, ReactNode } from 'react';
 
 type GlowColor = 'cyan' | 'purple' | 'pink' | 'green' | 'red' | 'orange';
 
 interface GlowButtonProps {
   children: ReactNode;
   color?: GlowColor;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
