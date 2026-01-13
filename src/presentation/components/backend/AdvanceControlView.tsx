@@ -232,7 +232,7 @@ export function AdvanceControlView() {
               🎮 ควบคุมห้องเกม
             </h1>
             <p className="text-white/60 text-sm">
-              ระบบจองล่วงหน้า • {new Date().toLocaleDateString('th-TH', { 
+              ระบบจองเวลา • {new Date().toLocaleDateString('th-TH', { 
                 weekday: 'long', 
                 day: 'numeric', 
                 month: 'long' 

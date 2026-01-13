@@ -1,21 +1,21 @@
 /**
  * AdvanceBookingPresenterClientFactory
  * Factory for creating AdvanceBookingPresenter instances on the client side
+ * 
+ * ✅ Uses API-based repositories to avoid Supabase connection pool issues
  */
 
 'use client';
 
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { ApiAdvanceBookingRepository } from '@/src/infrastructure/repositories/api/ApiAdvanceBookingRepository';
+import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
 import { AdvanceBookingPresenter } from './AdvanceBookingPresenter';
 
 export class AdvanceBookingPresenterClientFactory {
   static create(): AdvanceBookingPresenter {
-    // ✅ Use Supabase Repositories
-    const supabase = createClient();
-    const advanceBookingRepo = new SupabaseAdvanceBookingRepository(supabase);
-    const machineRepo = new SupabaseMachineRepository(supabase);
+    // ✅ Using API repositories - no direct Supabase connection
+    const advanceBookingRepo = new ApiAdvanceBookingRepository();
+    const machineRepo = new ApiMachineRepository();
 
     return new AdvanceBookingPresenter(advanceBookingRepo, machineRepo);
   }

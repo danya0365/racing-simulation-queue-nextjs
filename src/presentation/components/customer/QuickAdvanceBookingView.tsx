@@ -4,8 +4,8 @@ import { DEFAULT_DURATION, DURATION_OPTIONS, OPERATING_HOURS } from '@/src/confi
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { QuickAdvanceBookingPresenter, QuickAdvanceBookingViewModel } from '@/src/presentation/presenters/quickAdvanceBooking/QuickAdvanceBookingPresenter';
 import {
-  BookingStep,
-  useQuickAdvanceBookingPresenter
+    BookingStep,
+    useQuickAdvanceBookingPresenter
 } from '@/src/presentation/presenters/quickAdvanceBooking/useQuickAdvanceBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
@@ -116,7 +116,7 @@ export function QuickAdvanceBookingView({
           </div>
           <h1 className="text-3xl font-bold text-white mb-4">ขออภัย</h1>
           <p className="text-white/70 text-lg mb-8">
-            ระบบจองล่วงหน้าปิดให้บริการชั่วคราว
+            ระบบจองเวลาปิดให้บริการชั่วคราว
             <br />
             กรุณาลองใหม่ในภายหลัง
           </p>
@@ -213,7 +213,7 @@ export function QuickAdvanceBookingView({
 
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <span>📅</span>
-          จองล่วงหน้า
+          จองเวลา
         </h1>
 
         <div className="w-20" /> {/* Spacer */}
@@ -639,7 +639,7 @@ export function QuickAdvanceBookingView({
       {/* Footer Info */}
       <footer className="relative z-10 p-4 text-center">
         <p className="text-white/40 text-sm">
-          📅 จองล่วงหน้า - เปิดให้บริการ {OPERATING_HOURS.isOpen24Hours ? '24 ชม.' : `${OPERATING_HOURS.open.toString().padStart(2, '0')}:00 - ${OPERATING_HOURS.close.toString().padStart(2, '0')}:00 น.`}
+          📅 จองเวลา - เปิดให้บริการ {OPERATING_HOURS.isOpen24Hours ? '24 ชม.' : `${OPERATING_HOURS.open.toString().padStart(2, '0')}:00 - ${OPERATING_HOURS.close.toString().padStart(2, '0')}:00 น.`}
         </p>
       </footer>
     </div>

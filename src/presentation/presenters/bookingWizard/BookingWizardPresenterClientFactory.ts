@@ -1,16 +1,21 @@
+/**
+ * BookingWizardPresenterClientFactory
+ * Factory for creating BookingWizardPresenter instances on the client side
+ * 
+ * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ */
+
 'use client';
 
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
+import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
 import { BookingWizardPresenter } from './BookingWizardPresenter';
 
 export class BookingWizardPresenterClientFactory {
   static create(): BookingWizardPresenter {
-    // ✅ Using createClient() for proper singleton access
-    const supabase = createClient();
-    const machineRepository = new SupabaseMachineRepository(supabase);
-    const queueRepository = new SupabaseQueueRepository(supabase);
+    // ✅ Using API repositories - no direct Supabase connection
+    const machineRepository = new ApiMachineRepository();
+    const queueRepository = new ApiQueueRepository();
     
     return new BookingWizardPresenter(machineRepository, queueRepository);
   }

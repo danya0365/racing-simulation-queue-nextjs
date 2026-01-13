@@ -209,7 +209,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              ทำไมต้องจองล่วงหน้า?
+              ทำไมต้องจองเวลา?
             </span>
           </h2>
 

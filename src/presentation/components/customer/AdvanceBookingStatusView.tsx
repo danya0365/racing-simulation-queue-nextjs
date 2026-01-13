@@ -147,7 +147,7 @@ export function AdvanceBookingStatusView() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">📅 การจองของฉัน</h1>
-          <p className="text-muted">ดูสถานะการจองล่วงหน้าทั้งหมด</p>
+          <p className="text-muted">ดูสถานะการจองเวลาทั้งหมด</p>
         </div>
 
         {/* Search Box */}

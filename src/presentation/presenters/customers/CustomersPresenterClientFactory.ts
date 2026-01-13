@@ -1,14 +1,19 @@
+/**
+ * CustomersPresenterClientFactory
+ * Factory for creating CustomersPresenter instances on the client side
+ * 
+ * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ */
+
 'use client';
 
-import { SupabaseCustomerRepository } from '@/src/infrastructure/repositories/supabase/SupabaseCustomerRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { ApiCustomerRepository } from '@/src/infrastructure/repositories/api/ApiCustomerRepository';
 import { CustomersPresenter } from './CustomersPresenter';
 
 export class CustomersPresenterClientFactory {
   static create(): CustomersPresenter {
-    // ✅ Using createClient() for proper singleton access
-    const supabase = createClient();
-    const customerRepository = new SupabaseCustomerRepository(supabase);
+    // ✅ Using API repositories - no direct Supabase connection
+    const customerRepository = new ApiCustomerRepository();
     
     return new CustomersPresenter(customerRepository);
   }

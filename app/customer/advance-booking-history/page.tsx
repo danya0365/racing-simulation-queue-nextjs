@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'ตารางการจอง | Racing Queue',
-  description: 'ดูตารางและประวัติการจองล่วงหน้าทั้งหมด',
+  description: 'ดูตารางและประวัติการจองเวลาทั้งหมด',
 };
 
 export default function AdvanceBookingHistoryPage() {

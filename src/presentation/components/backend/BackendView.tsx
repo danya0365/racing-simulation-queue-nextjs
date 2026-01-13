@@ -10,8 +10,8 @@ import { ConfirmationModal } from '@/src/presentation/components/ui/Confirmation
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import {
-  BackendSkeleton,
-  CustomersTabSkeleton
+    BackendSkeleton,
+    CustomersTabSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
@@ -130,7 +130,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             active={state.activeTab === 'advanceBookings'}
             onClick={() => actions.setActiveTab('advanceBookings')}
           >
-            📅 จองล่วงหน้า
+            📅 จองเวลา
           </TabButton>
         </div>
       </section>

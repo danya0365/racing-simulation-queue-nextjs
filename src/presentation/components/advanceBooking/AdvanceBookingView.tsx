@@ -78,7 +78,7 @@ export function AdvanceBookingView({ initialViewModel }: AdvanceBookingViewProps
                   จองคิวล่วงหน้า
                 </span>
               </h1>
-              <p className="text-muted mt-1">เลือกวันและเวลาที่ต้องการจองล่วงหน้า</p>
+              <p className="text-muted mt-1">เลือกวันและเวลาที่ต้องการจองเวลา</p>
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ function SuccessModal({ booking, machineName, onClose }: SuccessModalProps) {
             ✅
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">จองคิวสำเร็จ!</h2>
-          <p className="text-muted">การจองล่วงหน้าถูกบันทึกเรียบร้อยแล้ว</p>
+          <p className="text-muted">การจองเวลาถูกบันทึกเรียบร้อยแล้ว</p>
         </div>
 
         {/* Booking Details */}

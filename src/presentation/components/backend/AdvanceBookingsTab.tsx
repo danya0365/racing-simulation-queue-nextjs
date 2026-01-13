@@ -206,7 +206,7 @@ export function AdvanceBookingsTab() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground">📅 จัดการการจองล่วงหน้า</h2>
+          <h2 className="text-xl font-bold text-foreground">📅 จัดการการจองเวลา</h2>
           <p className="text-sm text-muted">ดูและจัดการการจองตามวันเวลา</p>
         </div>
         <AnimatedButton variant="secondary" onClick={loadSchedule} disabled={isUpdating}>
@@ -524,7 +524,7 @@ function EditBookingModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in" onClick={onClose} />
       <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-modal-in">
         <div className="p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-border flex justify-between items-center">
-          <h3 className="font-bold text-lg text-foreground">✏️ แก้ไขการจองล่วงหน้า</h3>
+          <h3 className="font-bold text-lg text-foreground">✏️ แก้ไขการจองเวลา</h3>
           <button onClick={onClose} className="text-muted hover:text-foreground">✕</button>
         </div>
         
