@@ -1,11 +1,13 @@
 'use client';
 
 import { SupabaseCustomerRepository } from '@/src/infrastructure/repositories/supabase/SupabaseCustomerRepository';
-import { supabase } from '@/src/infrastructure/supabase/client';
+import { createClient } from '@/src/infrastructure/supabase/client';
 import { CustomersPresenter } from './CustomersPresenter';
 
 export class CustomersPresenterClientFactory {
   static create(): CustomersPresenter {
+    // ✅ Using createClient() for proper singleton access
+    const supabase = createClient();
     const customerRepository = new SupabaseCustomerRepository(supabase);
     
     return new CustomersPresenter(customerRepository);

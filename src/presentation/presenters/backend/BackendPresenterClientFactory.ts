@@ -7,11 +7,13 @@
 
 import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
 import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
-import { supabase } from '@/src/infrastructure/supabase/client';
+import { createClient } from '@/src/infrastructure/supabase/client';
 import { BackendPresenter } from './BackendPresenter';
 
 export class BackendPresenterClientFactory {
   static create(): BackendPresenter {
+    // ✅ Using createClient() for proper singleton access
+    const supabase = createClient();
     const machineRepository = new SupabaseMachineRepository(supabase);
     const queueRepository = new SupabaseQueueRepository(supabase);
 
