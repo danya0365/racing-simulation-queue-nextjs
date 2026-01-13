@@ -5,14 +5,15 @@
  */
 
 import {
-  AdvanceBooking,
-  AdvanceBookingStats,
-  CreateAdvanceBookingData,
-  DaySchedule,
-  IAdvanceBookingRepository,
-  TimeSlot,
-  TimeSlotStatus,
-  UpdateAdvanceBookingData,
+    AdvanceBooking,
+    AdvanceBookingStats,
+    BookingSessionLog,
+    CreateAdvanceBookingData,
+    DaySchedule,
+    IAdvanceBookingRepository,
+    TimeSlot,
+    TimeSlotStatus,
+    UpdateAdvanceBookingData,
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 
@@ -128,6 +129,7 @@ const MOCK_BOOKINGS: AdvanceBooking[] = [
 
 export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
   private bookings: AdvanceBooking[] = [...MOCK_BOOKINGS];
+  private logs: BookingSessionLog[] = []; // Store session logs in memory
 
   async getDaySchedule(machineId: string, date: string, referenceTime?: string): Promise<DaySchedule> {
     await this.delay(150);
@@ -307,6 +309,20 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
       cancelledBookings: this.bookings.filter(b => b.status === 'cancelled').length,
       completedBookings: this.bookings.filter(b => b.status === 'completed').length,
     };
+  }
+
+  async logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void> {
+    await this.delay(100);
+    this.logs.push({
+      bookingId,
+      action,
+      recordedAt: new Date().toISOString()
+    });
+  }
+
+  async getSessionLogs(bookingIds: string[]): Promise<BookingSessionLog[]> {
+    await this.delay(100);
+    return this.logs.filter(log => bookingIds.includes(log.bookingId));
   }
 
   private delay(ms: number): Promise<void> {
