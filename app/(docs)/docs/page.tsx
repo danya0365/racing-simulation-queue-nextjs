@@ -47,7 +47,7 @@ export default function DocsPage() {
       </header>
 
       {/* Quick Start Cards - Hidden in Print */}
-      <section className="grid md:grid-cols-2 gap-6 mb-16 print:hidden">
+      <section className="grid md:grid-cols-3 gap-6 mb-16 print:hidden">
         <Link href="/docs/customer" className="group">
           <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-300 dark:border-purple-500/30 hover:border-purple-400 rounded-2xl p-6 transition-all group-hover:shadow-lg group-hover:shadow-purple-500/20">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-3xl mb-4">
@@ -70,6 +70,19 @@ export default function DocsPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">วิธีจัดการเครื่อง คิว และการจอง</p>
             <span className="inline-flex items-center text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500 dark:group-hover:text-cyan-300">
               ดูวิธีจัดการ →
+            </span>
+          </div>
+        </Link>
+
+        <Link href="/docs/game-control" className="group">
+          <div className="bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-500/10 dark:to-rose-500/10 border border-pink-300 dark:border-pink-500/30 hover:border-pink-400 rounded-2xl p-6 transition-all group-hover:shadow-lg group-hover:shadow-pink-500/20">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-3xl mb-4">
+              🎛️
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">ห้องควบคุมเกม</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">วิธีควบคุมเครื่องและจับเวลา</p>
+            <span className="inline-flex items-center text-pink-600 dark:text-pink-400 group-hover:text-pink-500 dark:group-hover:text-pink-300">
+              เปิดคู่มือควบคุม →
             </span>
           </div>
         </Link>
@@ -120,6 +133,27 @@ export default function DocsPage() {
               <li>
                 <Link href="/docs/admin#bookings" className="hover:text-gray-900 dark:hover:text-white transition-colors">
                   → จัดการการจอง
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-pink-600 dark:text-pink-400 mb-2">🎛️ คู่มือห้องควบคุมเกม</h3>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-400 ml-6">
+              <li>
+                <Link href="/docs/game-control#access" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+                  → เข้าหน้าห้องควบคุม
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/game-control#timer" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+                  → ระบบจับเวลา
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/game-control#current" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+                  → จัดการการจองปัจจุบัน
                 </Link>
               </li>
             </ul>
