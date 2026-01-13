@@ -11,6 +11,7 @@
 import {
     AdvanceBooking,
     AdvanceBookingStats,
+    BookingSessionLog,
     CreateAdvanceBookingData,
     DaySchedule,
     IAdvanceBookingRepository,
@@ -164,6 +165,36 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'ไม่สามารถโหลดสถิติได้');
+    }
+    return res.json();
+  }
+
+  /**
+   * Log a session action (START/STOP)
+   */
+  async logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId, action }),
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'ไม่สามารถบันทึกเซสชันได้');
+    }
+  }
+
+  /**
+   * Get session logs for a list of bookings
+   */
+  async getSessionLogs(bookingIds: string[]): Promise<BookingSessionLog[]> {
+    if (bookingIds.length === 0) return [];
+    
+    // Pass ids as comma separated string
+    const res = await fetch(`${this.baseUrl}/logs?ids=${bookingIds.join(',')}`);
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'ไม่สามารถโหลด logs ได้');
     }
     return res.json();
   }

@@ -86,6 +86,15 @@ export interface AdvanceBookingStats {
 }
 
 /**
+ * Log of a booking session action (START/STOP)
+ */
+export interface BookingSessionLog {
+  bookingId: string;
+  action: 'START' | 'STOP';
+  recordedAt: string;
+}
+
+/**
  * Repository interface for advance booking operations
  */
 export interface IAdvanceBookingRepository {
@@ -138,4 +147,14 @@ export interface IAdvanceBookingRepository {
    * Get statistics
    */
   getStats(): Promise<AdvanceBookingStats>;
+
+  /**
+   * Log a session action (START/STOP)
+   */
+  logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void>;
+
+  /**
+   * Get session logs for a list of bookings
+   */
+  getSessionLogs(bookingIds: string[]): Promise<BookingSessionLog[]>;
 }

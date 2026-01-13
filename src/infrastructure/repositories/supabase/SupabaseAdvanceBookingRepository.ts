@@ -7,6 +7,7 @@
 import {
   AdvanceBooking,
   AdvanceBookingStats,
+  BookingSessionLog,
   CreateAdvanceBookingData,
   DaySchedule,
   IAdvanceBookingRepository,
@@ -265,6 +266,39 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
       cancelledBookings: data.filter(b => b.status === 'cancelled').length,
       completedBookings: data.filter(b => b.status === 'completed').length,
     };
+  }
+
+  async logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void> {
+    const { error } = await this.supabase
+      .rpc('rpc_log_booking_session', {
+        p_booking_id: bookingId,
+        p_action: action,
+      });
+
+    if (error) {
+      console.error('Error logging session:', error);
+      throw error;
+    }
+  }
+
+  async getSessionLogs(bookingIds: string[]): Promise<BookingSessionLog[]> {
+    if (bookingIds.length === 0) return [];
+
+    const { data, error } = await this.supabase
+      .rpc('rpc_get_booking_session_logs', {
+        p_booking_ids: bookingIds,
+      });
+
+    if (error) {
+      console.error('Error fetching session logs:', error);
+      return [];
+    }
+
+    return (data as any[]).map(log => ({
+      bookingId: log.booking_id,
+      action: log.action as 'START' | 'STOP',
+      recordedAt: log.recorded_at,
+    }));
   }
 
   private generateTimeSlots(date: string, bookedSlots: Map<string, string>, referenceTime?: string): TimeSlot[] {

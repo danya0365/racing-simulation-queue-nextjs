@@ -1,6 +1,6 @@
 'use client';
 
-import { AdvanceBooking, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { AdvanceBooking, BookingSessionLog, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
@@ -21,6 +21,7 @@ export function AdvanceControlView() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map());
   const [allBookings, setAllBookings] = useState<AdvanceBooking[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<Map<string, BookingSessionLog[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +72,17 @@ export function AdvanceControlView() {
         schedulesMap.set(machine.id, schedule);
         allMachineBookings.push(...machineBookings);
       }));
+
+      // Fetch session logs for current bookings
+      const bookingIds = allMachineBookings.map(b => b.id);
+      const logs = await advanceBookingRepo.getSessionLogs(bookingIds);
+      const logsMap = new Map<string, BookingSessionLog[]>();
+      
+      bookingIds.forEach(id => {
+        logsMap.set(id, logs.filter(l => l.bookingId === id));
+      });
+
+      setSessionLogs(logsMap);
 
       setAllSchedules(schedulesMap);
       setAllBookings(allMachineBookings);
@@ -161,6 +173,46 @@ export function AdvanceControlView() {
       setIsUpdating(false);
       setCompleteBookingId(null);
     }
+  };
+
+  // Handle Start Session
+  const handleStartSession = async (bookingId: string) => {
+    setIsUpdating(true);
+    try {
+      await advanceBookingRepo.logSession(bookingId, 'START');
+      // Refresh data to show updated state
+      await loadData();
+    } catch (err) {
+      setError('ไม่สามารถบันทึกเวลาเริ่มได้');
+      console.error('Error starting session:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle Stop Session
+  const handleStopSession = async (bookingId: string) => {
+    setIsUpdating(true);
+    try {
+      await advanceBookingRepo.logSession(bookingId, 'STOP');
+      // Refresh data to show updated state
+      await loadData();
+    } catch (err) {
+      setError('ไม่สามารถบันทึกเวลาจบได้');
+      console.error('Error stopping session:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Get session info
+  const getSessionInfo = (bookingId: string) => {
+    const logs = sessionLogs.get(bookingId) || [];
+    const started = logs.find(l => l.action === 'START');
+    const stopped = logs.find(l => l.action === 'STOP');
+    const isRunning = started && !stopped;
+    
+    return { started, stopped, isRunning };
   };
 
   // Format time for display
@@ -354,6 +406,62 @@ export function AdvanceControlView() {
                         </p>
                         <p className="text-sm text-white/60">{getTimeRemaining(currentBooking.endTime)}</p>
                       </div>
+                    </div>
+
+                    {/* Start/Stop Session Tracking */}
+                    <div className="flex gap-2 mb-3">
+                      {(() => {
+                        const { started, stopped, isRunning } = getSessionInfo(currentBooking.id);
+                        
+                        // If already stopped, show summary
+                        if (stopped) {
+                          return (
+                            <div className="w-full bg-black/20 rounded-lg p-3 text-center">
+                              <p className="text-xs text-white/50 mb-1">บันทึกเวลาเล่น</p>
+                              <div className="flex justify-center gap-4 text-sm">
+                                <div>
+                                  <span className="text-emerald-400">เริ่ม:</span> {new Date(started!.recordedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div>
+                                  <span className="text-red-400">จบ:</span> {new Date(stopped.recordedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // If not started yet
+                        if (!started) {
+                          return (
+                            <GlowButton 
+                              color="cyan" 
+                              onClick={() => handleStartSession(currentBooking.id)}
+                              disabled={isUpdating}
+                              className="w-full"
+                            >
+                              ▶️ เริ่มจับเวลา
+                            </GlowButton>
+                          );
+                        }
+
+                        // If running
+                        return (
+                          <div className="w-full space-y-2">
+                             <div className="flex justify-between items-center text-sm px-2">
+                                <span className="text-white/60">เริ่มเมื่อ: {new Date(started.recordedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-emerald-400 animate-pulse">● กำลังจับเวลา</span>
+                             </div>
+                             <GlowButton 
+                              color="red"
+                              onClick={() => handleStopSession(currentBooking.id)}
+                              disabled={isUpdating}
+                              className="w-full"
+                            >
+                              ⏹️ จบการเล่น (บันทึกเวลา)
+                            </GlowButton>
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     <GlowButton 
