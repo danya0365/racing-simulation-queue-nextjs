@@ -2,9 +2,17 @@ import Link from 'next/link';
 
 export default function CustomerDocsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-12 print:max-w-none print:px-0 print:py-0">
+      {/* Print Cover - Only visible when printing */}
+      <div className="hidden print:block print:mb-8 print:pb-8 print:border-b-2 print:border-purple-500 print:text-center">
+        <div className="text-6xl mb-4">📖</div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">คู่มือสำหรับลูกค้า</h1>
+        <p className="text-xl text-gray-600">Racing Queue - ระบบจองเวลาเล่นเกม</p>
+        <p className="text-sm text-gray-500 mt-4">พิมพ์เมื่อ: มกราคม 2026</p>
+      </div>
+
       {/* Header */}
-      <header className="mb-12">
+      <header className="mb-12 print:hidden">
         <Link 
           href="/docs"
           className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-6"
@@ -23,7 +31,7 @@ export default function CustomerDocsPage() {
       </header>
 
       {/* Section 1: วิธีจองเวลา */}
-      <section id="booking" className="mb-16">
+      <section id="booking" className="mb-16 print:break-before-page print:pt-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-500/20 border border-purple-300 dark:border-purple-500/30 flex items-center justify-center text-xl">
             📅
@@ -133,7 +141,7 @@ export default function CustomerDocsPage() {
       </section>
 
       {/* Section 2: ดูสถานะการจอง */}
-      <section id="status" className="mb-16">
+      <section id="status" className="mb-16 print:break-before-page print:pt-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-500/20 border border-cyan-300 dark:border-cyan-500/30 flex items-center justify-center text-xl">
             📋
@@ -186,7 +194,7 @@ export default function CustomerDocsPage() {
       </section>
 
       {/* Section 3: ดูตารางการจอง */}
-      <section id="history" className="mb-16">
+      <section id="history" className="mb-16 print:break-before-page print:pt-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-500/20 border border-pink-300 dark:border-pink-500/30 flex items-center justify-center text-xl">
             📜
@@ -217,8 +225,8 @@ export default function CustomerDocsPage() {
         </div>
       </section>
 
-      {/* Quick Links */}
-      <section className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-300 dark:border-purple-500/30 rounded-2xl p-6">
+      {/* Quick Links - Hidden in Print */}
+      <section className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-300 dark:border-purple-500/30 rounded-2xl p-6 print:hidden">
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">🔗 ลิงก์ใช้งาน</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Link href="/time-booking" className="bg-white/50 dark:bg-purple-500/20 hover:bg-white dark:hover:bg-purple-500/30 border border-purple-300 dark:border-purple-500/30 rounded-xl p-4 text-center transition-all">
@@ -240,8 +248,8 @@ export default function CustomerDocsPage() {
         </div>
       </section>
 
-      {/* Navigation */}
-      <div className="mt-12 flex justify-between">
+      {/* Navigation - Hidden in Print */}
+      <div className="mt-12 flex justify-between print:hidden">
         <Link 
           href="/docs"
           className="px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all"
@@ -254,6 +262,11 @@ export default function CustomerDocsPage() {
         >
           คู่มือแอดมิน →
         </Link>
+      </div>
+
+      {/* Print Footer */}
+      <div className="hidden print:block print:mt-8 print:pt-4 print:border-t print:border-gray-300 print:text-center print:text-sm print:text-gray-500">
+        <p>Racing Queue - คู่มือสำหรับลูกค้า | หน้า _____</p>
       </div>
     </div>
   );

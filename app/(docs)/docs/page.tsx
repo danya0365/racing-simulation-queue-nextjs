@@ -2,9 +2,17 @@ import Link from 'next/link';
 
 export default function DocsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-12 print:max-w-none print:px-0 print:py-0">
+      {/* Print Cover - Only visible when printing */}
+      <div className="hidden print:block print:mb-8 print:pb-8 print:border-b-2 print:border-purple-500 print:text-center">
+        <div className="text-6xl mb-4">📖</div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">คู่มือการใช้งาน</h1>
+        <p className="text-xl text-gray-600">Racing Queue - ระบบจองเวลาเล่นเกม</p>
+        <p className="text-sm text-gray-500 mt-4">พิมพ์เมื่อ: มกราคม 2026</p>
+      </div>
+
       {/* Header */}
-      <header className="text-center mb-16">
+      <header className="text-center mb-16 print:hidden">
         <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-600 text-5xl shadow-2xl shadow-purple-500/30 mb-6">
           📖
         </div>
@@ -16,7 +24,7 @@ export default function DocsPage() {
         <p className="text-gray-600 dark:text-gray-400 text-lg">
           Racing Queue - ระบบจองเวลาเล่นเกม
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex items-center justify-center gap-4">
           <Link 
             href="/"
             className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 rounded-full text-gray-600 hover:text-gray-900 dark:text-white/70 dark:hover:text-white transition-all"
@@ -26,8 +34,8 @@ export default function DocsPage() {
         </div>
       </header>
 
-      {/* Quick Start Cards */}
-      <section className="grid md:grid-cols-2 gap-6 mb-16">
+      {/* Quick Start Cards - Hidden in Print */}
+      <section className="grid md:grid-cols-2 gap-6 mb-16 print:hidden">
         <Link href="/docs/customer" className="group">
           <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-300 dark:border-purple-500/30 hover:border-purple-400 rounded-2xl p-6 transition-all group-hover:shadow-lg group-hover:shadow-purple-500/20">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-3xl mb-4">
@@ -107,10 +115,41 @@ export default function DocsPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-16 text-center text-gray-500 text-sm">
+      {/* Footer - Hidden in Print */}
+      <footer className="mt-16 text-center text-gray-500 text-sm print:hidden">
         <p>เวอร์ชัน 1.0 | อัปเดตล่าสุด: มกราคม 2026</p>
       </footer>
+
+      {/* Print-only Table of Contents */}
+      <div className="hidden print:block print:mt-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">📋 สารบัญ</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-bold text-purple-700 mb-2">👤 คู่มือลูกค้า</h3>
+            <ul className="space-y-1 text-gray-600 ml-6">
+              <li>• วิธีจองเวลาเล่น</li>
+              <li>• ดูสถานะการจอง</li>
+              <li>• ดูตารางการจอง</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-cyan-700 mb-2">⚙️ คู่มือแอดมิน</h3>
+            <ul className="space-y-1 text-gray-600 ml-6">
+              <li>• หน้า Dashboard</li>
+              <li>• แท็บต่างๆ ในหน้าแอดมิน</li>
+              <li>• วิธีเปลี่ยนสถานะเครื่อง</li>
+              <li>• ยืนยัน/ยกเลิกการจอง</li>
+              <li>• พิมพ์ QR Code</li>
+            </ul>
+          </div>
+        </div>
+        
+        <p className="mt-8 text-sm text-gray-500 border-t border-gray-300 pt-4">
+          Racing Queue - คู่มือการใช้งาน | หน้า 1
+        </p>
+      </div>
     </div>
   );
 }
