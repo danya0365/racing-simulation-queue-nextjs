@@ -5,18 +5,18 @@ import { DEFAULT_DURATION, DURATION_OPTIONS } from '@/src/config/booking.config'
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
-import { AdvanceBookingViewModel } from '@/src/presentation/presenters/advanceBooking/AdvanceBookingPresenter';
-import { useAdvanceBookingPresenter } from '@/src/presentation/presenters/advanceBooking/useAdvanceBookingPresenter';
+import { BookingViewModel } from '@/src/presentation/presenters/booking/BookingPresenter';
+import { useBookingPresenter } from '@/src/presentation/presenters/booking/useBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface BookingViewProps {
-  initialViewModel?: AdvanceBookingViewModel;
+  initialViewModel?: BookingViewModel;
 }
 
 export function BookingView({ initialViewModel }: BookingViewProps) {
-  const [state, actions] = useAdvanceBookingPresenter(initialViewModel);
+  const [state, actions] = useBookingPresenter(initialViewModel);
   const { customerInfo } = useCustomerStore();
   const viewModel = state.viewModel;
 

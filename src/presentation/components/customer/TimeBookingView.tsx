@@ -2,19 +2,19 @@
 
 import { DEFAULT_DURATION, DURATION_OPTIONS, OPERATING_HOURS } from '@/src/config/booking.config';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
-import { QuickAdvanceBookingPresenter, QuickAdvanceBookingViewModel } from '@/src/presentation/presenters/quickAdvanceBooking/QuickAdvanceBookingPresenter';
+import { TimeBookingPresenter, TimeBookingViewModel } from '@/src/presentation/presenters/timeBooking/TimeBookingPresenter';
 import {
     BookingStep,
-    useQuickAdvanceBookingPresenter
-} from '@/src/presentation/presenters/quickAdvanceBooking/useQuickAdvanceBookingPresenter';
+    useTimeBookingPresenter
+} from '@/src/presentation/presenters/timeBooking/useTimeBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-interface QuickAdvanceBookingViewProps {
-  initialViewModel?: QuickAdvanceBookingViewModel;
-  presenterOverride?: QuickAdvanceBookingPresenter;
+interface TimeBookingViewProps {
+  initialViewModel?: TimeBookingViewModel;
+  presenterOverride?: TimeBookingPresenter;
 }
 
 /**
@@ -22,18 +22,18 @@ interface QuickAdvanceBookingViewProps {
  * Simplified, fast booking experience for scheduled time slots
  * 
  * ✅ Refactored to follow Clean Architecture pattern:
- * - Uses useQuickAdvanceBookingPresenter hook for state management
+ * - Uses useTimeBookingPresenter hook for state management
  * - Presenter injected via factory (dependency injection)
  * - View only handles UI rendering
  */
 export function TimeBookingView({ 
   initialViewModel, 
   presenterOverride 
-}: QuickAdvanceBookingViewProps) {
+}: TimeBookingViewProps) {
   const { customerInfo } = useCustomerStore();
 
   // ✅ Use presenter hook for state management
-  const [state, actions] = useQuickAdvanceBookingPresenter(initialViewModel, presenterOverride);
+  const [state, actions] = useTimeBookingPresenter(initialViewModel, presenterOverride);
 
   // Local form state (not part of business logic)
   const [name, setName] = useState(customerInfo.name);

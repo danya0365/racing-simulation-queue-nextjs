@@ -1,13 +1,13 @@
 /**
- * QuickAdvanceBookingPresenter
- * Handles business logic for Quick Advance Booking
+ * TimeBookingPresenter
+ * Handles business logic for Time Booking
  * Receives repository via dependency injection
  */
 
 import { AdvanceBooking, CreateAdvanceBookingData, DaySchedule, IAdvanceBookingRepository } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { IMachineRepository, Machine } from '@/src/application/repositories/IMachineRepository';
 
-export interface QuickAdvanceBookingViewModel {
+export interface TimeBookingViewModel {
   machines: Machine[];
   schedule: DaySchedule | null;
   loading: boolean;
@@ -17,7 +17,7 @@ export interface QuickAdvanceBookingViewModel {
  * Presenter for QuickAdvanceBooking
  * ✅ Receives repositories via constructor injection (not Supabase directly)
  */
-export class QuickAdvanceBookingPresenter {
+export class TimeBookingPresenter {
   constructor(
     private readonly advanceBookingRepository: IAdvanceBookingRepository,
     private readonly machineRepository: IMachineRepository
@@ -26,7 +26,7 @@ export class QuickAdvanceBookingPresenter {
   /**
    * Get initial view model with machines
    */
-  async getViewModel(): Promise<QuickAdvanceBookingViewModel> {
+  async getViewModel(): Promise<TimeBookingViewModel> {
     try {
       const allMachines = await this.machineRepository.getAll();
       const activeMachines = allMachines.filter(m => m.isActive);

@@ -7,11 +7,11 @@ import type {
     TimeSlot
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AdvanceBookingPresenter, AdvanceBookingViewModel } from './AdvanceBookingPresenter';
-import { createClientAdvanceBookingPresenter } from './AdvanceBookingPresenterClientFactory';
+import { BookingPresenter, BookingViewModel } from './BookingPresenter';
+import { createClientBookingPresenter } from './BookingPresenterClientFactory';
 
-export interface AdvanceBookingPresenterState {
-  viewModel: AdvanceBookingViewModel | null;
+export interface BookingPresenterState {
+  viewModel: BookingViewModel | null;
   daySchedule: DaySchedule | null;
   selectedTimeSlot: TimeSlot | null;
   loading: boolean;
@@ -22,7 +22,7 @@ export interface AdvanceBookingPresenterState {
   bookingSuccess: AdvanceBooking | null;
 }
 
-export interface AdvanceBookingPresenterActions {
+export interface BookingPresenterActions {
   loadData: () => Promise<void>;
   selectMachine: (machineId: string) => void;
   selectDate: (date: string) => Promise<void>;
@@ -39,13 +39,13 @@ export interface AdvanceBookingPresenterActions {
  * Custom hook for AdvanceBooking presenter
  * Provides state management and actions for advance booking operations
  */
-export function useAdvanceBookingPresenter(
-  initialViewModel?: AdvanceBookingViewModel,
-  presenterOverride?: AdvanceBookingPresenter
-): [AdvanceBookingPresenterState, AdvanceBookingPresenterActions] {
+export function useBookingPresenter(
+  initialViewModel?: BookingViewModel,
+  presenterOverride?: BookingPresenter
+): [BookingPresenterState, BookingPresenterActions] {
   // Create presenter inside hook with useMemo
   const presenter = useMemo(
-    () => presenterOverride ?? createClientAdvanceBookingPresenter(),
+    () => presenterOverride ?? createClientBookingPresenter(),
     [presenterOverride]
   );
 
@@ -53,7 +53,7 @@ export function useAdvanceBookingPresenter(
   const isMountedRef = useRef(true);
 
   // State
-  const [viewModel, setViewModel] = useState<AdvanceBookingViewModel | null>(initialViewModel || null);
+  const [viewModel, setViewModel] = useState<BookingViewModel | null>(initialViewModel || null);
   const [daySchedule, setDaySchedule] = useState<DaySchedule | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(!initialViewModel);
@@ -259,7 +259,7 @@ export function useAdvanceBookingPresenter(
     setBookingSuccess(null);
   }, []);
 
-  const state: AdvanceBookingPresenterState = {
+  const state: BookingPresenterState = {
     viewModel,
     daySchedule,
     selectedTimeSlot,
@@ -271,7 +271,7 @@ export function useAdvanceBookingPresenter(
     bookingSuccess,
   };
 
-  const actions: AdvanceBookingPresenterActions = {
+  const actions: BookingPresenterActions = {
     loadData,
     selectMachine,
     selectDate,

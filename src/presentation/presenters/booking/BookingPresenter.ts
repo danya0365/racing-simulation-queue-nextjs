@@ -1,6 +1,6 @@
 /**
- * AdvanceBookingPresenter
- * Handles business logic for Advance Booking page
+ * BookingPresenter
+ * Handles business logic for Booking page
  * Receives repositories via dependency injection
  */
 
@@ -13,7 +13,7 @@ import {
 import { IMachineRepository, Machine } from '@/src/application/repositories/IMachineRepository';
 import { Metadata } from 'next';
 
-export interface AdvanceBookingViewModel {
+export interface BookingViewModel {
   machines: Machine[];
   selectedMachineId: string | null;
   selectedDate: string;
@@ -24,7 +24,7 @@ export interface AdvanceBookingViewModel {
 /**
  * Presenter for Advance Booking page
  */
-export class AdvanceBookingPresenter {
+export class BookingPresenter {
   constructor(
     private readonly advanceBookingRepo: IAdvanceBookingRepository,
     private readonly machineRepo: IMachineRepository
@@ -33,7 +33,7 @@ export class AdvanceBookingPresenter {
   /**
    * Get initial view model for the page
    */
-  async getViewModel(todayStr: string): Promise<AdvanceBookingViewModel> {
+  async getViewModel(todayStr: string): Promise<BookingViewModel> {
     try {
       // Get machines and available dates in parallel
       const [machines, availableDates] = await Promise.all([
@@ -110,7 +110,7 @@ export class AdvanceBookingPresenter {
    */
   generateMetadata(): Metadata {
     return {
-      title: 'จองคิวล่วงหน้า | Racing Queue',
+      title: 'จองเวลา | Racing Queue',
       description: 'จองคิวเครื่องเล่น Racing Simulator ล่วงหน้า เลือกวันและเวลาที่ต้องการได้ตามสะดวก',
     };
   }

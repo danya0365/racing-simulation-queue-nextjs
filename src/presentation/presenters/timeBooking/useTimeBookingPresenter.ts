@@ -3,13 +3,13 @@
 import { AdvanceBooking, CreateAdvanceBookingData, DaySchedule, TimeSlot } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { QuickAdvanceBookingPresenter, QuickAdvanceBookingViewModel } from './QuickAdvanceBookingPresenter';
-import { createClientQuickAdvanceBookingPresenter } from './QuickAdvanceBookingPresenterClientFactory';
+import { TimeBookingPresenter, TimeBookingViewModel } from './TimeBookingPresenter';
+import { createClientTimeBookingPresenter } from './TimeBookingPresenterClientFactory';
 
 export type BookingStep = 'machine' | 'datetime' | 'info' | 'confirm';
 
-export interface QuickAdvanceBookingPresenterState {
-  viewModel: QuickAdvanceBookingViewModel | null;
+export interface TimeBookingPresenterState {
+  viewModel: TimeBookingViewModel | null;
   loading: boolean;
   error: string | null;
   // Form state
@@ -25,7 +25,7 @@ export interface QuickAdvanceBookingPresenterState {
   success: AdvanceBooking | null;
 }
 
-export interface QuickAdvanceBookingPresenterActions {
+export interface TimeBookingPresenterActions {
   loadData: () => Promise<void>;
   loadSchedule: (machineId: string, date: string) => Promise<void>;
   selectMachine: (machineId: string) => void;
@@ -46,14 +46,14 @@ export interface QuickAdvanceBookingPresenterActions {
  * - Proper cleanup on unmount
  * - Memory leak protection with isMountedRef
  */
-export function useQuickAdvanceBookingPresenter(
-  initialViewModel?: QuickAdvanceBookingViewModel,
-  presenterOverride?: QuickAdvanceBookingPresenter
-): [QuickAdvanceBookingPresenterState, QuickAdvanceBookingPresenterActions] {
+export function useTimeBookingPresenter(
+  initialViewModel?: TimeBookingViewModel,
+  presenterOverride?: TimeBookingPresenter
+): [TimeBookingPresenterState, TimeBookingPresenterActions] {
   // ✅ Create presenter inside hook with useMemo
   // Accept override for easier testing (Dependency Injection)
   const presenter = useMemo(
-    () => presenterOverride ?? createClientQuickAdvanceBookingPresenter(),
+    () => presenterOverride ?? createClientTimeBookingPresenter(),
     [presenterOverride]
   );
 
@@ -67,7 +67,7 @@ export function useQuickAdvanceBookingPresenter(
   }, []);
 
   // State
-  const [viewModel, setViewModel] = useState<QuickAdvanceBookingViewModel | null>(
+  const [viewModel, setViewModel] = useState<TimeBookingViewModel | null>(
     initialViewModel || null
   );
   const [loading, setLoading] = useState(!initialViewModel);
