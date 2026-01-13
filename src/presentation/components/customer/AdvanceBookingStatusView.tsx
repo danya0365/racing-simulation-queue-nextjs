@@ -1,8 +1,7 @@
 'use client';
 
 import { AdvanceBooking } from '@/src/application/repositories/IAdvanceBookingRepository';
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { createAdvanceBookingRepository } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
@@ -25,11 +24,8 @@ export function AdvanceBookingStatusView() {
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Repository
-  const advanceBookingRepo = useMemo(() => {
-    const supabase = createClient();
-    return new SupabaseAdvanceBookingRepository(supabase);
-  }, []);
+  // ✅ Use factory for repository creation
+  const advanceBookingRepo = useMemo(() => createAdvanceBookingRepository(), []);
 
   // Load bookings by phone
   const loadBookings = useCallback(async (phone: string) => {

@@ -2,9 +2,7 @@
 
 import { AdvanceBooking, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { animated } from '@react-spring/web';
@@ -31,14 +29,11 @@ export function AdvanceBookingHistoryView() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
-  // Repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(() => {
-    const supabase = createClient();
-    return {
-      advanceBookingRepo: new SupabaseAdvanceBookingRepository(supabase),
-      machineRepo: new SupabaseMachineRepository(supabase),
-    };
-  }, []);
+  // ✅ Use factory for repositories
+  const { advanceBookingRepo, machineRepo } = useMemo(
+    () => createAdvanceBookingRepositories(),
+    []
+  );
 
   // Generate date options (7 days before + today + 7 days ahead)
   const dateOptions = useMemo(() => {

@@ -2,9 +2,7 @@
 
 import { AdvanceBooking, DaySchedule, UpdateAdvanceBookingData } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
-import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { createClient } from '@/src/infrastructure/supabase/client';
+import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -25,14 +23,11 @@ export function AdvanceBookingsTab() {
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null); // For confirmation modal
   const [editingBooking, setEditingBooking] = useState<AdvanceBooking | null>(null);
 
-  // Create repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(() => {
-    const supabase = createClient();
-    return {
-      advanceBookingRepo: new SupabaseAdvanceBookingRepository(supabase),
-      machineRepo: new SupabaseMachineRepository(supabase),
-    };
-  }, []);
+  // ✅ Use factory for repositories
+  const { advanceBookingRepo, machineRepo } = useMemo(
+    () => createAdvanceBookingRepositories(),
+    []
+  );
 
   // Generate date options (today + 7 days)
   const dateOptions = useMemo(() => {
