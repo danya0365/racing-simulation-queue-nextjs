@@ -15,8 +15,12 @@ export function MainFooter() {
 
       {/* Quick Links */}
       <div className="flex items-center gap-4">
-        <Link href="/customer" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
+        <Link href="/quick-advance-booking" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
           จองคิว
+        </Link>
+        <span className="text-border">|</span>
+        <Link href="/qr-scan" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">
+          สแกนคิวอาร์โค้ด
         </Link>
         <span className="text-border">|</span>
         <Link href="/backend" className="text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors duration-200">

@@ -4,7 +4,7 @@ import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 
 // Shop configuration
@@ -14,7 +14,7 @@ const SHOP_CONFIG = {
   address: 'อ.เมือง จ.นราธิวาส 96000',
   phone: '02-XXX-XXXX',
   openHours: 'เปิดบริการ 24 ชั่วโมง',
-  bookingUrl: '/quick-booking',
+  bookingUrl: '/quick-advance-booking',
 };
 
 // Printable QR Component - Optimized for single A4 page
@@ -128,14 +128,14 @@ const PrintableQRCode = React.forwardRef<HTMLDivElement, { url: string }>(
             margin: '0 0 8px 0',
             textAlign: 'center',
           }}>
-            📱 สแกนเพื่อจองคิว
+            📅 สแกนเพื่อจองล่วงหน้า
           </h2>
           <p style={{
             fontSize: '18px',
             color: '#666',
             margin: '0 0 16px 0',
           }}>
-            Scan to Book Your Queue
+            Scan to Book in Advance
           </p>
 
           {/* URL */}
@@ -205,14 +205,12 @@ PrintableQRCode.displayName = 'PrintableQRCode';
 // Main View Component
 export function QRScanView() {
   const printRef = useRef<HTMLDivElement>(null);
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
 
-  // Determine the booking URL
-  const getBookingUrl = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}${SHOP_CONFIG.bookingUrl}`;
-    }
-    return `https://racing-queue.vercel.app${SHOP_CONFIG.bookingUrl}`;
-  };
+  // Determine the booking URL only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setBookingUrl(`${window.location.origin}${SHOP_CONFIG.bookingUrl}`);
+  }, []);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -236,15 +234,15 @@ export function QRScanView() {
           {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-5xl mb-6 shadow-xl shadow-cyan-500/30 animate-bounce-slow">
-              📱
+              📅
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                QR Code จองคิว
+                QR Code จองล่วงหน้า
               </span>
             </h1>
             <p className="text-xl text-muted max-w-2xl mx-auto">
-              สแกน QR Code เพื่อจองคิวเล่นเกมแข่งรถ หรือพิมพ์ออกมาติดหน้าร้าน
+              สแกน QR Code เพื่อจองล่วงหน้า เลือกวันและเวลาที่ต้องการ หรือพิมพ์ออกมาติดหน้าร้าน
             </p>
           </div>
         </div>
@@ -272,28 +270,34 @@ export function QRScanView() {
 
             {/* QR Code */}
             <div className="inline-block bg-white p-6 rounded-2xl shadow-2xl mb-8">
-              <QRCodeSVG
-                value={getBookingUrl()}
-                size={280}
-                level="H"
-                className="mx-auto"
-              />
+              {bookingUrl ? (
+                <QRCodeSVG
+                  value={bookingUrl}
+                  size={280}
+                  level="H"
+                  className="mx-auto"
+                />
+              ) : (
+                <div className="w-[280px] h-[280px] bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+                  <span className="text-gray-400">กำลังโหลด...</span>
+                </div>
+              )}
             </div>
 
             {/* Scan Text */}
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-foreground mb-2">
-                📱 สแกนเพื่อจองคิว
+                📅 สแกนเพื่อจองล่วงหน้า
               </h3>
               <p className="text-muted">
-                ใช้กล้องโทรศัพท์สแกน QR Code ด้านบน
+                ใช้กล้องโทรศัพท์สแกน QR Code ด้านบน เพื่อจองเวลาที่ต้องการ
               </p>
             </div>
 
             {/* URL Display */}
             <div className="bg-surface border border-border rounded-xl px-6 py-3 inline-block mb-8">
               <code className="text-cyan-400 text-sm md:text-base">
-                {getBookingUrl()}
+                {bookingUrl || 'กำลังโหลด...'}
               </code>
             </div>
 
@@ -322,9 +326,9 @@ export function QRScanView() {
               >
                 🖨️ พิมพ์ QR Code
               </GlowButton>
-              <Link href="/quick-booking">
+              <Link href="/quick-advance-booking">
                 <GlowButton color="purple" size="lg">
-                  ⚡ จองคิวเลย
+                  ⚡ จองล่วงหน้าเลย
                 </GlowButton>
               </Link>
             </div>
@@ -336,7 +340,7 @@ export function QRScanView() {
       <section className="px-4 md:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           <h3 className="text-xl font-bold text-foreground mb-6 text-center">
-            💡 วิธีใช้งาน
+            💡 วิธีจองล่วงหน้า
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AnimatedCard className="p-6 text-center">
@@ -352,19 +356,82 @@ export function QRScanView() {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-2xl mx-auto mb-4">
                 2
               </div>
-              <h4 className="font-bold text-foreground mb-2">กรอกข้อมูล</h4>
+              <h4 className="font-bold text-foreground mb-2">เลือกวันและเวลา</h4>
               <p className="text-sm text-muted">
-                เลือกเครื่องเล่นและระยะเวลาที่ต้องการ
+                เลือกวัน เวลา และเครื่องเล่นที่ต้องการ
               </p>
             </AnimatedCard>
             <AnimatedCard className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-2xl mx-auto mb-4">
                 3
               </div>
-              <h4 className="font-bold text-foreground mb-2">รอคิว</h4>
+              <h4 className="font-bold text-foreground mb-2">ยืนยันการจอง</h4>
               <p className="text-sm text-muted">
-                รอรับการแจ้งเตือนเมื่อถึงคิวของคุณ
+                มาถึงตามเวลาที่จอง พร้อมเล่นได้ทันที!
               </p>
+            </AnimatedCard>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="px-4 md:px-8 py-12 bg-gradient-to-br from-purple-500/5 via-background to-cyan-500/5">
+        <div className="max-w-4xl mx-auto">
+          <h3 className="text-xl font-bold text-foreground mb-6 text-center">
+            ✨ ข้อดีของการจองล่วงหน้า
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AnimatedCard className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center text-2xl shrink-0">
+                  ⏰
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground mb-2">ไม่ต้องรอคิว</h4>
+                  <p className="text-sm text-muted">
+                    จองเวลาที่ต้องการล่วงหน้า มาถึงเล่นได้เลย ไม่ต้องรอ
+                  </p>
+                </div>
+              </div>
+            </AnimatedCard>
+            <AnimatedCard className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-600/20 flex items-center justify-center text-2xl shrink-0">
+                  📆
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground mb-2">วางแผนได้ล่วงหน้า</h4>
+                  <p className="text-sm text-muted">
+                    เลือกวันและเวลาที่สะดวก จัดตารางได้ตามใจ
+                  </p>
+                </div>
+              </div>
+            </AnimatedCard>
+            <AnimatedCard className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-green-600/20 flex items-center justify-center text-2xl shrink-0">
+                  🎮
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground mb-2">เลือกเครื่องได้</h4>
+                  <p className="text-sm text-muted">
+                    เลือกเครื่องซิมูเลเตอร์ที่ชอบ การันตีได้เครื่องที่จอง
+                  </p>
+                </div>
+              </div>
+            </AnimatedCard>
+            <AnimatedCard className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center text-2xl shrink-0">
+                  📱
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground mb-2">จองง่ายผ่านมือถือ</h4>
+                  <p className="text-sm text-muted">
+                    สแกน QR หรือเข้าเว็บ จองได้ทุกที่ทุกเวลา
+                  </p>
+                </div>
+              </div>
             </AnimatedCard>
           </div>
         </div>
@@ -372,7 +439,7 @@ export function QRScanView() {
 
       {/* Hidden Printable Component */}
       <div style={{ display: 'none' }}>
-        <PrintableQRCode ref={printRef} url={getBookingUrl()} />
+        {bookingUrl && <PrintableQRCode ref={printRef} url={bookingUrl} />}
       </div>
     </div>
   );

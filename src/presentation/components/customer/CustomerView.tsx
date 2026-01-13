@@ -147,6 +147,24 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
               </div>
             </Link>
           </div>
+
+          {/* Advance Booking Promotion */}
+          <Link href="/customer/advance-booking" className="block mt-4">
+            <div className="bg-gradient-to-r from-purple-500/20 via-pink-500/15 to-cyan-500/20 border border-purple-500/40 rounded-xl p-4 hover:border-purple-400 transition-all hover:shadow-lg hover:shadow-purple-500/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-2xl shadow-lg">
+                    📅
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground text-lg">จองคิวล่วงหน้า</h3>
+                    <p className="text-sm text-muted">เลือกวันและเวลาที่ต้องการได้ตามสะดวก</p>
+                  </div>
+                </div>
+                <span className="text-purple-400 text-2xl">→</span>
+              </div>
+            </div>
+          </Link>
         </div>
       </section>
 

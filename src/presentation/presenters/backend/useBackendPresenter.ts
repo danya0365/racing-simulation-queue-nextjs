@@ -21,14 +21,14 @@ export interface BackendPresenterState {
   error: string | null;
   selectedQueue: Queue | null;
   selectedMachine: Machine | null;
-  activeTab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control';
+  activeTab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control' | 'advanceBookings';
   isUpdating: boolean;
 }
 
 export interface BackendPresenterActions {
   loadData: () => Promise<void>;
   refreshData: () => Promise<void>;
-  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control') => void;
+  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control' | 'advanceBookings') => void;
   selectQueue: (queue: Queue | null) => void;
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
@@ -72,7 +72,7 @@ export function useBackendPresenter(
   const [error, setError] = useState<string | null>(null);
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers' | 'control'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers' | 'control' | 'advanceBookings'>('dashboard');
   const [isUpdating, setIsUpdating] = useState(false);
 
   /**
@@ -90,12 +90,13 @@ export function useBackendPresenter(
     try {
       let partialData: Partial<BackendViewModel> = {};
       
+      const nowStr = new Date().toISOString();
       if (tab === 'dashboard') {
-        partialData = await presenter.getDashboardData();
+        partialData = await presenter.getDashboardData(nowStr);
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
-        partialData = await presenter.getControlData();
+        partialData = await presenter.getControlData(nowStr);
       } else {
-        partialData = await presenter.getViewModel();
+        partialData = await presenter.getViewModel(nowStr);
       }
 
       // ✅ Only update state if still mounted
@@ -137,10 +138,10 @@ export function useBackendPresenter(
   /**
    * Set active tab and load its data
    */
-  const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control') => {
+  const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'control' | 'advanceBookings') => {
     setActiveTab(tab);
-    if (tab === 'customers') {
-      // Customers tab handles its own fetching
+    if (tab === 'customers' || tab === 'advanceBookings') {
+      // Customers and advanceBookings tabs handle their own fetching
     } else {
       loadData(tab); 
     }
@@ -253,7 +254,8 @@ export function useBackendPresenter(
     setError(null);
 
     try {
-      await presenter.resetMachineQueue(machineId);
+      const nowStr = new Date().toISOString();
+      await presenter.resetMachineQueue(machineId, nowStr);
       await refreshData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

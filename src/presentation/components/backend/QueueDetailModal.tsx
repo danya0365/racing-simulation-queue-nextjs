@@ -1,12 +1,14 @@
 'use client';
 
+import { Machine } from '@/src/application/repositories/IMachineRepository';
+import { Queue } from '@/src/application/repositories/IQueueRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { useState } from 'react';
 
 // Queue Detail Modal
 interface QueueDetailModalProps {
-  machine: any;
-  queues: any[];
+  machine: Machine;
+  queues: Queue[];
   onClose: () => void;
 }
 

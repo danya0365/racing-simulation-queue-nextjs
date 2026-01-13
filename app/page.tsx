@@ -35,7 +35,10 @@ export default async function HomePage() {
 
   try {
     // Get view model from presenter
-    const viewModel = await presenter.getViewModel();
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const nowStr = now.toISOString();
+    const viewModel = await presenter.getViewModel(todayStr, nowStr);
 
     return <HomeView initialViewModel={viewModel} />;
   } catch (error) {

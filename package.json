@@ -38,6 +38,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.69.0",
+    "react-spring": "^10.0.3",
     "react-to-print": "^3.2.0",
     "zod": "^4.2.1",
     "zustand": "^5.0.9"

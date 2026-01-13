@@ -3,8 +3,8 @@
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BookingWizardPresenter,
-  BookingWizardViewModel
+    BookingWizardPresenter,
+    BookingWizardViewModel
 } from './BookingWizardPresenter';
 import { createClientBookingWizardPresenter } from './BookingWizardPresenterClientFactory';
 
@@ -102,7 +102,8 @@ export function useBookingWizardPresenter(
     setError(null);
 
     try {
-      const vm = await presenter.getViewModel();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const vm = await presenter.getViewModel(todayStr);
       if (isMountedRef.current) {
         setViewModel(vm);
       }

@@ -35,6 +35,18 @@ export interface QueueStats {
   cancelledQueues: number;
 }
 
+export interface BackendStatsDTO {
+  total_machines: number;
+  available_machines: number;
+  occupied_machines: number;
+  maintenance_machines: number;
+  total_queues: number;
+  waiting_queues: number;
+  playing_queues: number;
+  completed_queues: number;
+  cancelled_queues: number;
+}
+
 export interface CreateQueueData {
   machineId: string;
   customerName: string;
@@ -100,7 +112,7 @@ export interface IQueueRepository {
   /**
    * Get today's queues
    */
-  getToday(): Promise<Queue[]>;
+  getToday(todayDate: string): Promise<Queue[]>;
 
   /**
    * Get paginated queues
@@ -125,7 +137,7 @@ export interface IQueueRepository {
   /**
    * Get statistics
    */
-  getStats(): Promise<QueueStats>;
+  getStats(todayDate: string): Promise<QueueStats>;
 
   /**
    * Update queue status
@@ -146,16 +158,16 @@ export interface IQueueRepository {
    * Get active queues (waiting/playing) + recently finished (24 hours)
    * For 24-hour operations
    */
-  getActiveAndRecent(): Promise<Queue[]>;
+  getActiveAndRecent(referenceTime: string): Promise<Queue[]>;
 
   /**
    * Reset all queues for a machine
    * Cancels waiting, completes playing, resets position
    */
-  resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }>;
+  resetMachineQueue(machineId: string, now: string): Promise<{ cancelledCount: number; completedCount: number }>;
 
   /**
    * Get backend dashboard stats (RPC)
    */
-  getBackendStats(): Promise<any>;
+  getBackendStats(): Promise<BackendStatsDTO | null>;
 }

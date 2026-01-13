@@ -47,11 +47,11 @@ export class BookingWizardPresenter {
   /**
    * Get view model for the booking wizard
    */
-  async getViewModel(): Promise<BookingWizardViewModel> {
+  async getViewModel(todayStr: string): Promise<BookingWizardViewModel> {
     try {
       const [machines, allQueues] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
-        this.queueRepository.getToday(),
+        this.queueRepository.getToday(todayStr),
       ]));
 
       // Calculate queue info for each machine

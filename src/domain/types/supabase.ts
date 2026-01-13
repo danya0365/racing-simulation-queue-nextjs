@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      advance_bookings: {
+        Row: {
+          booking_date: string
+          created_at: string | null
+          customer_id: string
+          duration: number
+          end_time: string
+          id: string
+          machine_id: string
+          notes: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["advance_booking_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          booking_date: string
+          created_at?: string | null
+          customer_id: string
+          duration?: number
+          end_time: string
+          id?: string
+          machine_id: string
+          notes?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["advance_booking_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          booking_date?: string
+          created_at?: string | null
+          customer_id?: string
+          duration?: number
+          end_time?: string
+          id?: string
+          machine_id?: string
+          notes?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["advance_booking_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advance_bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advance_bookings_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -362,9 +419,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      rpc_cancel_advance_booking: {
+        Args: { p_booking_id: string; p_customer_id?: string }
+        Returns: Json
+      }
       rpc_cancel_queue_guest: {
         Args: { p_queue_id: string; p_customer_id: string }
         Returns: boolean
+      }
+      rpc_create_advance_booking: {
+        Args: {
+          p_machine_id: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_booking_date: string
+          p_start_time: string
+          p_duration: number
+          p_notes?: string
+        }
+        Returns: Json
       }
       rpc_create_booking: {
         Args: {
@@ -405,6 +478,18 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      rpc_get_advance_schedule: {
+        Args: { p_machine_id: string; p_date: string }
+        Returns: {
+          booking_id: string
+          start_time: string
+          end_time: string
+          duration: number
+          status: string
+          customer_name: string
+          customer_phone: string
+        }[]
+      }
       rpc_get_all_customers_admin: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -434,6 +519,20 @@ export type Database = {
           playing_queues: number
           completed_queues: number
           cancelled_queues: number
+        }[]
+      }
+      rpc_get_customer_advance_bookings: {
+        Args: { p_phone: string }
+        Returns: {
+          booking_id: string
+          machine_id: string
+          machine_name: string
+          booking_date: string
+          start_time: string
+          end_time: string
+          duration: number
+          status: string
+          created_at: string
         }[]
       }
       rpc_get_machine_dashboard_info: {
@@ -536,6 +635,11 @@ export type Database = {
       }
     }
     Enums: {
+      advance_booking_status:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "completed"
       machine_status: "available" | "occupied" | "maintenance"
       profile_role: "user" | "moderator" | "admin"
       queue_status: "waiting" | "playing" | "completed" | "cancelled"
@@ -654,6 +758,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      advance_booking_status: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+      ],
       machine_status: ["available", "occupied", "maintenance"],
       profile_role: ["user", "moderator", "admin"],
       queue_status: ["waiting", "playing", "completed", "cancelled"],

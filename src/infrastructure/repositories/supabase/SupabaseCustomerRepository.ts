@@ -1,9 +1,9 @@
 import {
-    CreateCustomerData,
-    Customer,
-    CustomerStats,
-    ICustomerRepository,
-    UpdateCustomerData
+  CreateCustomerData,
+  Customer,
+  CustomerStats,
+  ICustomerRepository,
+  UpdateCustomerData
 } from '@/src/application/repositories/ICustomerRepository';
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { Database } from '@/src/domain/types/supabase';
@@ -107,7 +107,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return !error;
   }
 
-  async incrementVisit(id: string, playTime: number): Promise<Customer> {
+  async incrementVisit(id: string, playTime: number, now: string): Promise<Customer> {
     // This could also be a function in SQL for atomicity
     const { data: current, error: getError } = await this.supabase
       .from('customers')
@@ -122,7 +122,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
       .update({
         visit_count: (current.visit_count || 0) + 1,
         total_play_time: (current.total_play_time || 0) + playTime,
-        last_visit: new Date().toISOString(),
+        last_visit: now,
       })
       .eq('id', id)
       .select()
@@ -132,7 +132,10 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return this.mapToDomain(updated);
   }
 
-  async getStats(): Promise<CustomerStats> {
+  async getStats(todayStr: string): Promise<CustomerStats> {
+    const today = new Date(todayStr);
+    today.setHours(0, 0, 0, 0);
+
     const { data, error } = await this.supabase
       .from('customers')
       .select('id, is_vip, created_at, last_visit, visit_count');
@@ -145,9 +148,6 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
           returningCustomers: 0,
         };
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     return {
       totalCustomers: data.length,
@@ -180,19 +180,19 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return data.map(this.mapToDomain);
   }
 
-  private mapToDomain(raw: any): Customer {
+    private mapToDomain = (raw: Database['public']['Tables']['customers']['Row']): Customer => {
     return {
       id: raw.id,
       name: raw.name,
       phone: raw.phone,
-      email: raw.email,
+      email: raw.email || undefined,
       visitCount: raw.visit_count || 0,
       totalPlayTime: raw.total_play_time || 0,
-      lastVisit: raw.last_visit,
-      createdAt: raw.created_at,
-      updatedAt: raw.updated_at,
-      notes: raw.notes,
+      lastVisit: raw.last_visit || undefined,
+      createdAt: raw.created_at || '',
+      updatedAt: raw.updated_at || '',
+      notes: raw.notes || undefined,
       isVip: raw.is_vip || false,
     };
-  }
+  };
 }

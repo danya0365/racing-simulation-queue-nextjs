@@ -32,7 +32,8 @@ export default async function BackendPage() {
   const presenter = await createServerBackendPresenter();
 
   try {
-    const viewModel = await presenter.getViewModel();
+    const nowStr = new Date().toISOString();
+    const viewModel = await presenter.getViewModel(nowStr);
 
     return <BackendView initialViewModel={viewModel} />;
   } catch (error) {

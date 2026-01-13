@@ -19,6 +19,7 @@ import { useCustomersPresenter } from '@/src/presentation/presenters/customers/u
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
+import { AdvanceBookingsTab } from './AdvanceBookingsTab';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 import { QueueDetailModal } from './QueueDetailModal';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
@@ -91,9 +92,9 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               <GlowButton color="cyan" onClick={() => handlePrintQR && handlePrintQR()}>
                 🖨️ Print QR
               </GlowButton>
-              <Link href="/backend/control">
-                <GlowButton color="purple">
-                  🎛️ ควบคุมห้องเกม
+              <Link href="/backend/advance-control">
+                <GlowButton color="pink">
+                  📅 ห้องควบคุม
                 </GlowButton>
               </Link>
               <AnimatedButton variant="secondary" onClick={actions.refreshData}>
@@ -114,18 +115,6 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             📊 Dashboard
           </TabButton>
           <TabButton
-            active={state.activeTab === 'control'}
-            onClick={() => actions.setActiveTab('control')}
-          >
-            🎛️ ควบคุมห้องเกม
-          </TabButton>
-          <TabButton
-            active={state.activeTab === 'queues'}
-            onClick={() => actions.setActiveTab('queues')}
-          >
-            📋 จัดการคิว ({viewModel.activeQueues.length})
-          </TabButton>
-          <TabButton
             active={state.activeTab === 'machines'}
             onClick={() => actions.setActiveTab('machines')}
           >
@@ -136,6 +125,12 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             onClick={() => actions.setActiveTab('customers')}
           >
             👥 จัดการลูกค้า
+          </TabButton>
+          <TabButton
+            active={state.activeTab === 'advanceBookings'}
+            onClick={() => actions.setActiveTab('advanceBookings')}
+          >
+            📅 จองล่วงหน้า
           </TabButton>
         </div>
       </section>
@@ -175,6 +170,9 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           {state.activeTab === 'customers' && (
             <CustomersTab />
           )}
+          {state.activeTab === 'advanceBookings' && (
+            <AdvanceBookingsTab />
+          )}
         </div>
       </section>
 
@@ -193,7 +191,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
 
       {/* Hidden Printable Component */}
       <div style={{ display: 'none' }}>
-        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/quick-booking" />
+        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/quick-advance-booking" />
       </div>
     </div>
   );

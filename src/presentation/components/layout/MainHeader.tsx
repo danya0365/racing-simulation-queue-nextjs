@@ -1,5 +1,6 @@
 'use client';
 
+import { NAV_LINKS } from '@/src/config/navigation.config';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -45,24 +46,15 @@ export function MainHeader() {
 
         {/* Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <NavLink href="/">หน้าแรก</NavLink>
-          <NavLink href="/customer">จองคิว</NavLink>
-          <NavLink href="/customer/queue-status">สถานะคิว</NavLink>
-          <NavLink href="/customer/queue-history">ประวัติคิว</NavLink>
-          <NavLink href="/backend">แอดมิน</NavLink>
+          {NAV_LINKS.map((link) => (
+            <NavLink key={link.href} href={link.href}>
+              {link.label}
+            </NavLink>
+          ))}
         </nav>
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-          {/* Quick Booking Button */}
-          <Link 
-            href="/quick-booking"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transition-all"
-          >
-            <span>⚡</span>
-            <span>จองด่วน</span>
-          </Link>
-
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
