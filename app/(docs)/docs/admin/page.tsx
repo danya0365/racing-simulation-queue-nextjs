@@ -232,7 +232,7 @@ export default function AdminDocsPage() {
       {/* Quick Links - Hidden in Print */}
       <section className="bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-500/10 dark:to-blue-500/10 border border-cyan-300 dark:border-cyan-500/30 rounded-2xl p-6 print:hidden">
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">🔗 ลิงก์แอดมิน</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Link href="/backend" className="bg-white/50 dark:bg-cyan-500/20 hover:bg-white dark:hover:bg-cyan-500/30 border border-cyan-300 dark:border-cyan-500/30 rounded-xl p-4 text-center transition-all">
             <span className="text-2xl block mb-2">📊</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">Dashboard</span>
@@ -240,6 +240,10 @@ export default function AdminDocsPage() {
           <Link href="/backend/advance-control" className="bg-white/50 dark:bg-pink-500/20 hover:bg-white dark:hover:bg-pink-500/30 border border-pink-300 dark:border-pink-500/30 rounded-xl p-4 text-center transition-all">
             <span className="text-2xl block mb-2">🎛️</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">ห้องควบคุม</span>
+          </Link>
+          <Link href="/docs/game-control" className="bg-white/50 dark:bg-purple-500/20 hover:bg-white dark:hover:bg-purple-500/30 border border-purple-300 dark:border-purple-500/30 rounded-xl p-4 text-center transition-all">
+            <span className="text-2xl block mb-2">📖</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">คู่มือห้องควบคุม</span>
           </Link>
         </div>
       </section>

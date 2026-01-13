@@ -38,6 +38,7 @@ export default function PrintDocsPage() {
   const printAllRef = useRef<HTMLDivElement>(null);
   const printCustomerRef = useRef<HTMLDivElement>(null);
   const printAdminRef = useRef<HTMLDivElement>(null);
+  const printGameControlRef = useRef<HTMLDivElement>(null);
 
   const handlePrintAll = useReactToPrint({
     contentRef: printAllRef,
@@ -54,6 +55,12 @@ export default function PrintDocsPage() {
   const handlePrintAdmin = useReactToPrint({
     contentRef: printAdminRef,
     documentTitle: 'คู่มือสำหรับแอดมิน - Racing Queue',
+    pageStyle: printStyles,
+  });
+
+  const handlePrintGameControl = useReactToPrint({
+    contentRef: printGameControlRef,
+    documentTitle: 'คู่มือห้องควบคุมเกม - Racing Queue',
     pageStyle: printStyles,
   });
 
@@ -86,6 +93,12 @@ export default function PrintDocsPage() {
               >
                 ⚙️ พิมพ์คู่มือแอดมิน
               </button>
+              <button
+                onClick={() => handlePrintGameControl()}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white font-medium rounded-lg shadow hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                🎛️ พิมพ์คู่มือห้องควบคุม
+              </button>
             </div>
           </div>
         </div>
@@ -107,6 +120,11 @@ export default function PrintDocsPage() {
         {/* Admin Guide Content */}
         <div ref={printAdminRef}>
           <AdminGuide />
+        </div>
+
+        {/* Game Control Guide Content */}
+        <div ref={printGameControlRef}>
+          <GameControlGuide />
         </div>
 
         {/* Back Cover */}
@@ -180,6 +198,28 @@ function TableOfContents() {
             <li className="flex justify-between border-b border-dotted border-gray-300 pb-1">
               <span>2.5 พิมพ์ QR Code</span>
               <span className="text-gray-500">หน้า 10</span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-bold text-pink-600 mb-4">🎛️ ส่วนที่ 3: คู่มือห้องควบคุมเกม</h3>
+          <ul className="space-y-2 text-gray-700 ml-8">
+            <li className="flex justify-between border-b border-dotted border-gray-300 pb-1">
+              <span>3.1 เข้าหน้าห้องควบคุม</span>
+              <span className="text-gray-500">หน้า 11</span>
+            </li>
+            <li className="flex justify-between border-b border-dotted border-gray-300 pb-1">
+              <span>3.2 ภาพรวมหน้าจอหลัก</span>
+              <span className="text-gray-500">หน้า 12</span>
+            </li>
+            <li className="flex justify-between border-b border-dotted border-gray-300 pb-1">
+              <span>3.3 ระบบจับเวลา</span>
+              <span className="text-gray-500">หน้า 13</span>
+            </li>
+            <li className="flex justify-between border-b border-dotted border-gray-300 pb-1">
+              <span>3.4 จัดการการจองปัจจุบัน</span>
+              <span className="text-gray-500">หน้า 14</span>
             </li>
           </ul>
         </div>
@@ -589,6 +629,169 @@ function AdminGuide() {
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
             <p className="text-sm text-gray-700">
               💡 <strong>Tip:</strong> QR Code จะลิงก์ไปที่หน้าจองเวลาโดยตรง
+            </p>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function GameControlGuide() {
+  return (
+    <>
+      {/* Game Control Cover */}
+      <section className="print-section-cover py-16 bg-gradient-to-br from-pink-100 to-rose-100 rounded-2xl mb-8 text-center print:break-after-page print:rounded-none print:bg-pink-50">
+        <div className="text-6xl mb-4">🎛️</div>
+        <h2 className="text-4xl font-bold text-gray-900">ส่วนที่ 3</h2>
+        <h3 className="text-2xl text-pink-600 mt-2">คู่มือห้องควบคุมเกม</h3>
+        <p className="text-gray-600 mt-4">วิธีควบคุมเครื่องเล่นและจัดการเซสชัน</p>
+      </section>
+
+      {/* Section 3.1: เข้าหน้าห้องควบคุม */}
+      <section className="py-8 print:break-after-page">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-lg bg-pink-100 border-2 border-pink-400 flex items-center justify-center text-2xl">
+            🚀
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">3.1 เข้าหน้าห้องควบคุม</h2>
+        </div>
+
+        <div className="print-content-box bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <p className="text-gray-600">
+            เข้าสู่หน้าห้องควบคุมได้ 2 วิธี:
+          </p>
+
+          <ol className="space-y-3 text-gray-600">
+            <li className="flex items-start gap-2">
+              <span className="text-pink-600">1.</span>
+              จากหน้าแอดมิน คลิกที่ <span className="text-pink-600 font-medium">&ldquo;🎛️ ห้องควบคุม&rdquo;</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-pink-600">2.</span>
+              หรือเข้า URL โดยตรง: <code className="px-2 py-1 bg-gray-200 rounded text-pink-700 text-sm">/backend/advance-control</code>
+            </li>
+          </ol>
+
+          <div className="mt-4 p-4 bg-pink-50 border border-pink-200 rounded-xl">
+            <p className="text-sm text-gray-700">
+              💡 <strong>Tip:</strong> หน้านี้ออกแบบมาสำหรับใช้งานบนหน้าจอขนาดใหญ่ แนะนำให้ใช้บน Tablet หรือ PC
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3.2: ภาพรวมหน้าจอหลัก */}
+      <section className="py-8 print:break-after-page">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-lg bg-purple-100 border-2 border-purple-400 flex items-center justify-center text-2xl">
+            📊
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">3.2 ภาพรวมหน้าจอหลัก</h2>
+        </div>
+
+        <div className="print-content-box bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <p className="text-gray-600">
+            หน้าห้องควบคุมแสดงข้อมูลแบบเรียลไทม์:
+          </p>
+
+          <ul className="space-y-2 text-gray-600 ml-4 list-disc">
+            <li>🟢 <strong>เครื่องว่าง</strong> - แสดงกรอบสีเขียว พร้อมรายการจองถัดไป</li>
+            <li>🟠 <strong>กำลังเล่น</strong> - แสดงกรอบสีส้ม พร้อมข้อมูลลูกค้าและเวลาเหลือ</li>
+            <li>📊 <strong>แถบตารางวันนี้</strong> - แสดง slots ทั้งหมดของวัน (เขียว=ว่าง, แดง=จองแล้ว)</li>
+          </ul>
+
+          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+            <h4 className="font-bold text-purple-700 mb-2">สถิติด้านบน</h4>
+            <ul className="space-y-1 text-sm text-gray-700">
+              <li>✔️ เครื่องว่าง | 🏁 กำลังใช้งาน | 📅 การจองวันนี้ | ⏰ Slots ว่าง</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3.3: ระบบจับเวลา */}
+      <section className="py-8 print:break-after-page">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-lg bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-2xl">
+            ⏱️
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">3.3 ระบบจับเวลา (Session Timer)</h2>
+        </div>
+
+        <div className="print-content-box bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <p className="text-gray-600">
+            ระบบจับเวลาช่วยบันทึกเวลาเล่นจริงของลูกค้า:
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="px-3 py-1 bg-cyan-500 text-white rounded-full text-xs font-bold">▶️ เริ่ม</span>
+              <div>
+                <p className="text-gray-700 font-medium">เริ่มจับเวลา</p>
+                <p className="text-gray-500 text-sm">กดเมื่อลูกค้าเริ่มเล่น ระบบจะบันทึกเวลาเริ่มต้น</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold">⏸️ หยุด</span>
+              <div>
+                <p className="text-gray-700 font-medium">หยุดชั่วคราว</p>
+                <p className="text-gray-500 text-sm">กดเพื่อพักเวลา เช่น ลูกค้าเข้าห้องน้ำ หรือพักเบรก</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">▶️ ต่อ</span>
+              <div>
+                <p className="text-gray-700 font-medium">เริ่มจับเวลาต่อ (Resume)</p>
+                <p className="text-gray-500 text-sm">กดเพื่อจับเวลาต่อจากที่หยุดไว้ ระบบจะรวมเวลาสะสม</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-cyan-50 border border-cyan-200 rounded-xl">
+            <p className="text-sm text-gray-700">
+              💡 <strong>Tip:</strong> ระบบรองรับการ หยุด-เริ่มต่อ หลายครั้ง และจะรวมเวลาทั้งหมดที่เล่นจริง
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3.4: จัดการการจองปัจจุบัน */}
+      <section className="py-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-lg bg-emerald-100 border-2 border-emerald-400 flex items-center justify-center text-2xl">
+            ✅
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">3.4 จัดการการจองปัจจุบัน</h2>
+        </div>
+
+        <div className="print-content-box bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <p className="text-gray-600">
+            เมื่อมีการจองที่กำลังเล่นอยู่:
+          </p>
+
+          <ol className="space-y-3 text-gray-600">
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600">1.</span>
+              มองหาการ์ดเครื่องที่มี <span className="text-orange-600 font-medium">&ldquo;🏁 กำลังเล่น&rdquo;</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600">2.</span>
+              จะเห็นข้อมูล: ชื่อลูกค้า, เบอร์โทร, เวลาเริ่ม-สิ้นสุด, และเวลาที่เหลือ
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600">3.</span>
+              ใช้ปุ่มจับเวลาเพื่อบันทึกเวลาเล่นจริง
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-600">4.</span>
+              กดปุ่ม <span className="text-emerald-600 font-medium">&ldquo;✅ เสร็จสิ้น&rdquo;</span> เมื่อลูกค้าเล่นเสร็จก่อนเวลา
+            </li>
+          </ol>
+
+          <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <p className="text-sm text-gray-700">
+              💡 <strong>หมายเหตุ:</strong> การจองจะเปลี่ยนเป็น &ldquo;สำเร็จ&rdquo; อัตโนมัติเมื่อหมดเวลา หรือกดปุ่มเสร็จสิ้นก่อนได้
             </p>
           </div>
         </div>

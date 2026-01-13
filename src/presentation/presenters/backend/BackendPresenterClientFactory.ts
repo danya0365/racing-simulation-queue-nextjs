@@ -7,6 +7,7 @@
 
 'use client';
 
+import { ApiAdvanceBookingRepository } from '@/src/infrastructure/repositories/api/ApiAdvanceBookingRepository';
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
 import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
 import { BackendPresenter } from './BackendPresenter';
@@ -16,12 +17,12 @@ export class BackendPresenterClientFactory {
     // ✅ Using API repositories - no direct Supabase connection
     const machineRepository = new ApiMachineRepository();
     const queueRepository = new ApiQueueRepository();
+    const advanceBookingRepository = new ApiAdvanceBookingRepository();
 
-    return new BackendPresenter(machineRepository, queueRepository);
+    return new BackendPresenter(machineRepository, queueRepository, advanceBookingRepository);
   }
 }
 
 export function createClientBackendPresenter(): BackendPresenter {
   return BackendPresenterClientFactory.create();
 }
-
