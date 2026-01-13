@@ -74,13 +74,13 @@ export function useAuthPresenter(
   const router = useRouter();
   
   const getRedirectUrl = useCallback(() => {
-    if (typeof window === 'undefined') return '/customer';
+    if (typeof window === 'undefined') return '/backend';
     const urlParams = new URLSearchParams(window.location.search);
     const redirectTo = urlParams.get('redirectTo');
     if (redirectTo && (redirectTo.startsWith('/') || redirectTo.startsWith(window.location.origin))) {
       return redirectTo;
     }
-    return '/customer';
+    return '/backend';
   }, []);
 
   const { user, profile, session, isAuthenticated, isLoading } = useAuthStore();
