@@ -5,15 +5,15 @@
  */
 
 import {
-  AdvanceBooking,
-  AdvanceBookingStats,
-  BookingSessionLog,
-  CreateAdvanceBookingData,
-  DaySchedule,
-  IAdvanceBookingRepository,
-  TimeSlot,
-  TimeSlotStatus,
-  UpdateAdvanceBookingData,
+    AdvanceBooking,
+    AdvanceBookingStats,
+    BookingSessionLog,
+    CreateAdvanceBookingData,
+    DaySchedule,
+    IAdvanceBookingRepository,
+    TimeSlot,
+    TimeSlotStatus,
+    UpdateAdvanceBookingData,
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 import { Database } from '@/src/domain/types/supabase';
@@ -47,7 +47,15 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
         const startParts = booking.start_time.split(':');
         const endParts = booking.end_time.split(':');
         const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-        const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+        let endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+        
+        // Handle cross-midnight bookings (e.g., 22:30 - 01:30)
+        // If end_time < start_time, it means the booking goes past midnight
+        // For the CURRENT DAY's view, we only show slots up to 24:00 (end of day)
+        if (endMinutes <= startMinutes) {
+          // Booking crosses midnight - for this day's schedule, mark slots until end of day (24:00)
+          endMinutes = 24 * 60; // Mark all slots from start to midnight
+        }
         
         // Mark all slots covered by this booking
         for (let m = startMinutes; m < endMinutes; m += SLOT_DURATION_MINUTES) {
