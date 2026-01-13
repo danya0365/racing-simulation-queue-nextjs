@@ -5,14 +5,14 @@
  */
 
 import {
-    CreateQueueData,
-    IQueueRepository,
-    PaginatedResult,
-    Queue,
-    QueueStats,
-    QueueStatus,
-    QueueWithStatusDTO,
-    UpdateQueueData,
+  CreateQueueData,
+  IQueueRepository,
+  PaginatedResult,
+  Queue,
+  QueueStats,
+  QueueStatus,
+  QueueWithStatusDTO,
+  UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
 
 // Helper to create today's date with specific time
@@ -132,9 +132,9 @@ export class MockQueueRepository implements IQueueRepository {
       );
   }
 
-  async getToday(): Promise<Queue[]> {
+  async getToday(todayStr: string): Promise<Queue[]> {
     await this.delay(100);
-    const today = new Date();
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -216,8 +216,10 @@ export class MockQueueRepository implements IQueueRepository {
     return true;
   }
 
-  async getStats(): Promise<QueueStats> {
+  async getStats(todayStr: string): Promise<QueueStats> {
     await this.delay(100);
+    const today = new Date(todayStr);
+    today.setHours(0, 0, 0, 0);
 
     const totalQueues = this.queues.length;
     const waitingQueues = this.queues.filter((q) => q.status === 'waiting').length;
@@ -323,10 +325,11 @@ export class MockQueueRepository implements IQueueRepository {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async getActiveAndRecent(): Promise<Queue[]> {
+  async getActiveAndRecent(referenceTime: string): Promise<Queue[]> {
     await this.delay(100);
     
-    const twentyFourHoursAgo = new Date();
+    const ref = new Date(referenceTime);
+    const twentyFourHoursAgo = new Date(ref);
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     return this.queues
@@ -347,7 +350,7 @@ export class MockQueueRepository implements IQueueRepository {
       );
   }
 
-  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+  async resetMachineQueue(machineId: string, now: string): Promise<{ cancelledCount: number; completedCount: number }> {
     await this.delay(200);
 
     let cancelledCount = 0;

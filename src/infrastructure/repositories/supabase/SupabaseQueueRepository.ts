@@ -102,8 +102,8 @@ export class SupabaseQueueRepository implements IQueueRepository {
         status: row.status as QueueStatus,
         position: row.queue_position,
         notes: '',
-        createdAt: new Date().toISOString(), // RPC doesn't return this, not needed for status
-        updatedAt: new Date().toISOString(),
+        createdAt: '', // RPC doesn't return this, not needed for status
+        updatedAt: '',
         machineName: row.machine_name,
         queueAhead: row.queue_ahead,
         estimatedWaitMinutes: row.estimated_wait_minutes
@@ -168,8 +168,8 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return data.map(this.mapToDomain);
   }
 
-  async getToday(): Promise<Queue[]> {
-    const today = new Date();
+  async getToday(todayStr: string): Promise<Queue[]> {
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -255,8 +255,17 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return !error;
   }
 
-  async getStats(): Promise<QueueStats> {
-    const today = new Date();
+  async getStats(todayStr: string): Promise<QueueStats> {
+    if (!todayStr) {
+      return {
+        totalQueues: 0,
+        waitingQueues: 0,
+        playingQueues: 0,
+        completedQueues: 0,
+        cancelledQueues: 0,
+      };
+    }
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
 
     const { data, error } = await this.supabase
@@ -389,9 +398,9 @@ export class SupabaseQueueRepository implements IQueueRepository {
     };
   };
 
-  async getActiveAndRecent(): Promise<Queue[]> {
-    // Use direct query approach (works without RPC being registered in types)
-    const twentyFourHoursAgo = new Date();
+  async getActiveAndRecent(referenceTime: string): Promise<Queue[]> {
+    const ref = new Date(referenceTime);
+    const twentyFourHoursAgo = new Date(ref);
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     const { data, error } = await this.supabase
@@ -407,12 +416,12 @@ export class SupabaseQueueRepository implements IQueueRepository {
     return data.map(this.mapToDomain);
   }
 
-  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+  async resetMachineQueue(machineId: string, now: string): Promise<{ cancelledCount: number; completedCount: number }> {
     // Direct implementation until RPC is available
     // 1. Cancel waiting queues
     const { data: waitingData } = await this.supabase
       .from('queues')
-      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .update({ status: 'cancelled', updated_at: now })
       .eq('machine_id', machineId)
       .eq('status', 'waiting')
       .select('id');
@@ -420,7 +429,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
     // 2. Complete playing queues
     const { data: playingData } = await this.supabase
       .from('queues')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .update({ status: 'completed', updated_at: now })
       .eq('machine_id', machineId)
       .eq('status', 'playing')
       .select('id');
@@ -428,7 +437,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
     // 3. Reset machine status
     await this.supabase
       .from('machines')
-      .update({ status: 'available', current_queue_id: null, updated_at: new Date().toISOString() })
+      .update({ status: 'available', current_queue_id: null, updated_at: now })
       .eq('id', machineId);
 
     return {

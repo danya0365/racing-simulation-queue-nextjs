@@ -33,17 +33,17 @@ export class AdvanceBookingPresenter {
   /**
    * Get initial view model for the page
    */
-  async getViewModel(): Promise<AdvanceBookingViewModel> {
+  async getViewModel(todayStr: string): Promise<AdvanceBookingViewModel> {
     try {
       // Get machines and available dates in parallel
       const [machines, availableDates] = await Promise.all([
         this.machineRepo.getAll(),
-        this.advanceBookingRepo.getAvailableDates(7),
+        this.advanceBookingRepo.getAvailableDates(todayStr, 7),
       ]);
 
       // Filter active machines only
       const activeMachines = machines.filter(m => m.isActive && m.status !== 'maintenance');
-      const today = availableDates[0] || new Date().toISOString().split('T')[0];
+      const today = availableDates[0] || todayStr;
 
       return {
         machines: activeMachines,
@@ -61,20 +61,21 @@ export class AdvanceBookingPresenter {
   /**
    * Get schedule for a specific day and machine
    */
-  async getDaySchedule(machineId: string, date: string): Promise<DaySchedule> {
-    return this.advanceBookingRepo.getDaySchedule(machineId, date);
+  async getDaySchedule(machineId: string, date: string, now: string): Promise<DaySchedule> {
+    return this.advanceBookingRepo.getDaySchedule(machineId, date, now);
   }
 
   /**
    * Create a new advance booking
    */
-  async createBooking(data: CreateAdvanceBookingData): Promise<AdvanceBooking> {
+  async createBooking(data: CreateAdvanceBookingData, now: string): Promise<AdvanceBooking> {
     // Validate slot availability first
     const isAvailable = await this.advanceBookingRepo.isSlotAvailable(
       data.machineId,
       data.bookingDate,
       data.startTime,
-      data.duration
+      data.duration,
+      now
     );
 
     if (!isAvailable) {
@@ -98,9 +99,10 @@ export class AdvanceBookingPresenter {
     machineId: string,
     date: string,
     startTime: string,
-    duration: number
+    duration: number,
+    now: string
   ): Promise<boolean> {
-    return this.advanceBookingRepo.isSlotAvailable(machineId, date, startTime, duration);
+    return this.advanceBookingRepo.isSlotAvailable(machineId, date, startTime, duration, now);
   }
 
   /**

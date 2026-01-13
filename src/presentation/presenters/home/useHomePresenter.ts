@@ -60,7 +60,10 @@ export function useHomePresenter(
     setError(null);
 
     try {
-      const newViewModel = await presenter.getViewModel();
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const nowStr = now.toISOString();
+      const newViewModel = await presenter.getViewModel(todayStr, nowStr);
       if (isMountedRef.current) {
         setViewModel(newViewModel);
       }
@@ -87,7 +90,10 @@ export function useHomePresenter(
     }
     
     try {
-      const newViewModel = await presenter.getViewModel();
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const nowStr = now.toISOString();
+      const newViewModel = await presenter.getViewModel(todayStr, nowStr);
       if (isMountedRef.current) {
         setViewModel(newViewModel);
       }

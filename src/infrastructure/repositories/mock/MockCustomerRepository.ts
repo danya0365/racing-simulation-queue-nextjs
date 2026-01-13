@@ -151,7 +151,7 @@ export class MockCustomerRepository implements ICustomerRepository {
     return true;
   }
 
-  async incrementVisit(id: string, playTime: number): Promise<Customer> {
+  async incrementVisit(id: string, playTime: number, now: string): Promise<Customer> {
     const customer = await this.getById(id);
     if (!customer) {
       throw new Error('Customer not found');
@@ -162,15 +162,15 @@ export class MockCustomerRepository implements ICustomerRepository {
       ...customer,
       visitCount: customer.visitCount + 1,
       totalPlayTime: customer.totalPlayTime + playTime,
-      lastVisit: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      lastVisit: now,
+      updatedAt: now,
     };
 
     return this.customers[index];
   }
 
-  async getStats(): Promise<CustomerStats> {
-    const today = new Date();
+  async getStats(todayStr: string): Promise<CustomerStats> {
+    const today = new Date(todayStr);
     today.setHours(0, 0, 0, 0);
 
     const newToday = this.customers.filter((c) => {

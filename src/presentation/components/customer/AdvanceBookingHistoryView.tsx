@@ -96,9 +96,10 @@ export function AdvanceBookingHistoryView() {
         const allMachineBookings: AdvanceBooking[] = [];
         const schedulesMap = new Map<string, DaySchedule>();
         
+        const now = new Date().toISOString();
         await Promise.all(machines.map(async (machine) => {
           const [machineSchedule, machineBookings] = await Promise.all([
-            advanceBookingRepo.getDaySchedule(machine.id, selectedDate),
+            advanceBookingRepo.getDaySchedule(machine.id, selectedDate, now),
             advanceBookingRepo.getByMachineAndDate(machine.id, selectedDate),
           ]);
           schedulesMap.set(machine.id, machineSchedule);
@@ -110,8 +111,9 @@ export function AdvanceBookingHistoryView() {
         setSchedule(null);
       } else {
         // Load for specific machine
+        const now = new Date().toISOString();
         const [machineSchedule, machineBookings] = await Promise.all([
-          advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate),
+          advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate, now),
           advanceBookingRepo.getByMachineAndDate(selectedMachineId, selectedDate),
         ]);
         setSchedule(machineSchedule);

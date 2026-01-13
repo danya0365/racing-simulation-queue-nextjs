@@ -41,14 +41,14 @@ export class HomePresenter {
   /**
    * Get view model for the home page
    */
-  async getViewModel(): Promise<HomeViewModel> {
+  async getViewModel(todayStr: string, now: string): Promise<HomeViewModel> {
     try {
       // Get data in parallel for better performance
       const [allMachines, machineStats, waitingQueues, queueStats] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getStats(),
         this.queueRepository.getWaiting(),
-        this.queueRepository.getStats(),
+        this.queueRepository.getStats(todayStr),
       ]));
 
       // Filter only active machines for client display
@@ -60,7 +60,7 @@ export class HomePresenter {
         machineStats,
         waitingQueues,
         queueStats,
-        currentTime: new Date().toISOString(),
+        currentTime: now,
       };
     } catch (error) {
       console.error('Error getting home view model:', error);

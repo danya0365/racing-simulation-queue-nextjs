@@ -26,7 +26,7 @@ const SLOT_DURATION_MINUTES = OPERATING_HOURS.slotDurationMinutes;
 export class SupabaseAdvanceBookingRepository implements IAdvanceBookingRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
-  async getDaySchedule(machineId: string, date: string): Promise<DaySchedule> {
+  async getDaySchedule(machineId: string, date: string, referenceTime?: string): Promise<DaySchedule> {
     // Get bookings for this date from RPC
     const { data: bookings, error } = await this.supabase
       .rpc('rpc_get_advance_schedule', {
@@ -58,7 +58,7 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
       });
     }
 
-    const timeSlots = this.generateTimeSlots(date, bookedSlots);
+    const timeSlots = this.generateTimeSlots(date, bookedSlots, referenceTime);
     const availableSlots = timeSlots.filter(s => s.status === 'available').length;
     const bookedCount = timeSlots.filter(s => s.bookingId !== undefined).length;
 
@@ -72,14 +72,16 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
     };
   }
 
-  async getAvailableDates(daysAhead: number = 7): Promise<string[]> {
+  async getAvailableDates(todayStr: string, daysAhead: number = 7): Promise<string[]> {
     const dates: string[] = [];
-    const today = new Date();
+    const [year, month, day] = todayStr.split('-').map(Number);
     
     for (let i = 0; i < daysAhead; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
+      const date = new Date(year, month - 1, day + i);
+      const dYear = date.getFullYear();
+      const dMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const dDay = String(date.getDate()).padStart(2, '0');
+      dates.push(`${dYear}-${dMonth}-${dDay}`);
     }
     
     return dates;
@@ -221,9 +223,10 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
     machineId: string,
     date: string,
     startTime: string,
-    duration: number
+    duration: number,
+    referenceTime?: string
   ): Promise<boolean> {
-    const schedule = await this.getDaySchedule(machineId, date);
+    const schedule = await this.getDaySchedule(machineId, date, referenceTime);
     const slotsNeeded = Math.ceil(duration / SLOT_DURATION_MINUTES);
     
     // Find the starting slot index
@@ -264,14 +267,15 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
     };
   }
 
-  /**
-   * Generate time slots for a day
-   */
-  private generateTimeSlots(date: string, bookedSlots: Map<string, string>): TimeSlot[] {
+  private generateTimeSlots(date: string, bookedSlots: Map<string, string>, referenceTime?: string): TimeSlot[] {
     const slots: TimeSlot[] = [];
-    const now = new Date();
+    
+    // If no reference time provided, don't mark any slots as passed
+    const now = referenceTime ? new Date(referenceTime) : null;
     const targetDate = new Date(date);
-    const isToday = now.toDateString() === targetDate.toDateString();
+    const isToday = now && now.getFullYear() === targetDate.getFullYear() && 
+                    now.getMonth() === targetDate.getMonth() && 
+                    now.getDate() === targetDate.getDate();
 
     for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
       for (let minute = 0; minute < 60; minute += SLOT_DURATION_MINUTES) {
@@ -284,7 +288,7 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
         let bookingId: string | undefined;
         
         // Check if slot has passed (for today)
-        if (isToday) {
+        if (isToday && now) {
           const slotTime = new Date(date);
           slotTime.setHours(hour, minute, 0, 0);
           if (slotTime < now && status === 'available') { // Only mark as passed if not already booked

@@ -31,7 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdvanceBookingPage() {
   try {
     const presenter = await createServerAdvanceBookingPresenter();
-    const viewModel = await presenter.getViewModel();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const viewModel = await presenter.getViewModel(todayStr);
 
     return <AdvanceBookingView initialViewModel={viewModel} />;
   } catch (error) {

@@ -65,7 +65,8 @@ export function useCustomersPresenter(
     setError(null);
 
     try {
-      const vm = await presenter.getViewModel();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const vm = await presenter.getViewModel(todayStr);
       if (isMountedRef.current) {
         setViewModel(vm);
       }

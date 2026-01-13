@@ -118,7 +118,8 @@ export function QuickAdvanceBookingView() {
     if (!selectedMachineId) return;
     
     try {
-      const data = await advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate);
+      const now = new Date().toISOString();
+      const data = await advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate, now);
       setSchedule(data);
     } catch (err) {
       console.error('Error loading schedule:', err);

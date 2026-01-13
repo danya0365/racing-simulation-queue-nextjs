@@ -45,7 +45,7 @@ export class BackendPresenter {
   /**
    * Get dashboard data (Stats + Light Machine Check)
    */
-  async getDashboardData(): Promise<Partial<BackendViewModel>> {
+  async getDashboardData(now: string): Promise<Partial<BackendViewModel>> {
     try {
       // Parallel fetch: Stats + Machines (needed for stats display sometimes) + Waiting Queues count
       const [backendStats, machines] = await this.withTimeout(Promise.all([
@@ -72,7 +72,7 @@ export class BackendPresenter {
       // But getActiveAndRecent is cheap enough (today's data).
       // Let's use getWaiting just for the count if stats didn't have it, but stats has it.
       // We need `activeQueues` for "Recent Queues" list in dashboard.
-      const activeQueues = await this.withTimeout(this.queueRepository.getActiveAndRecent());
+      const activeQueues = await this.withTimeout(this.queueRepository.getActiveAndRecent(now));
 
       return {
         machineStats,
@@ -91,11 +91,11 @@ export class BackendPresenter {
   /**
    * Get control room data (Realtime machines + queues)
    */
-  async getControlData(): Promise<Partial<BackendViewModel>> {
+  async getControlData(now: string): Promise<Partial<BackendViewModel>> {
     try {
       const [machines, activeQueues] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
-        this.queueRepository.getActiveAndRecent(),
+        this.queueRepository.getActiveAndRecent(now),
       ]));
 
       // Recalculate basic stats on client for immediate consistency
@@ -123,9 +123,9 @@ export class BackendPresenter {
    * Get view model for the backend page (Unified loader)
    * This is kept for backward compatibility but internal logic can use partials
    */
-  async getViewModel(): Promise<BackendViewModel> {
+  async getViewModel(now: string): Promise<BackendViewModel> {
     // Default to loading control data as it's the most comprehensive set commonly needed
-    const data = await this.getControlData();
+    const data = await this.getControlData(now);
     // Fill missing stats with defaults if needed
     return {
       machines: data.machines || [],
@@ -210,9 +210,9 @@ export class BackendPresenter {
   /**
    * Reset all queues for a machine
    */
-  async resetMachineQueue(machineId: string): Promise<{ cancelledCount: number; completedCount: number }> {
+  async resetMachineQueue(machineId: string, now: string): Promise<{ cancelledCount: number; completedCount: number }> {
     try {
-      return await this.queueRepository.resetMachineQueue(machineId);
+      return await this.queueRepository.resetMachineQueue(machineId, now);
     } catch (error) {
       console.error('Error resetting machine queue:', error);
       throw error;

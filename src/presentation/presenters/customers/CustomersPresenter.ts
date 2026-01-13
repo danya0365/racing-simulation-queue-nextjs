@@ -5,11 +5,11 @@
  */
 
 import {
-  CreateCustomerData,
-  Customer,
-  CustomerStats,
-  ICustomerRepository,
-  UpdateCustomerData
+    CreateCustomerData,
+    Customer,
+    CustomerStats,
+    ICustomerRepository,
+    UpdateCustomerData
 } from '@/src/application/repositories/ICustomerRepository';
 
 export interface CustomersViewModel {
@@ -53,9 +53,9 @@ export class CustomersPresenter {
   /**
    * Get customer stats
    */
-  async getStats(): Promise<CustomerStats> {
+  async getStats(todayStr: string): Promise<CustomerStats> {
     try {
-      return await this.withTimeout(this.customerRepository.getStats());
+      return await this.withTimeout(this.customerRepository.getStats(todayStr));
     } catch (error) {
       console.error('Error getting customer stats:', error);
       throw error;
@@ -120,11 +120,11 @@ export class CustomersPresenter {
   /**
    * Get view model
    */
-  async getViewModel(): Promise<CustomersViewModel> {
+  async getViewModel(todayStr: string): Promise<CustomersViewModel> {
     // Methods are already wrapped with timeout
     const [customers, stats] = await Promise.all([
       this.getAllCustomers(),
-      this.getStats(),
+      this.getStats(todayStr),
     ]);
     return { customers, stats };
   }

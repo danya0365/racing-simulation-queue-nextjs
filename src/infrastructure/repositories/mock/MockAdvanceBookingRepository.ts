@@ -24,11 +24,13 @@ const SLOT_DURATION_MINUTES = OPERATING_HOURS.slotDurationMinutes;
 /**
  * Generate time slots for a day
  */
-function generateTimeSlots(date: string, bookedSlots: Map<string, string>): TimeSlot[] {
+function generateTimeSlots(date: string, bookedSlots: Map<string, string>, referenceTime?: string): TimeSlot[] {
   const slots: TimeSlot[] = [];
-  const now = new Date();
+  const now = referenceTime ? new Date(referenceTime) : new Date();
   const targetDate = new Date(date);
-  const isToday = now.toDateString() === targetDate.toDateString();
+  const isToday = now.getFullYear() === targetDate.getFullYear() && 
+                  now.getMonth() === targetDate.getMonth() && 
+                  now.getDate() === targetDate.getDate();
 
   for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
     for (let minute = 0; minute < 60; minute += SLOT_DURATION_MINUTES) {
@@ -50,7 +52,7 @@ function generateTimeSlots(date: string, bookedSlots: Map<string, string>): Time
       if (isToday) {
         const slotTime = new Date(date);
         slotTime.setHours(hour, minute, 0, 0);
-        if (slotTime < now) {
+        if (slotTime < now && status === 'available') {
           status = 'passed';
         }
       }
@@ -127,7 +129,7 @@ const MOCK_BOOKINGS: AdvanceBooking[] = [
 export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
   private bookings: AdvanceBooking[] = [...MOCK_BOOKINGS];
 
-  async getDaySchedule(machineId: string, date: string): Promise<DaySchedule> {
+  async getDaySchedule(machineId: string, date: string, referenceTime?: string): Promise<DaySchedule> {
     await this.delay(150);
     
     // Get bookings for this machine and date
@@ -154,7 +156,7 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
       }
     });
     
-    const timeSlots = generateTimeSlots(date, bookedSlots);
+    const timeSlots = generateTimeSlots(date, bookedSlots, referenceTime);
     const availableSlots = timeSlots.filter(s => s.status === 'available').length;
     const bookedCount = timeSlots.filter(s => s.bookingId !== undefined).length;
     
@@ -168,16 +170,20 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     };
   }
 
-  async getAvailableDates(daysAhead: number = 7): Promise<string[]> {
+  async getAvailableDates(todayStr: string, daysAhead: number = 7): Promise<string[]> {
     await this.delay(50);
     
     const dates: string[] = [];
-    const today = new Date();
+    const [year, month, day] = todayStr.split('-').map(Number);
+    const startDate = new Date(year, month - 1, day);
     
     for (let i = 0; i < daysAhead; i++) {
-      const date = new Date(today);
+      const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
+      const dYear = date.getFullYear();
+      const dMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const dDay = String(date.getDate()).padStart(2, '0');
+      dates.push(`${dYear}-${dMonth}-${dDay}`);
     }
     
     return dates;
@@ -269,11 +275,12 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     machineId: string, 
     date: string, 
     startTime: string, 
-    duration: number
+    duration: number,
+    referenceTime?: string
   ): Promise<boolean> {
     await this.delay(100);
     
-    const schedule = await this.getDaySchedule(machineId, date);
+    const schedule = await this.getDaySchedule(machineId, date, referenceTime);
     const slotsNeeded = Math.ceil(duration / SLOT_DURATION_MINUTES);
     
     // Find the starting slot index

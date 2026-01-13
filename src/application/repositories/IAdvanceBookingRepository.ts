@@ -92,12 +92,12 @@ export interface IAdvanceBookingRepository {
   /**
    * Get schedule for a specific day and machine
    */
-  getDaySchedule(machineId: string, date: string): Promise<DaySchedule>;
+  getDaySchedule(machineId: string, date: string, referenceTime?: string): Promise<DaySchedule>;
 
   /**
    * Get available dates (next N days)
    */
-  getAvailableDates(daysAhead?: number): Promise<string[]>;
+  getAvailableDates(todayStr: string, daysAhead?: number): Promise<string[]>;
 
   /**
    * Get booking by ID
@@ -132,7 +132,7 @@ export interface IAdvanceBookingRepository {
   /**
    * Check if a time slot is available
    */
-  isSlotAvailable(machineId: string, date: string, startTime: string, duration: number): Promise<boolean>;
+  isSlotAvailable(machineId: string, date: string, startTime: string, duration: number, referenceTime?: string): Promise<boolean>;
 
   /**
    * Get statistics

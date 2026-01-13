@@ -67,9 +67,10 @@ export function AdvanceControlView() {
       const schedulesMap = new Map<string, DaySchedule>();
       const allMachineBookings: AdvanceBooking[] = [];
 
+      const nowStr = new Date().toISOString();
       await Promise.all(activeMachines.map(async (machine) => {
         const [schedule, machineBookings] = await Promise.all([
-          advanceBookingRepo.getDaySchedule(machine.id, today),
+          advanceBookingRepo.getDaySchedule(machine.id, today, nowStr),
           advanceBookingRepo.getByMachineAndDate(machine.id, today),
         ]);
         schedulesMap.set(machine.id, schedule);

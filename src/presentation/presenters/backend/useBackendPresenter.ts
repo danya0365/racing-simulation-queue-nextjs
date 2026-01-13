@@ -90,12 +90,13 @@ export function useBackendPresenter(
     try {
       let partialData: Partial<BackendViewModel> = {};
       
+      const nowStr = new Date().toISOString();
       if (tab === 'dashboard') {
-        partialData = await presenter.getDashboardData();
+        partialData = await presenter.getDashboardData(nowStr);
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
-        partialData = await presenter.getControlData();
+        partialData = await presenter.getControlData(nowStr);
       } else {
-        partialData = await presenter.getViewModel();
+        partialData = await presenter.getViewModel(nowStr);
       }
 
       // ✅ Only update state if still mounted
@@ -253,7 +254,8 @@ export function useBackendPresenter(
     setError(null);
 
     try {
-      await presenter.resetMachineQueue(machineId);
+      const nowStr = new Date().toISOString();
+      await presenter.resetMachineQueue(machineId, nowStr);
       await refreshData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

@@ -78,12 +78,12 @@ export interface ICustomerRepository {
   /**
    * Increment visit count
    */
-  incrementVisit(id: string, playTime: number): Promise<Customer>;
+  incrementVisit(id: string, playTime: number, now: string): Promise<Customer>;
 
   /**
    * Get customer statistics
    */
-  getStats(): Promise<CustomerStats>;
+  getStats(todayDate: string): Promise<CustomerStats>;
 
   /**
    * Get VIP customers
