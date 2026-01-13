@@ -192,7 +192,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
                   )}
 
                   {/* CTA */}
-                  <Link href={`/quick-advance-booking`}>
+                  <Link href={`/time-booking`}>
                     <GlowButton color="purple" size="sm" className="w-full">
                       📅 จองเครื่องนี้
                     </GlowButton>
@@ -243,12 +243,12 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
             เลือกเวลาที่ต้องการและจองเลยตอนนี้!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/quick-advance-booking">
+            <Link href="/time-booking">
               <GlowButton color="pink" size="lg">
                 📅 จองเลย
               </GlowButton>
             </Link>
-            <Link href="/customer/advance-booking-history">
+            <Link href="/customer/booking-history">
               <GlowButton color="purple" size="lg">
                 📋 ดูตารางทั้งหมด
               </GlowButton>

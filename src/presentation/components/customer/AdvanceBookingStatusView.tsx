@@ -193,7 +193,7 @@ export function AdvanceBookingStatusView() {
             <div className="text-6xl mb-4">📱</div>
             <h3 className="text-xl font-bold text-foreground mb-2">ใส่เบอร์โทรเพื่อค้นหา</h3>
             <p className="text-muted mb-6">กรอกเบอร์โทรที่ใช้จองเพื่อดูรายการจองของคุณ</p>
-            <Link href="/quick-advance-booking">
+            <Link href="/time-booking">
               <GlowButton color="purple">📅 จองคิวใหม่</GlowButton>
             </Link>
           </AnimatedCard>
@@ -205,7 +205,7 @@ export function AdvanceBookingStatusView() {
             <div className="text-6xl mb-4">📭</div>
             <h3 className="text-xl font-bold text-foreground mb-2">ไม่พบการจอง</h3>
             <p className="text-muted mb-6">ไม่พบการจองสำหรับเบอร์ {searchPhone}</p>
-            <Link href="/quick-advance-booking">
+            <Link href="/time-booking">
               <GlowButton color="purple">📅 จองคิวใหม่</GlowButton>
             </Link>
           </AnimatedCard>
@@ -320,7 +320,7 @@ export function AdvanceBookingStatusView() {
         {/* Quick Actions */}
         {bookings.length > 0 && (
           <div className="mt-8 pt-6 border-t border-border text-center">
-            <Link href="/quick-advance-booking">
+            <Link href="/time-booking">
               <GlowButton color="purple" size="lg">
                 📅 จองคิวเพิ่ม
               </GlowButton>

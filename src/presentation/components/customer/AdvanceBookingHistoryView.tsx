@@ -440,7 +440,7 @@ export function AdvanceBookingHistoryView() {
             <div className="text-center py-8">
               <div className="text-5xl mb-4">📭</div>
               <p className="text-muted">ไม่มีการจองในวันนี้</p>
-              <Link href="/quick-advance-booking" className="mt-4 inline-block">
+              <Link href="/time-booking" className="mt-4 inline-block">
                 <GlowButton color="purple">📅 จองเลย</GlowButton>
               </Link>
             </div>
@@ -493,7 +493,7 @@ export function AdvanceBookingHistoryView() {
 
         {/* Quick Actions */}
         <div className="mt-8 text-center">
-          <Link href="/quick-advance-booking">
+          <Link href="/time-booking">
             <GlowButton color="purple" size="lg">
               📅 จองคิวใหม่
             </GlowButton>

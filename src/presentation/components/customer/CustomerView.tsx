@@ -149,7 +149,7 @@ export function CustomerView({ initialViewModel }: CustomerViewProps) {
           </div>
 
           {/* Advance Booking Promotion */}
-          <Link href="/customer/advance-booking" className="block mt-4">
+          <Link href="/customer/booking" className="block mt-4">
             <div className="bg-gradient-to-r from-purple-500/20 via-pink-500/15 to-cyan-500/20 border border-purple-500/40 rounded-xl p-4 hover:border-purple-400 transition-all hover:shadow-lg hover:shadow-purple-500/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

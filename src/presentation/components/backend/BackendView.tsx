@@ -191,7 +191,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
 
       {/* Hidden Printable Component */}
       <div style={{ display: 'none' }}>
-        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/quick-advance-booking" />
+        <QuickBookingQRCode ref={qrCodeRef} url="http://localhost:3000/time-booking" />
       </div>
     </div>
   );

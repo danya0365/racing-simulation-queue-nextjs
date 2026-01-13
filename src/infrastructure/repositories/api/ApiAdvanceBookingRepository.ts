@@ -18,7 +18,7 @@ import {
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 
 export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
-  private baseUrl = '/api/advance-bookings';
+  private baseUrl = '/api/bookings';
 
   /**
    * Get schedule for a specific day and machine
