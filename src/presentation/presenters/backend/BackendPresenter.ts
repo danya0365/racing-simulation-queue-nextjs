@@ -4,6 +4,7 @@
  * Receives repository via dependency injection
  */
 
+import { AdvanceBooking, AdvanceBookingStats, IAdvanceBookingRepository } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { IMachineRepository, Machine, MachineStats, MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import { IQueueRepository, Queue, QueueStats, QueueStatus } from '@/src/application/repositories/IQueueRepository';
 import { Metadata } from 'next';
@@ -16,6 +17,10 @@ export interface BackendViewModel {
   /** Active queues (waiting/playing) + recently finished (24h) - for 24-hour operations */
   activeQueues: Queue[];
   waitingQueues: Queue[];
+  /** Today's advance bookings */
+  todayBookings: AdvanceBooking[];
+  /** Advance booking stats */
+  bookingStats: AdvanceBookingStats;
 }
 
 /**
@@ -24,7 +29,8 @@ export interface BackendViewModel {
 export class BackendPresenter {
   constructor(
     private readonly machineRepository: IMachineRepository,
-    private readonly queueRepository: IQueueRepository
+    private readonly queueRepository: IQueueRepository,
+    private readonly advanceBookingRepository?: IAdvanceBookingRepository
   ) {}
 
   /**
@@ -126,6 +132,48 @@ export class BackendPresenter {
   async getViewModel(now: string): Promise<BackendViewModel> {
     // Default to loading control data as it's the most comprehensive set commonly needed
     const data = await this.getControlData(now);
+
+    // Fetch today's advance bookings if repository is available
+    let todayBookings: AdvanceBooking[] = [];
+    let bookingStats: AdvanceBookingStats = {
+      totalBookings: 0,
+      pendingBookings: 0,
+      confirmedBookings: 0,
+      cancelledBookings: 0,
+      completedBookings: 0,
+    };
+
+    if (this.advanceBookingRepository) {
+      try {
+        // Get today's date in YYYY-MM-DD format
+        const today = now.slice(0, 10);
+        
+        // Fetch bookings for all machines for today
+        const machines = data.machines || [];
+        const allBookings: AdvanceBooking[] = [];
+        
+        await Promise.all(
+          machines.map(async (machine) => {
+            const machineBookings = await this.advanceBookingRepository!.getByMachineAndDate(machine.id, today);
+            allBookings.push(...machineBookings);
+          })
+        );
+        
+        todayBookings = allBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        
+        // Calculate stats from today's bookings
+        bookingStats = {
+          totalBookings: todayBookings.length,
+          pendingBookings: todayBookings.filter(b => b.status === 'pending').length,
+          confirmedBookings: todayBookings.filter(b => b.status === 'confirmed').length,
+          cancelledBookings: todayBookings.filter(b => b.status === 'cancelled').length,
+          completedBookings: todayBookings.filter(b => b.status === 'completed').length,
+        };
+      } catch (error) {
+        console.error('Error fetching advance bookings:', error);
+      }
+    }
+
     // Fill missing stats with defaults if needed
     return {
       machines: data.machines || [],
@@ -134,6 +182,8 @@ export class BackendPresenter {
       queueStats: { totalQueues: 0, waitingQueues: 0, playingQueues: 0, completedQueues: 0, cancelledQueues: 0 },
       activeQueues: data.activeQueues || [],
       waitingQueues: data.waitingQueues || [],
+      todayBookings,
+      bookingStats,
     };
   }
 
