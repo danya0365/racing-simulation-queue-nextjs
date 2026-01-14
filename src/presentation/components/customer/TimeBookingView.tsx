@@ -9,6 +9,7 @@ import {
 } from '@/src/presentation/presenters/timeBooking/useTimeBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -49,19 +50,15 @@ export function TimeBookingView({
   // Generate date options (today + 7 days)
   const dateOptions = useMemo(() => {
     const dates: { date: string; label: string }[] = [];
-    const today = new Date();
+    const today = dayjs().startOf('day');
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      const date = today.add(i, 'day');
+      const dateStr = date.format('YYYY-MM-DD');
       const label = i === 0 ? 'วันนี้' : new Intl.DateTimeFormat('th-TH', {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
-      }).format(date);
+      }).format(date.toDate());
       dates.push({ date: dateStr, label });
     }
     return dates;
@@ -74,7 +71,7 @@ export function TimeBookingView({
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(dateStr));
+    }).format(dayjs(dateStr).toDate());
   };
 
   // Handle form submit
@@ -353,13 +350,13 @@ export function TimeBookingView({
                         >
                           <div className="text-center">
                             <div className="text-sm font-medium mb-1">
-                              {index === 0 ? 'วันนี้' : new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(new Date(d.date))}
+                              {index === 0 ? 'วันนี้' : new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(dayjs(d.date).toDate())}
                             </div>
                             <div className="text-xl font-bold">
-                              {new Date(d.date).getDate()}
+                              {dayjs(d.date).date()}
                             </div>
                             <div className="text-xs opacity-70">
-                              {new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(new Date(d.date))}
+                              {new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(dayjs(d.date).toDate())}
                             </div>
                           </div>
                         </animated.button>

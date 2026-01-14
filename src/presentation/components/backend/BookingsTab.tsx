@@ -5,6 +5,7 @@ import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { Portal } from '../ui/Portal';
@@ -12,7 +13,7 @@ import { Portal } from '../ui/Portal';
 export function BookingsTab() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all'); // Default to 'all'
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
   const [bookings, setBookings] = useState<AdvanceBooking[]>([]);
   const [allBookings, setAllBookings] = useState<AdvanceBooking[]>([]); // All machines bookings
   const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map()); // Schedules per machine
@@ -32,14 +33,9 @@ export function BookingsTab() {
   // Generate date options (today + 7 days)
   const dateOptions = useMemo(() => {
     const dates: string[] = [];
-    const today = new Date();
+    const today = dayjs().startOf('day');
     for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      dates.push(`${year}-${month}-${day}`);
+      dates.push(today.add(i, 'day').format('YYYY-MM-DD'));
     }
     return dates;
   }, []);
@@ -70,7 +66,7 @@ export function BookingsTab() {
         const allMachineBookings: AdvanceBooking[] = [];
         const schedulesMap = new Map<string, DaySchedule>();
         
-        const now = new Date().toISOString();
+        const now = dayjs().toISOString();
         await Promise.all(machines.map(async (machine) => {
           const [schedule, machineBookings] = await Promise.all([
             advanceBookingRepo.getDaySchedule(machine.id, selectedDate, now),
@@ -86,7 +82,7 @@ export function BookingsTab() {
         setDaySchedule(null); // No single schedule for 'all'
       } else {
         // Load for specific machine
-        const now = new Date().toISOString();
+        const now = dayjs().toISOString();
         const [schedule, machineBookings] = await Promise.all([
           advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate, now),
           advanceBookingRepo.getByMachineAndDate(selectedMachineId, selectedDate),
@@ -149,12 +145,11 @@ export function BookingsTab() {
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
     return new Intl.DateTimeFormat('th-TH', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-    }).format(date);
+    }).format(dayjs(dateString).toDate());
   };
 
   // Get status color

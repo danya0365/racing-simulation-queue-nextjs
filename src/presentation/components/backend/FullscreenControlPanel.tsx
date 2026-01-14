@@ -1,6 +1,7 @@
 'use client';
 
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Portal } from '../ui/Portal';
@@ -43,13 +44,13 @@ export function FullscreenControlPanel({
   formatTime,
   isModal = true,
 }: FullscreenControlPanelProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(dayjs());
   const [viewQueueMachineId, setViewQueueMachineId] = useState<string | null>(null);
 
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      setCurrentTime(dayjs());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -67,7 +68,7 @@ export function FullscreenControlPanel({
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-    }).format(currentTime);
+    }).format(currentTime.toDate());
   };
 
   const formatCurrentDate = () => {
@@ -75,7 +76,7 @@ export function FullscreenControlPanel({
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-    }).format(currentTime);
+    }).format(currentTime.toDate());
   };
 
   const containerClass = isModal

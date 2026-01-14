@@ -2,6 +2,7 @@
 
 import type { Machine, MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import type { Queue, QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackendPresenter, BackendViewModel } from './BackendPresenter';
 import { createClientBackendPresenter } from './BackendPresenterClientFactory';
@@ -90,7 +91,7 @@ export function useBackendPresenter(
     try {
       let partialData: Partial<BackendViewModel> = {};
       
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       if (tab === 'dashboard') {
         partialData = await presenter.getDashboardData(nowStr);
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
@@ -254,7 +255,7 @@ export function useBackendPresenter(
     setError(null);
 
     try {
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       await presenter.resetMachineQueue(machineId, nowStr);
       await refreshData();
     } catch (err) {

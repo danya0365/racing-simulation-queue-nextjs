@@ -7,6 +7,7 @@ import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -85,19 +86,13 @@ export function BookingStatusView() {
 
   // Format date for display
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const date = dayjs(dateStr);
+    const today = dayjs().startOf('day');
+    const tomorrow = today.add(1, 'day');
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-
-    const bookingDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-    if (bookingDateStr === todayStr) {
+    if (date.isSame(today, 'day')) {
       return 'วันนี้';
-    } else if (bookingDateStr === tomorrowStr) {
+    } else if (date.isSame(tomorrow, 'day')) {
       return 'พรุ่งนี้';
     }
 
@@ -105,7 +100,7 @@ export function BookingStatusView() {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-    }).format(date);
+    }).format(date.toDate());
   };
 
   // Format time
@@ -130,15 +125,12 @@ export function BookingStatusView() {
   };
 
   // Separate upcoming and past bookings
-  const today = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const todayStr = dayjs().format('YYYY-MM-DD');
   const upcomingBookings = bookings.filter(b =>
-    b.bookingDate >= today && (b.status === 'confirmed' || b.status === 'pending')
+    b.bookingDate >= todayStr && (b.status === 'confirmed' || b.status === 'pending')
   );
   const pastBookings = bookings.filter(b =>
-    b.bookingDate < today || b.status === 'completed' || b.status === 'cancelled'
+    b.bookingDate < todayStr || b.status === 'completed' || b.status === 'cancelled'
   );
 
   return (
@@ -221,7 +213,7 @@ export function BookingStatusView() {
             <div className="space-y-4">
               {upcomingBookings.map((booking, index) => {
                 const statusConfig = getStatusConfig(booking.status);
-                const isToday = booking.bookingDate === today;
+                const isToday = booking.bookingDate === todayStr;
 
                 return (
                   <AnimatedCard

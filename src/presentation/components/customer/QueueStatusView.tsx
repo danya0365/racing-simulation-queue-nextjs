@@ -5,6 +5,7 @@ import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import { useSingleQueuePresenter } from '@/src/presentation/presenters/singleQueue/useSingleQueuePresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -30,7 +31,7 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const formatDate = (dateString: string) => {
@@ -38,7 +39,7 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const getStatusConfig = (status: string) => {
@@ -327,13 +328,13 @@ interface CustomerFocusModeProps {
 }
 
 function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocusModeProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(dayjs());
   const [refreshing, setRefreshing] = useState(false);
 
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      setCurrentTime(dayjs());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -358,14 +359,14 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-    }).format(currentTime);
+    }).format(currentTime.toDate());
   };
 
   const formatBookingTime = () => {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(queue.bookingTime));
+    }).format(dayjs(queue.bookingTime).toDate());
   };
 
   // Use estimated wait time from queue (calculated by presenter from actual durations)

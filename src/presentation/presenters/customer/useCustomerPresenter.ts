@@ -3,6 +3,7 @@
 import type { Machine } from '@/src/application/repositories/IMachineRepository';
 import type { Queue } from '@/src/application/repositories/IQueueRepository';
 import { ActiveBooking, useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookingFormData, CustomerPresenter, CustomerViewModel } from './CustomerPresenter';
 import { createClientCustomerPresenter } from './CustomerPresenterClientFactory';
@@ -220,7 +221,7 @@ export function useCustomerPresenter(
         duration: newQueue.duration,
         position: newQueue.position,
         status: newQueue.status as ActiveBooking['status'],
-        createdAt: new Date().toISOString(),
+        createdAt: dayjs().toISOString(),
       });
       
       if (isMountedRef.current) {
@@ -304,7 +305,7 @@ export function useCustomerPresenter(
               duration: q.duration,
               position: q.position,
               status: q.status as ActiveBooking['status'],
-              createdAt: q.createdAt || new Date().toISOString(),
+              createdAt: q.createdAt || dayjs().toISOString(),
             });
           }
         }
@@ -349,7 +350,7 @@ export function useCustomerPresenter(
             duration: result.duration,
             position: result.position,
             status: result.status as ActiveBooking['status'],
-            createdAt: result.createdAt || new Date().toISOString(),
+            createdAt: result.createdAt || dayjs().toISOString(),
           });
         }
       }

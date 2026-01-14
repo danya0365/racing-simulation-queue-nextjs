@@ -5,17 +5,18 @@
  */
 
 import {
-    AdvanceBooking,
-    AdvanceBookingStats,
-    BookingSessionLog,
-    CreateAdvanceBookingData,
-    DaySchedule,
-    IAdvanceBookingRepository,
-    TimeSlot,
-    TimeSlotStatus,
-    UpdateAdvanceBookingData,
+  AdvanceBooking,
+  AdvanceBookingStats,
+  BookingSessionLog,
+  CreateAdvanceBookingData,
+  DaySchedule,
+  IAdvanceBookingRepository,
+  TimeSlot,
+  TimeSlotStatus,
+  UpdateAdvanceBookingData,
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
+import dayjs from 'dayjs';
 
 // Operating hours configuration - moved to booking.config.ts
 const OPENING_HOUR = OPERATING_HOURS.isOpen24Hours ? 0 : OPERATING_HOURS.open;
@@ -27,11 +28,9 @@ const SLOT_DURATION_MINUTES = OPERATING_HOURS.slotDurationMinutes;
  */
 function generateTimeSlots(date: string, bookedSlots: Map<string, string>, referenceTime?: string): TimeSlot[] {
   const slots: TimeSlot[] = [];
-  const now = referenceTime ? new Date(referenceTime) : new Date();
-  const targetDate = new Date(date);
-  const isToday = now.getFullYear() === targetDate.getFullYear() && 
-                  now.getMonth() === targetDate.getMonth() && 
-                  now.getDate() === targetDate.getDate();
+  const now = referenceTime ? dayjs(referenceTime) : dayjs();
+  const targetDate = dayjs(date);
+  const isToday = now.isSame(targetDate, 'day');
 
   for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
     for (let minute = 0; minute < 60; minute += SLOT_DURATION_MINUTES) {
@@ -51,9 +50,8 @@ function generateTimeSlots(date: string, bookedSlots: Map<string, string>, refer
       
       // Check if slot has passed (for today)
       if (isToday) {
-        const slotTime = new Date(date);
-        slotTime.setHours(hour, minute, 0, 0);
-        if (slotTime < now && status === 'available') {
+        const slotTime = dayjs(date).hour(hour).minute(minute).second(0).millisecond(0);
+        if (slotTime.isBefore(now) && status === 'available') {
           status = 'passed';
         }
       }
@@ -78,52 +76,52 @@ const MOCK_BOOKINGS: AdvanceBooking[] = [
     machineId: 'machine-001',
     customerName: 'สมชาย ใจดี',
     customerPhone: '081-234-5678',
-    bookingDate: new Date().toISOString().split('T')[0], // Today
+    bookingDate: dayjs().format('YYYY-MM-DD'), // Today
     startTime: '14:00',
     endTime: '15:00',
     duration: 60,
     status: 'confirmed',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: dayjs().toISOString(),
+    updatedAt: dayjs().toISOString(),
   },
   {
     id: 'adv-002',
     machineId: 'machine-001',
     customerName: 'สมหญิง รักสนุก',
     customerPhone: '089-876-5432',
-    bookingDate: new Date().toISOString().split('T')[0], // Today
+    bookingDate: dayjs().format('YYYY-MM-DD'), // Today
     startTime: '16:00',
     endTime: '17:00',
     duration: 60,
     status: 'confirmed',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: dayjs().toISOString(),
+    updatedAt: dayjs().toISOString(),
   },
   {
     id: 'adv-003',
     machineId: 'machine-002',
     customerName: 'วิชัย เกมเมอร์',
     customerPhone: '082-111-2222',
-    bookingDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+    bookingDate: dayjs().add(1, 'day').format('YYYY-MM-DD'), // Tomorrow
     startTime: '11:00',
     endTime: '12:30',
     duration: 90,
     status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: dayjs().toISOString(),
+    updatedAt: dayjs().toISOString(),
   },
   {
     id: 'adv-004',
     machineId: 'machine-001',
     customerName: 'นภา แข่งเร็ว',
     customerPhone: '083-333-4444',
-    bookingDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+    bookingDate: dayjs().add(1, 'day').format('YYYY-MM-DD'), // Tomorrow
     startTime: '15:00',
     endTime: '16:00',
     duration: 60,
     status: 'confirmed',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: dayjs().toISOString(),
+    updatedAt: dayjs().toISOString(),
   },
 ];
 
@@ -176,16 +174,11 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     await this.delay(50);
     
     const dates: string[] = [];
-    const [year, month, day] = todayStr.split('-').map(Number);
-    const startDate = new Date(year, month - 1, day);
+    const startDate = dayjs(todayStr);
     
     for (let i = 0; i < daysAhead; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      const dYear = date.getFullYear();
-      const dMonth = String(date.getMonth() + 1).padStart(2, '0');
-      const dDay = String(date.getDate()).padStart(2, '0');
-      dates.push(`${dYear}-${dMonth}-${dDay}`);
+      const date = startDate.add(i, 'day');
+      dates.push(date.format('YYYY-MM-DD'));
     }
     
     return dates;
@@ -230,8 +223,8 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
       duration: data.duration,
       status: 'confirmed',
       notes: data.notes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: dayjs().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
     
     this.bookings.push(newBooking);
@@ -249,7 +242,7 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     const updated: AdvanceBooking = {
       ...this.bookings[index],
       ...data,
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
     
     this.bookings[index] = updated;
@@ -267,7 +260,7 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     this.bookings[index] = {
       ...this.bookings[index],
       status: 'cancelled',
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
     
     return true;
@@ -316,7 +309,7 @@ export class MockAdvanceBookingRepository implements IAdvanceBookingRepository {
     this.logs.push({
       bookingId,
       action,
-      recordedAt: new Date().toISOString()
+      recordedAt: dayjs().toISOString()
     });
   }
 

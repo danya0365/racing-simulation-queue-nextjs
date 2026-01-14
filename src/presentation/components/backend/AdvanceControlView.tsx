@@ -7,6 +7,7 @@ import { BookingDetailModal } from '@/src/presentation/components/backend/Bookin
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -26,17 +27,13 @@ export function AdvanceControlView() {
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(dayjs());
   const [completeBookingId, setCompleteBookingId] = useState<string | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   // Get today's date in local YYYY-MM-DD
   const today = useMemo(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return dayjs().format('YYYY-MM-DD');
   }, []);
 
   // ✅ Use factory for repositories
@@ -48,7 +45,7 @@ export function AdvanceControlView() {
   // Update current time every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      setCurrentTime(dayjs());
     }, 60000); // Every minute
     return () => clearInterval(interval);
   }, []);
@@ -65,7 +62,7 @@ export function AdvanceControlView() {
       const schedulesMap = new Map<string, DaySchedule>();
       const allMachineBookings: AdvanceBooking[] = [];
 
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       await Promise.all(activeMachines.map(async (machine) => {
         const [schedule, machineBookings] = await Promise.all([
           advanceBookingRepo.getDaySchedule(machine.id, today, nowStr),
@@ -114,7 +111,7 @@ export function AdvanceControlView() {
 
   // Get current time string for comparison (HH:MM format)
   const getCurrentTimeString = () => {
-    return currentTime.toTimeString().slice(0, 5);
+    return currentTime.format('HH:mm');
   };
 
   // Get current booking for a machine (based on time)
@@ -210,7 +207,7 @@ export function AdvanceControlView() {
   // Get session info - Multi-session support
   const getSessionInfo = (bookingId: string) => {
     const logs = sessionLogs.get(bookingId) || [];
-    const sortedLogs = [...logs].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+    const sortedLogs = [...logs].sort((a, b) => dayjs(a.recordedAt).unix() - dayjs(b.recordedAt).unix());
     
     let totalMs = 0;
     let lastStartTime: number | null = null;
@@ -219,7 +216,7 @@ export function AdvanceControlView() {
     let lastStopLog = null;
 
     sortedLogs.forEach(log => {
-      const time = new Date(log.recordedAt).getTime();
+      const time = dayjs(log.recordedAt).valueOf();
       if (log.action === 'START') {
         if (lastStartTime === null) {
           lastStartTime = time;
@@ -248,10 +245,9 @@ export function AdvanceControlView() {
   const getTimeRemaining = (endTime: string): string => {
     const now = currentTime;
     const [hours, minutes] = endTime.split(':').map(Number);
-    const endDate = new Date();
-    endDate.setHours(hours, minutes, 0, 0);
+    const endDate = dayjs().hour(hours).minute(minutes).second(0).millisecond(0);
     
-    const diffMs = endDate.getTime() - now.getTime();
+    const diffMs = endDate.diff(now);
     if (diffMs <= 0) return 'หมดเวลา';
     
     const diffMins = Math.floor(diffMs / 60000);
@@ -308,11 +304,7 @@ export function AdvanceControlView() {
               🎮 ควบคุมห้องเกม
             </h1>
             <p className="text-white/60 text-sm">
-              ระบบจองเวลา • {new Date().toLocaleDateString('th-TH', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
+              ระบบจองเวลา • {dayjs().locale('th').format('ddddที่ D MMMM')}
             </p>
           </div>
         </div>
@@ -321,7 +313,7 @@ export function AdvanceControlView() {
           {/* Current Time */}
           <div className="hidden md:block bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
             <p className="text-2xl font-bold text-white font-mono">
-              {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+              {currentTime.format('HH:mm')}
             </p>
           </div>
           
@@ -489,7 +481,7 @@ export function AdvanceControlView() {
                         return (
                           <div className="w-full space-y-2">
                              <div className="flex justify-between items-center text-sm px-2">
-                                <span className="text-white/60">เริ่มล่าสุด: {lastStartTime ? new Date(lastStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
+                                <span className="text-white/60">เริ่มล่าสุด: {lastStartTime ? dayjs(lastStartTime).format('HH:mm') : '-'}</span>
                                 <span className="text-emerald-400 animate-pulse">● กำลังจับเวลา</span>
                              </div>
                              {totalMs > 0 && (

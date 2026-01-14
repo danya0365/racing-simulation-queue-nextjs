@@ -1,16 +1,17 @@
 import {
-  BackendStatsDTO,
-  CreateQueueData,
-  IQueueRepository,
-  PaginatedResult,
-  Queue,
-  QueueStats,
-  QueueStatus,
-  QueueWithStatusDTO,
-  UpdateQueueData
+    BackendStatsDTO,
+    CreateQueueData,
+    IQueueRepository,
+    PaginatedResult,
+    Queue,
+    QueueStats,
+    QueueStatus,
+    QueueWithStatusDTO,
+    UpdateQueueData
 } from '@/src/application/repositories/IQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
+import dayjs from 'dayjs';
 
 export class SupabaseQueueRepository implements IQueueRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
@@ -169,10 +170,8 @@ export class SupabaseQueueRepository implements IQueueRepository {
   }
 
   async getToday(todayStr: string): Promise<Queue[]> {
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = dayjs(todayStr).startOf('day');
+    const tomorrow = today.add(1, 'day');
 
     const { data, error } = await this.supabase
       .from('queues')
@@ -265,8 +264,7 @@ export class SupabaseQueueRepository implements IQueueRepository {
         cancelledQueues: 0,
       };
     }
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
+    const today = dayjs(todayStr).startOf('day');
 
     const { data, error } = await this.supabase
       .from('queues')
@@ -399,9 +397,8 @@ export class SupabaseQueueRepository implements IQueueRepository {
   };
 
   async getActiveAndRecent(referenceTime: string): Promise<Queue[]> {
-    const ref = new Date(referenceTime);
-    const twentyFourHoursAgo = new Date(ref);
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    const ref = dayjs(referenceTime);
+    const twentyFourHoursAgo = ref.subtract(24, 'hour');
 
     const { data, error } = await this.supabase
       .from('queues')

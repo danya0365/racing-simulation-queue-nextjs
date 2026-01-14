@@ -2,6 +2,7 @@
 
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Portal } from '../ui/Portal';
@@ -26,7 +27,7 @@ export function GameRoomControlView() {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   // Get current playing queue for a machine

@@ -5,6 +5,7 @@ import { Portal } from '@/src/presentation/components/ui/Portal';
 import { QueueStatusSkeleton } from '@/src/presentation/components/ui/Skeleton';
 import { QueueStatusData } from '@/src/presentation/presenters/queueStatus/QueueStatusPresenter';
 import { useQueueStatusPresenter } from '@/src/presentation/presenters/queueStatus/useQueueStatusPresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -24,7 +25,7 @@ export function MyQueueStatusView() {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const formatCurrentTime = () => {
@@ -32,7 +33,7 @@ export function MyQueueStatusView() {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-    }).format(currentTime);
+    }).format(currentTime.toDate());
   };
 
   // Get focus queue data
@@ -310,13 +311,13 @@ interface CustomerFocusModeProps {
 }
 
 function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocusModeProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(dayjs());
   const [refreshing, setRefreshing] = useState(false);
 
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      setCurrentTime(dayjs());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -341,14 +342,14 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-    }).format(currentTime);
+    }).format(currentTime.toDate());
   };
 
   const formatBookingTime = () => {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(queue.bookingTime));
+    }).format(dayjs(queue.bookingTime).toDate());
   };
 
   // Use estimated wait time from presenter (calculated from actual durations)

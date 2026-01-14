@@ -5,19 +5,20 @@
  */
 
 import {
-    AdvanceBooking,
-    AdvanceBookingStats,
-    BookingSessionLog,
-    CreateAdvanceBookingData,
-    DaySchedule,
-    IAdvanceBookingRepository,
-    TimeSlot,
-    TimeSlotStatus,
-    UpdateAdvanceBookingData,
+  AdvanceBooking,
+  AdvanceBookingStats,
+  BookingSessionLog,
+  CreateAdvanceBookingData,
+  DaySchedule,
+  IAdvanceBookingRepository,
+  TimeSlot,
+  TimeSlotStatus,
+  UpdateAdvanceBookingData,
 } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
+import dayjs from 'dayjs';
 
 // Operating hours configuration - moved to booking.config.ts
 const OPENING_HOUR = OPERATING_HOURS.isOpen24Hours ? 0 : OPERATING_HOURS.open;
@@ -83,14 +84,11 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
 
   async getAvailableDates(todayStr: string, daysAhead: number = 7): Promise<string[]> {
     const dates: string[] = [];
-    const [year, month, day] = todayStr.split('-').map(Number);
+    const startDate = dayjs(todayStr);
     
     for (let i = 0; i < daysAhead; i++) {
-      const date = new Date(year, month - 1, day + i);
-      const dYear = date.getFullYear();
-      const dMonth = String(date.getMonth() + 1).padStart(2, '0');
-      const dDay = String(date.getDate()).padStart(2, '0');
-      dates.push(`${dYear}-${dMonth}-${dDay}`);
+      const date = startDate.add(i, 'day');
+      dates.push(date.format('YYYY-MM-DD'));
     }
     
     return dates;
@@ -313,11 +311,9 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
     const slots: TimeSlot[] = [];
     
     // If no reference time provided, don't mark any slots as passed
-    const now = referenceTime ? new Date(referenceTime) : null;
-    const targetDate = new Date(date);
-    const isToday = now && now.getFullYear() === targetDate.getFullYear() && 
-                    now.getMonth() === targetDate.getMonth() && 
-                    now.getDate() === targetDate.getDate();
+    const now = referenceTime ? dayjs(referenceTime) : null;
+    const targetDate = dayjs(date);
+    const isToday = now && now.isSame(targetDate, 'day');
 
     for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour++) {
       for (let minute = 0; minute < 60; minute += SLOT_DURATION_MINUTES) {
@@ -331,9 +327,8 @@ export class SupabaseAdvanceBookingRepository implements IAdvanceBookingReposito
         
         // Check if slot has passed (for today)
         if (isToday && now) {
-          const slotTime = new Date(date);
-          slotTime.setHours(hour, minute, 0, 0);
-          if (slotTime < now && status === 'available') { // Only mark as passed if not already booked
+          const slotTime = dayjs(date).hour(hour).minute(minute).second(0).millisecond(0);
+          if (slotTime.isBefore(now) && status === 'available') { // Only mark as passed if not already booked
             status = 'passed';
           }
         }

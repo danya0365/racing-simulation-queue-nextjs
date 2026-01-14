@@ -2,6 +2,7 @@
 
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useQueueHistoryPresenter } from '@/src/presentation/presenters/queueHistory/useQueueHistoryPresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 
 /**
@@ -20,7 +21,7 @@ export function QueueHistoryView() {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const getStatusConfig = (status: string) => {

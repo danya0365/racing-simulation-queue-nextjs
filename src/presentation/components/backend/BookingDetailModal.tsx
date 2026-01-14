@@ -3,6 +3,7 @@
 import { AdvanceBooking, BookingSessionLog } from '@/src/application/repositories/IAdvanceBookingRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 
 interface BookingDetailModalProps {
@@ -27,7 +28,7 @@ export function BookingDetailModal({
   
   // Calculate session status and duration
   const calculateSession = () => {
-    const sortedLogs = [...logs].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+    const sortedLogs = [...logs].sort((a, b) => dayjs(a.recordedAt).unix() - dayjs(b.recordedAt).unix());
     let totalMs = 0;
     let lastStartTime: number | null = null;
     let isRunning = false;
@@ -35,7 +36,7 @@ export function BookingDetailModal({
     let lastStopLog = null;
 
     sortedLogs.forEach(log => {
-      const time = new Date(log.recordedAt).getTime();
+      const time = dayjs(log.recordedAt).valueOf();
       if (log.action === 'START') {
         if (lastStartTime === null) {
           lastStartTime = time;
@@ -68,7 +69,7 @@ export function BookingDetailModal({
 
     // Update timer
     const interval = setInterval(() => {
-      const now = new Date().getTime();
+      const now = dayjs().valueOf();
       const currentSessionDuration = now - lastStartTime;
       const total = initialTotal + currentSessionDuration;
       
@@ -175,7 +176,7 @@ export function BookingDetailModal({
                  <p className="text-xs text-white/40 mb-2">ประวัติการกด</p>
                   <div className="space-y-1">
                     {(() => {
-                      const sortedLogs = [...logs].sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+                      const sortedLogs = [...logs].sort((a, b) => dayjs(b.recordedAt).unix() - dayjs(a.recordedAt).unix());
                       const displayedLogs = showAllLogs ? sortedLogs : sortedLogs.slice(0, 5);
                       
                       return (
@@ -184,11 +185,7 @@ export function BookingDetailModal({
                             <div key={idx} className="flex justify-between text-xs text-white/60 px-2 py-1 bg-white/5 rounded">
                               <span>{log.action === 'START' ? '▶️ เริ่ม' : '⏹️ จบ'}</span>
                               <span className="font-mono">
-                                {new Date(log.recordedAt).toLocaleTimeString('th-TH', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit', 
-                                  second: '2-digit' 
-                                })}
+                                {dayjs(log.recordedAt).format('HH:mm:ss')}
                               </span>
                             </div>
                           ))}

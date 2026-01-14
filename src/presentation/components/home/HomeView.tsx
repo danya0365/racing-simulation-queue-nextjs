@@ -6,6 +6,8 @@ import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositor
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { HomeViewModel } from '@/src/presentation/presenters/home/HomePresenter';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -22,11 +24,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
 
   // Get today's date in local YYYY-MM-DD
   const today = useMemo(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return dayjs().format('YYYY-MM-DD');
   }, []);
 
   // ✅ Use factory for repositories
@@ -74,8 +72,8 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
   const activeBookings = todayBookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
 
   // Get current time for display and filtering
-  const currentTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  const nowTimeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const currentTime = dayjs().locale('th').format('HH:mm');
+  const nowTimeStr = dayjs().format('HH:mm');
 
   return (
     <div className="min-h-screen bg-background overflow-auto scrollbar-thin">
@@ -85,7 +83,7 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
           {/* Section Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full mb-4">
-              <span className="text-sm text-purple-400 font-medium">📆 วันนี้ {new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+              <span className="text-sm text-purple-400 font-medium">📆 วันนี้ {dayjs().locale('th').format('ddddที่ D MMMM')}</span>
               <span className="text-sm text-muted">•</span>
               <span className="text-sm text-foreground font-bold">{currentTime}</span>
             </div>

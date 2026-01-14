@@ -1,6 +1,7 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QueueStatusPresenter, QueueStatusViewModel } from './QueueStatusPresenter';
 import { createClientQueueStatusPresenter } from './QueueStatusPresenterClientFactory';
@@ -11,7 +12,7 @@ export interface QueueStatusPresenterState {
   error: string | null;
   focusQueueId: string | null;
   isTransitioning: boolean;
-  currentTime: Date;
+  currentTime: dayjs.Dayjs;
 }
 
 export interface QueueStatusPresenterActions {
@@ -48,7 +49,7 @@ export function useQueueStatusPresenter(
   const [error, setError] = useState<string | null>(null);
   const [focusQueueId, setFocusQueueId] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(dayjs());
 
   const { removeBooking, updateBooking, isInitialized } = useCustomerStore();
   
@@ -204,7 +205,7 @@ export function useQueueStatusPresenter(
       if (intervalId) clearInterval(intervalId);
       intervalId = setInterval(() => {
         if (document.visibilityState === 'visible' && isMountedRef.current) {
-          setCurrentTime(new Date());
+          setCurrentTime(dayjs());
         }
       }, 1000);
     };

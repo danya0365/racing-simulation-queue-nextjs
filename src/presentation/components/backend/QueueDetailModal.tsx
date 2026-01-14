@@ -3,6 +3,7 @@
 import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { Queue } from '@/src/application/repositories/IQueueRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
+import dayjs from 'dayjs';
 import { useState } from 'react';
 
 // Queue Detail Modal
@@ -19,13 +20,13 @@ export function QueueDetailModal({
 }: QueueDetailModalProps) {
   const waitingQueues = queues.filter(q => q.status === 'waiting').sort((a, b) => a.position - b.position);
   const playingQueue = queues.find(q => q.status === 'playing');
-  const completedQueues = queues.filter(q => q.status === 'completed').sort((a, b) => new Date(b.updatedAt || b.bookingTime).getTime() - new Date(a.updatedAt || a.bookingTime).getTime());
+  const completedQueues = queues.filter(q => q.status === 'completed').sort((a, b) => dayjs(b.updatedAt || b.bookingTime).unix() - dayjs(a.updatedAt || a.bookingTime).unix());
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const [expanded, setExpanded] = useState(false);

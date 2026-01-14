@@ -14,12 +14,11 @@ import {
     QueueWithStatusDTO,
     UpdateQueueData,
 } from '@/src/application/repositories/IQueueRepository';
+import dayjs from 'dayjs';
 
 // Helper to create today's date with specific time
 function todayAt(hours: number, minutes: number = 0): string {
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date.toISOString();
+  return dayjs().hour(hours).minute(minutes).second(0).millisecond(0).toISOString();
 }
 
 // Mock data for queues - using dynamic dates
@@ -112,7 +111,7 @@ export class MockQueueRepository implements IQueueRepository {
   async getAll(): Promise<Queue[]> {
     await this.delay(100);
     return [...this.queues].sort((a, b) => 
-      new Date(a.bookingTime).getTime() - new Date(b.bookingTime).getTime()
+      dayjs(a.bookingTime).unix() - dayjs(b.bookingTime).unix()
     );
   }
 
@@ -128,24 +127,22 @@ export class MockQueueRepository implements IQueueRepository {
     return this.queues
       .filter((queue) => queue.status === 'waiting')
       .sort((a, b) => 
-        new Date(a.bookingTime).getTime() - new Date(b.bookingTime).getTime()
+        dayjs(a.bookingTime).unix() - dayjs(b.bookingTime).unix()
       );
   }
 
   async getToday(todayStr: string): Promise<Queue[]> {
     await this.delay(100);
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
+    const today = dayjs(todayStr).startOf('day');
+    const tomorrow = today.add(1, 'day');
+ 
     return this.queues
       .filter((queue) => {
-        const bookingDate = new Date(queue.bookingTime);
-        return bookingDate >= today && bookingDate < tomorrow;
+        const bookingDate = dayjs(queue.bookingTime);
+        return (bookingDate.isSame(today, 'day') || bookingDate.isAfter(today)) && bookingDate.isBefore(tomorrow);
       })
       .sort((a, b) => 
-        new Date(a.bookingTime).getTime() - new Date(b.bookingTime).getTime()
+        dayjs(a.bookingTime).unix() - dayjs(b.bookingTime).unix()
       );
   }
 
@@ -153,7 +150,7 @@ export class MockQueueRepository implements IQueueRepository {
     await this.delay(100);
 
     const sortedQueues = [...this.queues].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix()
     );
 
     const start = (page - 1) * perPage;
@@ -178,8 +175,8 @@ export class MockQueueRepository implements IQueueRepository {
       ...data,
       status: 'waiting',
       position,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: dayjs().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.queues.push(newQueue);
@@ -197,7 +194,7 @@ export class MockQueueRepository implements IQueueRepository {
     const updatedQueue: Queue = {
       ...this.queues[index],
       ...data,
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.queues[index] = updatedQueue;
@@ -218,8 +215,7 @@ export class MockQueueRepository implements IQueueRepository {
 
   async getStats(todayStr: string): Promise<QueueStats> {
     await this.delay(100);
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
+    const today = dayjs(todayStr).startOf('day');
 
     const totalQueues = this.queues.length;
     const waitingQueues = this.queues.filter((q) => q.status === 'waiting').length;
@@ -247,7 +243,7 @@ export class MockQueueRepository implements IQueueRepository {
     const updatedQueue: Queue = {
       ...this.queues[index],
       status,
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.queues[index] = updatedQueue;
@@ -283,7 +279,7 @@ export class MockQueueRepository implements IQueueRepository {
     this.queues[index] = {
       ...this.queues[index],
       status: 'cancelled',
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     return true;
@@ -328,9 +324,8 @@ export class MockQueueRepository implements IQueueRepository {
   async getActiveAndRecent(referenceTime: string): Promise<Queue[]> {
     await this.delay(100);
     
-    const ref = new Date(referenceTime);
-    const twentyFourHoursAgo = new Date(ref);
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    const ref = dayjs(referenceTime);
+    const twentyFourHoursAgo = ref.subtract(24, 'hour');
 
     return this.queues
       .filter((queue) => {
@@ -340,13 +335,13 @@ export class MockQueueRepository implements IQueueRepository {
         }
         // Recently finished queues (last 24 hours)
         if (queue.status === 'completed' || queue.status === 'cancelled') {
-          const updatedAt = new Date(queue.updatedAt);
-          return updatedAt >= twentyFourHoursAgo;
+          const updatedAt = dayjs(queue.updatedAt);
+          return updatedAt.isSame(twentyFourHoursAgo) || updatedAt.isAfter(twentyFourHoursAgo);
         }
         return false;
       })
       .sort((a, b) => 
-        new Date(a.bookingTime).getTime() - new Date(b.bookingTime).getTime()
+        dayjs(a.bookingTime).unix() - dayjs(b.bookingTime).unix()
       );
   }
 
@@ -361,11 +356,11 @@ export class MockQueueRepository implements IQueueRepository {
 
       if (queue.status === 'waiting') {
         cancelledCount++;
-        return { ...queue, status: 'cancelled' as QueueStatus, updatedAt: new Date().toISOString() };
+        return { ...queue, status: 'cancelled' as QueueStatus, updatedAt: dayjs().toISOString() };
       }
       if (queue.status === 'playing') {
         completedCount++;
-        return { ...queue, status: 'completed' as QueueStatus, updatedAt: new Date().toISOString() };
+        return { ...queue, status: 'completed' as QueueStatus, updatedAt: dayjs().toISOString() };
       }
       return queue;
     });

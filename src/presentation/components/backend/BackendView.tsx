@@ -10,12 +10,13 @@ import { ConfirmationModal } from '@/src/presentation/components/ui/Confirmation
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import {
-    BackendSkeleton,
-    CustomersTabSkeleton
+  BackendSkeleton,
+  CustomersTabSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
 import { useCustomersPresenter } from '@/src/presentation/presenters/customers/useCustomersPresenter';
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
@@ -319,7 +320,7 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   // Get queues for a specific machine
@@ -680,7 +681,7 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const getStatusConfig = (status: string) => {
@@ -1235,7 +1236,7 @@ function QueueRow({ queue }: { queue: { id: string; customerName: string; status
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   const statusConfig = getStatusConfig(queue.status);

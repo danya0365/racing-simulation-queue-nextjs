@@ -1,6 +1,7 @@
 'use client';
 
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     BookingWizardPresenter,
@@ -102,7 +103,7 @@ export function useBookingWizardPresenter(
     setError(null);
 
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = dayjs().format('YYYY-MM-DD');
       const vm = await presenter.getViewModel(todayStr);
       if (isMountedRef.current) {
         setViewModel(vm);
@@ -155,8 +156,7 @@ export function useBookingWizardPresenter(
     setError(null);
 
     try {
-      const bookingTime = new Date();
-      bookingTime.setMinutes(bookingTime.getMinutes() + 5);
+      const bookingTime = dayjs().add(5, 'minute');
 
       const newQueue = await presenter.createBooking({
         machineId: bookingData.machineId,
@@ -184,7 +184,7 @@ export function useBookingWizardPresenter(
         duration: newQueue.duration,
         position: newQueue.position,
         status: newQueue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-        createdAt: new Date().toISOString(),
+        createdAt: dayjs().toISOString(),
       });
 
       if (isMountedRef.current) {

@@ -4,6 +4,7 @@
  * Uses local storage data from CustomerStore
  */
 
+import dayjs from 'dayjs';
 import { Metadata } from 'next';
 
 export interface QueueHistoryItem {
@@ -97,6 +98,6 @@ export class QueueHistoryPresenter {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   }
 }

@@ -1,11 +1,12 @@
 'use client';
 
 import type {
-    AdvanceBooking,
-    CreateAdvanceBookingData,
-    DaySchedule,
-    TimeSlot
+  AdvanceBooking,
+  CreateAdvanceBookingData,
+  DaySchedule,
+  TimeSlot
 } from '@/src/application/repositories/IAdvanceBookingRepository';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookingPresenter, BookingViewModel } from './BookingPresenter';
 import { createClientBookingPresenter } from './BookingPresenterClientFactory';
@@ -79,8 +80,8 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      const now = dayjs();
+      const todayStr = now.format('YYYY-MM-DD');
       const nowStr = now.toISOString();
       
       const vm = await presenter.getViewModel(todayStr);
@@ -112,7 +113,7 @@ export function useBookingPresenter(
       loadData();
     } else if (initialViewModel.selectedMachineId && initialViewModel.selectedDate) {
       // Load schedule for initial selection
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       presenter.getDaySchedule(initialViewModel.selectedMachineId, initialViewModel.selectedDate, nowStr)
         .then(schedule => {
           if (isMountedRef.current) {
@@ -137,7 +138,7 @@ export function useBookingPresenter(
     // Load schedule for new machine
     if (viewModel.selectedDate) {
       setScheduleLoading(true);
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       presenter.getDaySchedule(machineId, viewModel.selectedDate, nowStr)
         .then(schedule => {
           if (isMountedRef.current) {
@@ -167,7 +168,7 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       const schedule = await presenter.getDaySchedule(viewModel.selectedMachineId, date, nowStr);
       if (isMountedRef.current) {
         setDaySchedule(schedule);
@@ -219,7 +220,7 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const nowStr = new Date().toISOString();
+      const nowStr = dayjs().toISOString();
       const booking = await presenter.createBooking({
         ...data,
         machineId: viewModel.selectedMachineId,
@@ -233,7 +234,7 @@ export function useBookingPresenter(
         setSelectedTimeSlot(null);
         
         // Refresh schedule
-        const nowStr = new Date().toISOString();
+        const nowStr = dayjs().toISOString();
         const newSchedule = await presenter.getDaySchedule(
           viewModel.selectedMachineId,
           viewModel.selectedDate,
