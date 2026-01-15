@@ -1,8 +1,9 @@
 'use client';
 
-import { AdvanceBooking, DaySchedule, UpdateAdvanceBookingData } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingDaySchedule, UpdateBookingData } from '@/src/application/repositories/IBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { createBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import dayjs from 'dayjs';
@@ -10,23 +11,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { Portal } from '../ui/Portal';
 
+const DEFAULT_TIMEZONE = SHOP_TIMEZONE;
+
 export function BookingsTab() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all'); // Default to 'all'
-  const [selectedDate, setSelectedDate] = useState<string>(dayjs().format('YYYY-MM-DD'));
-  const [bookings, setBookings] = useState<AdvanceBooking[]>([]);
-  const [allBookings, setAllBookings] = useState<AdvanceBooking[]>([]); // All machines bookings
-  const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map()); // Schedules per machine
-  const [daySchedule, setDaySchedule] = useState<DaySchedule | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(getShopTodayString());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]); // All machines bookings
+  const [allSchedules, setAllSchedules] = useState<Map<string, BookingDaySchedule>>(new Map()); // Schedules per machine
+  const [daySchedule, setDaySchedule] = useState<BookingDaySchedule | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null); // For confirmation modal
-  const [editingBooking, setEditingBooking] = useState<AdvanceBooking | null>(null);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
-  // ✅ Use factory for repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(
-    () => createAdvanceBookingRepositories(),
+  // ✅ Use factory for repositories - now using new IBookingRepository
+  const { bookingRepo, machineRepo } = useMemo(
+    () => createBookingRepositories(),
     []
   );
 
@@ -61,16 +64,17 @@ export function BookingsTab() {
   const loadSchedule = useCallback(async () => {
     setIsUpdating(true);
     try {
+      const referenceTime = getShopNow().toISOString();
+      
       if (selectedMachineId === 'all') {
         // Load bookings and schedules from ALL machines
-        const allMachineBookings: AdvanceBooking[] = [];
-        const schedulesMap = new Map<string, DaySchedule>();
+        const allMachineBookings: Booking[] = [];
+        const schedulesMap = new Map<string, BookingDaySchedule>();
         
-        const now = dayjs().toISOString();
         await Promise.all(machines.map(async (machine) => {
           const [schedule, machineBookings] = await Promise.all([
-            advanceBookingRepo.getDaySchedule(machine.id, selectedDate, now),
-            advanceBookingRepo.getByMachineAndDate(machine.id, selectedDate),
+            bookingRepo.getDaySchedule(machine.id, selectedDate, DEFAULT_TIMEZONE, referenceTime),
+            bookingRepo.getByMachineAndDate(machine.id, selectedDate),
           ]);
           schedulesMap.set(machine.id, schedule);
           allMachineBookings.push(...machineBookings);
@@ -82,10 +86,9 @@ export function BookingsTab() {
         setDaySchedule(null); // No single schedule for 'all'
       } else {
         // Load for specific machine
-        const now = dayjs().toISOString();
         const [schedule, machineBookings] = await Promise.all([
-          advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate, now),
-          advanceBookingRepo.getByMachineAndDate(selectedMachineId, selectedDate),
+          bookingRepo.getDaySchedule(selectedMachineId, selectedDate, DEFAULT_TIMEZONE, referenceTime),
+          bookingRepo.getByMachineAndDate(selectedMachineId, selectedDate),
         ]);
         setDaySchedule(schedule);
         setBookings(machineBookings);
@@ -98,7 +101,7 @@ export function BookingsTab() {
     } finally {
       setIsUpdating(false);
     }
-  }, [selectedMachineId, selectedDate, advanceBookingRepo, machines]);
+  }, [selectedMachineId, selectedDate, bookingRepo, machines]);
 
   useEffect(() => {
     if (machines.length > 0) {
@@ -107,10 +110,10 @@ export function BookingsTab() {
   }, [loadSchedule, machines.length]);
 
   // Handle update booking
-  const handleUpdateBooking = async (id: string, data: UpdateAdvanceBookingData) => {
+  const handleUpdateBooking = async (id: string, data: UpdateBookingData) => {
     setIsUpdating(true);
     try {
-      await advanceBookingRepo.update(id, data);
+      await bookingRepo.update(id, data);
       await loadSchedule();
       setEditingBooking(null);
       setError(null);
@@ -128,7 +131,7 @@ export function BookingsTab() {
     
     setIsUpdating(true);
     try {
-      const success = await advanceBookingRepo.cancel(cancelBookingId);
+      const success = await bookingRepo.cancel(cancelBookingId);
       if (success) {
         await loadSchedule();
       } else {
@@ -412,7 +415,7 @@ export function BookingsTab() {
                   </div>
                   <div>
                     <p className="font-bold text-foreground">
-                      {booking.startTime} - {booking.endTime}
+                      {booking.localStartTime} - {booking.localEndTime}
                       {selectedMachineId === 'all' && (
                         <span className="ml-2 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
                           {machines.find(m => m.id === booking.machineId)?.name || 'Unknown'}
@@ -423,7 +426,7 @@ export function BookingsTab() {
                       {booking.customerName} • {booking.customerPhone}
                     </p>
                     <p className="text-xs text-muted">
-                      ระยะเวลา: {booking.duration} นาที
+                      ระยะเวลา: {booking.durationMinutes} นาที
                     </p>
                   </div>
                 </div>
@@ -497,14 +500,12 @@ function EditBookingModal({
   onSave,
   isUpdating 
 }: { 
-  booking: AdvanceBooking; 
+  booking: Booking; 
   onClose: () => void; 
-  onSave: (data: UpdateAdvanceBookingData) => Promise<void>;
+  onSave: (data: UpdateBookingData) => Promise<void>;
   isUpdating: boolean;
 }) {
   const [formData, setFormData] = useState({
-    customerName: booking.customerName,
-    customerPhone: booking.customerPhone,
     status: booking.status,
     notes: booking.notes || '',
   });
@@ -524,30 +525,11 @@ function EditBookingModal({
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Customer Name */}
-          <div>
-            <label className="block text-sm text-muted mb-1">ชื่อลูกค้า</label>
-            <input
-              type="text"
-              required
-              value={formData.customerName}
-              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground"
-              placeholder="ชื่อลูกค้า"
-            />
-          </div>
-
-          {/* Customer Phone */}
-          <div>
-            <label className="block text-sm text-muted mb-1">เบอร์โทรศัพท์</label>
-            <input
-              type="tel"
-              required
-              value={formData.customerPhone}
-              onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-              className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground"
-              placeholder="เบอร์โทรศัพท์"
-            />
+          {/* Customer Info (Read-only) */}
+          <div className="bg-muted-light/30 p-3 rounded-xl border border-border/50">
+            <div className="text-xs text-muted mb-2">ข้อมูลลูกค้า</div>
+            <p className="font-medium text-foreground">{booking.customerName}</p>
+            <p className="text-sm text-muted">{booking.customerPhone}</p>
           </div>
 
           {/* Status */}
@@ -555,7 +537,7 @@ function EditBookingModal({
             <label className="block text-sm text-muted mb-1">สถานะ</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as AdvanceBooking['status'] })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as Booking['status'] })}
               className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-purple-500 text-foreground outline-none"
             >
               <option value="pending">⏳ รอยืนยัน</option>
@@ -582,15 +564,15 @@ function EditBookingModal({
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted">วันที่:</span>
-                <span className="text-foreground font-medium">{booking.bookingDate}</span>
+                <span className="text-foreground font-medium">{booking.localDate}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">เวลา:</span>
-                <span className="text-foreground font-medium">{booking.startTime} - {booking.endTime}</span>
+                <span className="text-foreground font-medium">{booking.localStartTime} - {booking.localEndTime}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">ระยะเวลา:</span>
-                <span className="text-foreground font-medium">{booking.duration} นาที</span>
+                <span className="text-foreground font-medium">{booking.durationMinutes} นาที</span>
               </div>
             </div>
           </div>

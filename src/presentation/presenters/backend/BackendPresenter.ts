@@ -2,9 +2,11 @@
  * BackendPresenter
  * Handles business logic for Admin/Backend page
  * Receives repository via dependency injection
+ * 
+ * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
  */
 
-import { AdvanceBooking, AdvanceBookingStats, IAdvanceBookingRepository } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingStats, IBookingRepository } from '@/src/application/repositories/IBookingRepository';
 import { IMachineRepository, Machine, MachineStats, MachineStatus } from '@/src/application/repositories/IMachineRepository';
 import { IQueueRepository, Queue, QueueStats, QueueStatus } from '@/src/application/repositories/IQueueRepository';
 import { Metadata } from 'next';
@@ -17,10 +19,10 @@ export interface BackendViewModel {
   /** Active queues (waiting/playing) + recently finished (24h) - for 24-hour operations */
   activeQueues: Queue[];
   waitingQueues: Queue[];
-  /** Today's advance bookings */
-  todayBookings: AdvanceBooking[];
-  /** Advance booking stats */
-  bookingStats: AdvanceBookingStats;
+  /** Today's bookings */
+  todayBookings: Booking[];
+  /** Booking stats */
+  bookingStats: BookingStats;
 }
 
 /**
@@ -30,12 +32,9 @@ export class BackendPresenter {
   constructor(
     private readonly machineRepository: IMachineRepository,
     private readonly queueRepository: IQueueRepository,
-    private readonly advanceBookingRepository?: IAdvanceBookingRepository
+    private readonly bookingRepository?: IBookingRepository
   ) {}
 
-  /**
-   * Get view model for the backend page
-   */
   /**
    * Helper to wrap promise with timeout
    */
@@ -133,9 +132,9 @@ export class BackendPresenter {
     // Default to loading control data as it's the most comprehensive set commonly needed
     const data = await this.getControlData(now);
 
-    // Fetch today's advance bookings if repository is available
-    let todayBookings: AdvanceBooking[] = [];
-    let bookingStats: AdvanceBookingStats = {
+    // Fetch today's bookings if repository is available
+    let todayBookings: Booking[] = [];
+    let bookingStats: BookingStats = {
       totalBookings: 0,
       pendingBookings: 0,
       confirmedBookings: 0,
@@ -143,23 +142,23 @@ export class BackendPresenter {
       completedBookings: 0,
     };
 
-    if (this.advanceBookingRepository) {
+    if (this.bookingRepository) {
       try {
         // Get today's date in YYYY-MM-DD format
         const today = now.slice(0, 10);
         
         // Fetch bookings for all machines for today
         const machines = data.machines || [];
-        const allBookings: AdvanceBooking[] = [];
+        const allBookings: Booking[] = [];
         
         await Promise.all(
           machines.map(async (machine) => {
-            const machineBookings = await this.advanceBookingRepository!.getByMachineAndDate(machine.id, today);
+            const machineBookings = await this.bookingRepository!.getByMachineAndDate(machine.id, today);
             allBookings.push(...machineBookings);
           })
         );
         
-        todayBookings = allBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        todayBookings = allBookings.sort((a, b) => a.localStartTime.localeCompare(b.localStartTime));
         
         // Calculate stats from today's bookings
         bookingStats = {
@@ -170,7 +169,7 @@ export class BackendPresenter {
           completedBookings: todayBookings.filter(b => b.status === 'completed').length,
         };
       } catch (error) {
-        console.error('Error fetching advance bookings:', error);
+        console.error('Error fetching bookings:', error);
       }
     }
 

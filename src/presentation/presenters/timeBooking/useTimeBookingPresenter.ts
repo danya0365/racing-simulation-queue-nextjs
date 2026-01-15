@@ -1,10 +1,14 @@
 'use client';
 
-import { AdvanceBooking, CreateAdvanceBookingData, DaySchedule, TimeSlot } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingDaySchedule, BookingTimeSlot, CreateBookingData } from '@/src/application/repositories/IBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TimeBookingPresenter, TimeBookingViewModel } from './TimeBookingPresenter';
 import { createClientTimeBookingPresenter } from './TimeBookingPresenterClientFactory';
+
+import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
+
+
 
 export type BookingStep = 'machine' | 'datetime' | 'info' | 'confirm';
 
@@ -17,12 +21,12 @@ export interface TimeBookingPresenterState {
   selectedMachineId: string | null;
   selectedMachine: Machine | null;
   selectedDate: string;
-  selectedSlot: TimeSlot | null;
-  schedule: DaySchedule | null;
+  selectedSlot: BookingTimeSlot | null;
+  schedule: BookingDaySchedule | null;
   scheduleLoading: boolean;
   // Submission state
   isSubmitting: boolean;
-  success: AdvanceBooking | null;
+  success: Booking | null;
 }
 
 export interface TimeBookingPresenterActions {
@@ -30,17 +34,18 @@ export interface TimeBookingPresenterActions {
   loadSchedule: (machineId: string, date: string) => Promise<void>;
   selectMachine: (machineId: string) => void;
   selectDate: (date: string) => void;
-  selectSlot: (slot: TimeSlot) => void;
+  selectSlot: (slot: BookingTimeSlot) => void;
   setStep: (step: BookingStep) => void;
-  createBooking: (data: CreateAdvanceBookingData) => Promise<AdvanceBooking>;
+  createBooking: (data: CreateBookingData) => Promise<Booking>;
   reset: () => void;
   setError: (error: string | null) => void;
 }
 
 /**
- * Custom hook for QuickAdvanceBooking presenter
- * Provides state management and actions for quick advance booking operations
+ * Custom hook for TimeBooking presenter
+ * Provides state management and actions for time booking operations
  * 
+ * ✅ Now uses IBookingRepository types (TIMESTAMPTZ-based)
  * ✅ Improvements:
  * - Presenter created inside hook with useMemo
  * - Proper cleanup on unmount
@@ -60,11 +65,8 @@ export function useTimeBookingPresenter(
   // ✅ Track mounted state for memory leak protection
   const isMountedRef = useRef(true);
 
-  // Initial date (today)
-  const initialDate = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
+  // Initial date (today) using shop timezone
+  const initialDate = useMemo(() => getShopTodayString(), []);
 
   // State
   const [viewModel, setViewModel] = useState<TimeBookingViewModel | null>(
@@ -77,13 +79,13 @@ export function useTimeBookingPresenter(
   const [step, setStep] = useState<BookingStep>('machine');
   const [selectedMachineId, setSelectedMachineId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [schedule, setSchedule] = useState<DaySchedule | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<BookingTimeSlot | null>(null);
+  const [schedule, setSchedule] = useState<BookingDaySchedule | null>(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState<AdvanceBooking | null>(null);
+  const [success, setSuccess] = useState<Booking | null>(null);
 
   // Computed
   const selectedMachine = useMemo(
@@ -123,8 +125,9 @@ export function useTimeBookingPresenter(
     setScheduleLoading(true);
 
     try {
-      const now = new Date().toISOString();
-      const daySchedule = await presenter.getDaySchedule(machineId, date, now);
+      const referenceTime = getShopNow().toISOString();
+      const timezone = viewModel?.timezone || SHOP_TIMEZONE;
+      const daySchedule = await presenter.getDaySchedule(machineId, date, referenceTime, timezone);
       if (isMountedRef.current) {
         setSchedule(daySchedule);
       }
@@ -137,7 +140,7 @@ export function useTimeBookingPresenter(
         setScheduleLoading(false);
       }
     }
-  }, [presenter]);
+  }, [presenter, viewModel?.timezone]);
 
   /**
    * Select machine and move to datetime step
@@ -158,16 +161,16 @@ export function useTimeBookingPresenter(
   /**
    * Select time slot and move to info step
    */
-  const selectSlot = useCallback((slot: TimeSlot) => {
+  const selectSlot = useCallback((slot: BookingTimeSlot) => {
     if (slot.status !== 'available') return;
     setSelectedSlot(slot);
     setStep('info');
   }, []);
 
   /**
-   * Create booking
+   * Create booking using new CreateBookingData format
    */
-  const createBooking = useCallback(async (data: CreateAdvanceBookingData): Promise<AdvanceBooking> => {
+  const createBooking = useCallback(async (data: CreateBookingData): Promise<Booking> => {
     setIsSubmitting(true);
     setError(null);
 

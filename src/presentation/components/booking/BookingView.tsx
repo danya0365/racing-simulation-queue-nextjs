@@ -1,6 +1,8 @@
 'use client';
 
-import { AdvanceBooking, TimeSlot } from '@/src/application/repositories/IAdvanceBookingRepository';
+import dayjs from 'dayjs';
+
+import { Booking, BookingTimeSlot } from '@/src/application/repositories/IBookingRepository';
 import { DEFAULT_DURATION, DURATION_OPTIONS } from '@/src/config/booking.config';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -121,12 +123,8 @@ export function BookingView({ initialViewModel }: BookingViewProps) {
           </h2>
           <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin">
             {viewModel.availableDates.map((date, index) => {
-              const dateObj = new Date(date);
               const isSelected = viewModel.selectedDate === date;
               const isToday = index === 0;
-              const dayName = dateObj.toLocaleDateString('th-TH', { weekday: 'short' });
-              const dayNum = dateObj.getDate();
-              const monthName = dateObj.toLocaleDateString('th-TH', { month: 'short' });
               
               return (
                 <button
@@ -140,10 +138,10 @@ export function BookingView({ initialViewModel }: BookingViewProps) {
                 >
                   <div className="text-center">
                     <p className={`text-xs ${isSelected ? 'text-white/80' : 'text-muted'}`}>
-                      {isToday ? 'วันนี้' : dayName}
+                      {isToday ? 'วันนี้' : new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(dayjs(date).toDate())}
                     </p>
-                    <p className="text-2xl font-bold">{dayNum}</p>
-                    <p className={`text-xs ${isSelected ? 'text-white/80' : 'text-muted'}`}>{monthName}</p>
+                    <p className="text-2xl font-bold">{dayjs(date).date()}</p>
+                    <p className={`text-xs ${isSelected ? 'text-white/80' : 'text-muted'}`}>{new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(dayjs(date).toDate())}</p>
                   </div>
                 </button>
               );
@@ -310,7 +308,7 @@ export function BookingView({ initialViewModel }: BookingViewProps) {
 // ✨ Booking Modal Component
 interface BookingModalProps {
   selectedDate: string;
-  selectedTime: TimeSlot;
+  selectedTime: BookingTimeSlot;
   machineName: string;
   isSubmitting: boolean;
   error: string | null;
@@ -353,7 +351,7 @@ function BookingModal({
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   return (
@@ -478,7 +476,7 @@ function BookingModal({
 
 // ✨ Success Modal Component
 interface SuccessModalProps {
-  booking: AdvanceBooking;
+  booking: Booking;
   machineName: string;
   onClose: () => void;
 }
@@ -489,7 +487,7 @@ function SuccessModal({ booking, machineName, onClose }: SuccessModalProps) {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   return (
@@ -519,11 +517,11 @@ function SuccessModal({ booking, machineName, onClose }: SuccessModalProps) {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted">วันที่</p>
-                <p className="font-medium text-foreground">{formatDate(booking.bookingDate)}</p>
+                <p className="font-medium text-foreground">{formatDate(booking.localDate)}</p>
               </div>
               <div>
                 <p className="text-muted">เวลา</p>
-                <p className="font-medium text-cyan-400">{booking.startTime} - {booking.endTime}</p>
+                <p className="font-medium text-cyan-400">{booking.localStartTime} - {booking.localEndTime}</p>
               </div>
               <div>
                 <p className="text-muted">ชื่อ</p>
@@ -531,7 +529,7 @@ function SuccessModal({ booking, machineName, onClose }: SuccessModalProps) {
               </div>
               <div>
                 <p className="text-muted">ระยะเวลา</p>
-                <p className="font-medium text-foreground">{booking.duration} นาที</p>
+                <p className="font-medium text-foreground">{booking.durationMinutes} นาที</p>
               </div>
             </div>
           </div>

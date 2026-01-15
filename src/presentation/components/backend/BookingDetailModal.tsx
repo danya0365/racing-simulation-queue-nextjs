@@ -1,14 +1,14 @@
 'use client';
 
-import { AdvanceBooking, BookingSessionLog } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingLog } from '@/src/application/repositories/IBookingRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 
 interface BookingDetailModalProps {
-  booking: AdvanceBooking;
-  logs: BookingSessionLog[];
+  booking: Booking;
+  logs: BookingLog[];
   onClose: () => void;
   onStart: (bookingId: string) => Promise<void>;
   onStop: (bookingId: string) => Promise<void>;
@@ -114,10 +114,10 @@ export function BookingDetailModal({
                 <div className="text-right">
                    <p className="text-white/60 text-xs mb-1">เวลาจอง</p>
                    <p className="text-xl font-bold text-purple-400">
-                     {booking.startTime.slice(0, 5)} - {booking.endTime.slice(0, 5)}
+                     {booking.localStartTime.slice(0, 5)} - {booking.localEndTime.slice(0, 5)}
                    </p>
                    <span className="inline-block px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-lg mt-1">
-                     {booking.duration} นาที
+                     {booking.durationMinutes} นาที
                    </span>
                 </div>
              </div>

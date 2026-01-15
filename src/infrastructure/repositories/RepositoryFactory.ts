@@ -4,31 +4,39 @@
  * 
  * ✅ Uses API-based repositories to avoid Supabase connection pool issues
  * ✅ Centralized repository creation for client-side components
+ * ✅ Now only uses IBookingRepository (TIMESTAMPTZ-based system)
  */
 
 'use client';
 
-import { IAdvanceBookingRepository } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { IBookingRepository } from '@/src/application/repositories/IBookingRepository';
 import { ICustomerRepository } from '@/src/application/repositories/ICustomerRepository';
 import { IMachineRepository } from '@/src/application/repositories/IMachineRepository';
 import { IQueueRepository } from '@/src/application/repositories/IQueueRepository';
-import { ApiAdvanceBookingRepository } from '@/src/infrastructure/repositories/api/ApiAdvanceBookingRepository';
+import { ApiBookingRepository } from '@/src/infrastructure/repositories/api/ApiBookingRepository';
 import { ApiCustomerRepository } from '@/src/infrastructure/repositories/api/ApiCustomerRepository';
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
 import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
 
 /**
- * Creates advance booking and machine repositories
+ * Creates booking and machine repositories (TIMESTAMPTZ-based system)
  * Uses API-based implementations for client-side use
  */
-export function createAdvanceBookingRepositories(): {
-  advanceBookingRepo: IAdvanceBookingRepository;
+export function createBookingRepositories(): {
+  bookingRepo: IBookingRepository;
   machineRepo: IMachineRepository;
 } {
   return {
-    advanceBookingRepo: new ApiAdvanceBookingRepository(),
+    bookingRepo: new ApiBookingRepository(),
     machineRepo: new ApiMachineRepository(),
   };
+}
+
+/**
+ * Creates booking repository only (TIMESTAMPTZ-based system)
+ */
+export function createBookingRepository(): IBookingRepository {
+  return new ApiBookingRepository();
 }
 
 /**
@@ -36,13 +44,6 @@ export function createAdvanceBookingRepositories(): {
  */
 export function createMachineRepository(): IMachineRepository {
   return new ApiMachineRepository();
-}
-
-/**
- * Creates advance booking repository only
- */
-export function createAdvanceBookingRepository(): IAdvanceBookingRepository {
-  return new ApiAdvanceBookingRepository();
 }
 
 /**
@@ -65,13 +66,13 @@ export function createCustomerRepository(): ICustomerRepository {
 export function createAllRepositories(): {
   machineRepo: IMachineRepository;
   queueRepo: IQueueRepository;
-  advanceBookingRepo: IAdvanceBookingRepository;
+  bookingRepo: IBookingRepository;
   customerRepo: ICustomerRepository;
 } {
   return {
     machineRepo: new ApiMachineRepository(),
     queueRepo: new ApiQueueRepository(),
-    advanceBookingRepo: new ApiAdvanceBookingRepository(),
+    bookingRepo: new ApiBookingRepository(),
     customerRepo: new ApiCustomerRepository(),
   };
 }

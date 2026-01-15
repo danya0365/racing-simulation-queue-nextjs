@@ -1,4 +1,5 @@
 import { Database } from '@/src/domain/types/supabase';
+import dayjs from 'dayjs';
 
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -10,7 +11,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholde
 
 // ✅ Use WeakRef pattern for better memory management
 let clientInstance: SupabaseClient<Database> | null = null;
-let lastActivityTime = Date.now();
+let lastActivityTime = dayjs().valueOf();
 const CLIENT_STALE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -20,7 +21,7 @@ const CLIENT_STALE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 export function createClient(): SupabaseClient<Database> {
   // Return existing client if available and used recently
   if (clientInstance) {
-    lastActivityTime = Date.now();
+    lastActivityTime = dayjs().valueOf();
     return clientInstance;
   }
 
@@ -38,7 +39,7 @@ export function createClient(): SupabaseClient<Database> {
           const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout (increased)
 
           // Track activity
-          lastActivityTime = Date.now();
+          lastActivityTime = dayjs().valueOf();
 
           return fetch(url, {
             ...options,
@@ -61,13 +62,13 @@ export function createClient(): SupabaseClient<Database> {
   if (typeof window !== 'undefined') {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        const timeSinceActivity = Date.now() - lastActivityTime;
+        const timeSinceActivity = dayjs().valueOf() - lastActivityTime;
         if (timeSinceActivity > CLIENT_STALE_TIMEOUT) {
           console.log('Supabase Client: Refreshing stale connection...');
           // Don't reset client, just trigger a health check
           clientInstance?.auth.getSession().catch(console.warn);
         }
-        lastActivityTime = Date.now();
+        lastActivityTime = dayjs().valueOf();
       }
     };
 
@@ -78,7 +79,7 @@ export function createClient(): SupabaseClient<Database> {
     }
   }
   
-  lastActivityTime = Date.now();
+  lastActivityTime = dayjs().valueOf();
   return clientInstance;
 }
 
@@ -108,7 +109,7 @@ export function getExistingClient(): SupabaseClient<Database> | null {
 export const logActiveConnections = () => {
   if (clientInstance) {
     console.log('Active channels:', clientInstance.getChannels());
-    console.log('Last activity:', new Date(lastActivityTime).toISOString());
+    console.log('Last activity:', dayjs(lastActivityTime).toISOString());
   } else {
     console.log('No active Supabase client');
   }

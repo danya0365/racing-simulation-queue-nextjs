@@ -275,15 +275,15 @@ function DashboardTab({ viewModel }: { viewModel: BackendViewModel }) {
                 <div key={booking.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="flex items-center gap-3">
                     <span className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm font-bold">
-                      {booking.startTime.slice(0, 5)}
+                      {booking.localStartTime.slice(0, 5)}
                     </span>
                     <div>
                       <span className="text-foreground font-medium">{booking.customerName}</span>
-                      <p className="text-xs text-muted">{booking.duration} นาที</p>
+                      <p className="text-xs text-muted">{booking.durationMinutes} นาที</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-muted text-sm">{booking.startTime.slice(0, 5)} - {booking.endTime.slice(0, 5)}</span>
+                    <span className="text-muted text-sm">{booking.localStartTime.slice(0, 5)} - {booking.localEndTime.slice(0, 5)}</span>
                     <span className={`text-sm font-medium ${statusConfig.color}`}>{statusConfig.label}</span>
                   </div>
                 </div>
@@ -1274,7 +1274,7 @@ function CustomersTab() {
     return new Intl.DateTimeFormat('th-TH', {
       day: 'numeric',
       month: 'short',
-    }).format(new Date(dateString));
+    }).format(dayjs(dateString).toDate());
   };
 
   if (loading && !viewModel) {
@@ -1298,8 +1298,7 @@ function CustomersTab() {
   const stats = viewModel?.stats;
 
   // Calculate today date for "new today" filter
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = dayjs().startOf('day');
 
   // Filter customers based on active filter
   const getFilteredCustomers = () => {
@@ -1320,9 +1319,7 @@ function CustomersTab() {
         return filtered.filter(c => c.isVip);
       case 'new':
         return filtered.filter(c => {
-          const createdAt = new Date(c.createdAt);
-          createdAt.setHours(0, 0, 0, 0);
-          return createdAt.getTime() === today.getTime();
+          return dayjs(c.createdAt).startOf('day').isSame(today);
         });
       case 'regular':
         return filtered.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS);
@@ -1354,9 +1351,7 @@ function CustomersTab() {
     all: allCustomers.length,
     vip: allCustomers.filter(c => c.isVip).length,
     new: allCustomers.filter(c => {
-      const createdAt = new Date(c.createdAt);
-      createdAt.setHours(0, 0, 0, 0);
-      return createdAt.getTime() === today.getTime();
+      return dayjs(c.createdAt).startOf('day').isSame(today);
     }).length,
     regular: allCustomers.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
   };

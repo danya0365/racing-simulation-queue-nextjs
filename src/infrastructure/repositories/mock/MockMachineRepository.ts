@@ -13,6 +13,7 @@ import {
     MachineStatus,
     UpdateMachineData,
 } from '@/src/application/repositories/IMachineRepository';
+import dayjs from 'dayjs';
 
 // Mock data for Racing Simulation machines
 const MOCK_MACHINES: Machine[] = [
@@ -110,12 +111,12 @@ export class MockMachineRepository implements IMachineRepository {
     await this.delay(200);
 
     const newMachine: Machine = {
-      id: `machine-${Date.now()}`,
+      id: `machine-${dayjs().valueOf()}`,
       ...data,
       isActive: true,
       status: 'available',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: dayjs().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.machines.push(newMachine);
@@ -133,7 +134,7 @@ export class MockMachineRepository implements IMachineRepository {
     const updatedMachine: Machine = {
       ...this.machines[index],
       ...data,
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.machines[index] = updatedMachine;
@@ -180,7 +181,7 @@ export class MockMachineRepository implements IMachineRepository {
     const updatedMachine: Machine = {
       ...this.machines[index],
       status,
-      updatedAt: new Date().toISOString(),
+      updatedAt: dayjs().toISOString(),
     };
 
     this.machines[index] = updatedMachine;

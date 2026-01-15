@@ -5,21 +5,22 @@
  */
 
 import type {
-  AuthProfile,
-  AuthResult,
-  AuthSession,
-  AuthUser,
-  IAuthRepository,
-  OTPSignInData,
-  ResetPasswordData,
-  SignInData,
-  SignUpData,
-  UpdatePasswordData,
-  UpdateProfileData,
-  VerifyOTPData,
+    AuthProfile,
+    AuthResult,
+    AuthSession,
+    AuthUser,
+    IAuthRepository,
+    OTPSignInData,
+    ResetPasswordData,
+    SignInData,
+    SignUpData,
+    UpdatePasswordData,
+    UpdateProfileData,
+    VerifyOTPData,
 } from '@/src/application/repositories/IAuthRepository';
 import type { Database } from '@/src/domain/types/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import dayjs from 'dayjs';
 
 export class SupabaseAuthRepository implements IAuthRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
@@ -40,7 +41,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
       email: user.email || '',
       emailVerified: !!user.email_confirmed_at,
       phone: user.phone || undefined,
-      createdAt: user.created_at || new Date().toISOString(),
+      createdAt: user.created_at || dayjs().toISOString(),
       lastLoginAt: user.last_sign_in_at || undefined,
     };
   }
@@ -70,8 +71,8 @@ export class SupabaseAuthRepository implements IAuthRepository {
       socialLinks: (profile.social_links as Record<string, string>) || undefined,
       verificationStatus: profile.verification_status as 'pending' | 'verified' | 'rejected',
       isActive: profile.is_active,
-      createdAt: profile.created_at || new Date().toISOString(),
-      updatedAt: profile.updated_at || new Date().toISOString(),
+      createdAt: profile.created_at || dayjs().toISOString(),
+      updatedAt: profile.updated_at || dayjs().toISOString(),
     };
   }
 

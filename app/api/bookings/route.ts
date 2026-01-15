@@ -1,22 +1,32 @@
 /**
- * Advance Bookings API Route
- * GET /api/advance-bookings - Get bookings (with filters)
- * POST /api/advance-bookings - Create booking
+ * Booking API Route
+ * GET /api/bookings - Get bookings or available dates
+ * POST /api/bookings - Create a new booking
+ * 
+ * Uses the TIMESTAMPTZ-based booking system
  */
 
-import { SupabaseAdvanceBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseAdvanceBookingRepository';
+import { SupabaseBookingRepository } from '@/src/infrastructure/repositories/supabase/SupabaseBookingRepository';
 import { createClient } from '@/src/infrastructure/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const repo = new SupabaseAdvanceBookingRepository(supabase);
+    const repo = new SupabaseBookingRepository(supabase);
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const machineId = searchParams.get('machineId');
     const date = searchParams.get('date');
+    const todayStr = searchParams.get('todayStr');
+    const daysAhead = searchParams.get('daysAhead');
+
+    // Get available dates
+    if (action === 'availableDates' && todayStr) {
+      const dates = await repo.getAvailableDates(todayStr, daysAhead ? parseInt(daysAhead) : 7);
+      return NextResponse.json(dates);
+    }
 
     // Get stats
     if (action === 'stats') {
@@ -24,29 +34,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(stats);
     }
 
-    // Get available dates
-    if (action === 'availableDates') {
-      const todayStr = searchParams.get('todayStr') || new Date().toISOString().split('T')[0];
-      const daysAhead = parseInt(searchParams.get('daysAhead') || '7');
-      const dates = await repo.getAvailableDates(todayStr, daysAhead);
-      return NextResponse.json(dates);
-    }
-
-    // Get by machine and date
+    // Get bookings for machine and date
     if (machineId && date) {
-      const bookings = await repo.getByMachineAndDate(machineId, date);
+      const customerId = searchParams.get('customerId');
+      const bookings = await repo.getByMachineAndDate(machineId, date, customerId || undefined);
       return NextResponse.json(bookings);
     }
 
-    // Default: return error (no generic getAll for security)
-    return NextResponse.json(
-      { error: 'กรุณาระบุ machineId และ date' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'กรุณาระบุพารามิเตอร์ที่ต้องการ' }, { status: 400 });
   } catch (error) {
-    console.error('Error fetching advance bookings:', error);
+    console.error('Error in bookings API:', error);
     return NextResponse.json(
-      { error: 'ไม่สามารถโหลดข้อมูลการจองได้' },
+      { error: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' },
       { status: 500 }
     );
   }
@@ -55,17 +54,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const repo = new SupabaseAdvanceBookingRepository(supabase);
+    const repo = new SupabaseBookingRepository(supabase);
 
     const data = await request.json();
-    const booking = await repo.create(data);
+
+    // Validate required fields
+    if (!data.machineId || !data.customerName || !data.customerPhone || !data.localDate || !data.localStartTime || !data.durationMinutes) {
+      return NextResponse.json(
+        { error: 'กรุณากรอกข้อมูลให้ครบถ้วน' },
+        { status: 400 }
+      );
+    }
+
+    const booking = await repo.create({
+      machineId: data.machineId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      localDate: data.localDate,
+      localStartTime: data.localStartTime,
+      durationMinutes: data.durationMinutes,
+      timezone: data.timezone,
+      notes: data.notes,
+    });
+
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
-    console.error('Error creating advance booking:', error);
-    const message = error instanceof Error ? error.message : 'ไม่สามารถสร้างการจองได้';
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    console.error('Error creating booking:', error);
+    const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสร้างการจอง';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

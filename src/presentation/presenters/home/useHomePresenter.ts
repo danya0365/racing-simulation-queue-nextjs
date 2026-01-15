@@ -1,5 +1,7 @@
 'use client';
 
+import { getShopNow, getShopTodayString } from '@/src/lib/date';
+
 import type { Machine } from '@/src/application/repositories/IMachineRepository';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HomePresenter, HomeViewModel } from './HomePresenter';
@@ -60,9 +62,8 @@ export function useHomePresenter(
     setError(null);
 
     try {
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const nowStr = now.toISOString();
+      const todayStr = getShopTodayString();
+      const nowStr = getShopNow().toISOString();
       const newViewModel = await presenter.getViewModel(todayStr, nowStr);
       if (isMountedRef.current) {
         setViewModel(newViewModel);
@@ -90,9 +91,8 @@ export function useHomePresenter(
     }
     
     try {
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const nowStr = now.toISOString();
+      const todayStr = getShopTodayString();
+      const nowStr = getShopNow().toISOString();
       const newViewModel = await presenter.getViewModel(todayStr, nowStr);
       if (isMountedRef.current) {
         setViewModel(newViewModel);

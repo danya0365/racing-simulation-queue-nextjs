@@ -1,44 +1,48 @@
 'use client';
 
 import type {
-  AdvanceBooking,
-  CreateAdvanceBookingData,
-  DaySchedule,
-  TimeSlot
-} from '@/src/application/repositories/IAdvanceBookingRepository';
-import dayjs from 'dayjs';
+  Booking,
+  BookingDaySchedule,
+  BookingTimeSlot,
+  CreateBookingData,
+} from '@/src/application/repositories/IBookingRepository';
+import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookingPresenter, BookingViewModel } from './BookingPresenter';
 import { createClientBookingPresenter } from './BookingPresenterClientFactory';
 
+const DEFAULT_TIMEZONE = SHOP_TIMEZONE;
+
 export interface BookingPresenterState {
   viewModel: BookingViewModel | null;
-  daySchedule: DaySchedule | null;
-  selectedTimeSlot: TimeSlot | null;
+  daySchedule: BookingDaySchedule | null;
+  selectedTimeSlot: BookingTimeSlot | null;
   loading: boolean;
   scheduleLoading: boolean;
   error: string | null;
   isBookingModalOpen: boolean;
   isSubmitting: boolean;
-  bookingSuccess: AdvanceBooking | null;
+  bookingSuccess: Booking | null;
 }
 
 export interface BookingPresenterActions {
   loadData: () => Promise<void>;
   selectMachine: (machineId: string) => void;
   selectDate: (date: string) => Promise<void>;
-  selectTimeSlot: (timeSlot: TimeSlot) => void;
+  selectTimeSlot: (timeSlot: BookingTimeSlot) => void;
   clearTimeSlot: () => void;
   openBookingModal: () => void;
   closeBookingModal: () => void;
-  submitBooking: (data: Omit<CreateAdvanceBookingData, 'machineId' | 'bookingDate' | 'startTime'>) => Promise<void>;
+  submitBooking: (data: { customerName: string; customerPhone: string; duration: number; notes?: string }) => Promise<void>;
   clearBookingSuccess: () => void;
   setError: (error: string | null) => void;
 }
 
 /**
- * Custom hook for AdvanceBooking presenter
- * Provides state management and actions for advance booking operations
+ * Custom hook for Booking presenter
+ * Provides state management and actions for booking operations
+ * 
+ * ✅ Now uses IBookingRepository types (TIMESTAMPTZ-based)
  */
 export function useBookingPresenter(
   initialViewModel?: BookingViewModel,
@@ -55,14 +59,14 @@ export function useBookingPresenter(
 
   // State
   const [viewModel, setViewModel] = useState<BookingViewModel | null>(initialViewModel || null);
-  const [daySchedule, setDaySchedule] = useState<DaySchedule | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
+  const [daySchedule, setDaySchedule] = useState<BookingDaySchedule | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<BookingTimeSlot | null>(null);
   const [loading, setLoading] = useState(!initialViewModel);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState<AdvanceBooking | null>(null);
+  const [bookingSuccess, setBookingSuccess] = useState<Booking | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -80,9 +84,9 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const now = dayjs();
-      const todayStr = now.format('YYYY-MM-DD');
-      const nowStr = now.toISOString();
+      // Use Shop Time for "Today" and "Now"
+      const todayStr = getShopTodayString();
+      const nowStr = getShopNow().toISOString();
       
       const vm = await presenter.getViewModel(todayStr);
       if (isMountedRef.current) {
@@ -90,7 +94,12 @@ export function useBookingPresenter(
         
         // Auto-load schedule for first machine and date
         if (vm.selectedMachineId && vm.selectedDate) {
-          const schedule = await presenter.getDaySchedule(vm.selectedMachineId, vm.selectedDate, nowStr);
+          const schedule = await presenter.getDaySchedule(
+            vm.selectedMachineId, 
+            vm.selectedDate, 
+            nowStr,
+            vm.timezone || DEFAULT_TIMEZONE
+          );
           if (isMountedRef.current) {
             setDaySchedule(schedule);
           }
@@ -113,8 +122,13 @@ export function useBookingPresenter(
       loadData();
     } else if (initialViewModel.selectedMachineId && initialViewModel.selectedDate) {
       // Load schedule for initial selection
-      const nowStr = dayjs().toISOString();
-      presenter.getDaySchedule(initialViewModel.selectedMachineId, initialViewModel.selectedDate, nowStr)
+      const nowStr = getShopNow().toISOString();
+      presenter.getDaySchedule(
+        initialViewModel.selectedMachineId, 
+        initialViewModel.selectedDate, 
+        nowStr,
+        initialViewModel.timezone || DEFAULT_TIMEZONE
+      )
         .then(schedule => {
           if (isMountedRef.current) {
             setDaySchedule(schedule);
@@ -138,8 +152,13 @@ export function useBookingPresenter(
     // Load schedule for new machine
     if (viewModel.selectedDate) {
       setScheduleLoading(true);
-      const nowStr = dayjs().toISOString();
-      presenter.getDaySchedule(machineId, viewModel.selectedDate, nowStr)
+      const nowStr = getShopNow().toISOString();
+      presenter.getDaySchedule(
+        machineId, 
+        viewModel.selectedDate, 
+        nowStr,
+        viewModel.timezone || DEFAULT_TIMEZONE
+      )
         .then(schedule => {
           if (isMountedRef.current) {
             setDaySchedule(schedule);
@@ -168,8 +187,13 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const nowStr = dayjs().toISOString();
-      const schedule = await presenter.getDaySchedule(viewModel.selectedMachineId, date, nowStr);
+      const nowStr = getShopNow().toISOString();
+      const schedule = await presenter.getDaySchedule(
+        viewModel.selectedMachineId, 
+        date, 
+        nowStr,
+        viewModel.timezone || DEFAULT_TIMEZONE
+      );
       if (isMountedRef.current) {
         setDaySchedule(schedule);
       }
@@ -182,10 +206,10 @@ export function useBookingPresenter(
         setScheduleLoading(false);
       }
     }
-  }, [viewModel?.selectedMachineId, presenter]);
+  }, [viewModel?.selectedMachineId, viewModel?.timezone, presenter]);
 
   // Select time slot
-  const selectTimeSlot = useCallback((timeSlot: TimeSlot) => {
+  const selectTimeSlot = useCallback((timeSlot: BookingTimeSlot) => {
     if (timeSlot.status !== 'available') return;
     setSelectedTimeSlot(timeSlot);
   }, []);
@@ -207,9 +231,9 @@ export function useBookingPresenter(
     setError(null);
   }, []);
 
-  // Submit booking
+  // Submit booking - uses new CreateBookingData structure
   const submitBooking = useCallback(async (
-    data: Omit<CreateAdvanceBookingData, 'machineId' | 'bookingDate' | 'startTime'>
+    data: { customerName: string; customerPhone: string; duration: number; notes?: string }
   ) => {
     if (!viewModel?.selectedMachineId || !viewModel.selectedDate || !selectedTimeSlot) {
       setError('กรุณาเลือกเครื่อง วันที่ และเวลาก่อนจอง');
@@ -220,13 +244,21 @@ export function useBookingPresenter(
     setError(null);
 
     try {
-      const nowStr = dayjs().toISOString();
-      const booking = await presenter.createBooking({
-        ...data,
+      const nowStr = getShopNow().toISOString();
+      
+      // Map to new CreateBookingData structure
+      const createData: CreateBookingData = {
         machineId: viewModel.selectedMachineId,
-        bookingDate: viewModel.selectedDate,
-        startTime: selectedTimeSlot.startTime,
-      }, nowStr);
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        localDate: viewModel.selectedDate,
+        localStartTime: selectedTimeSlot.startTime,
+        durationMinutes: data.duration,
+        timezone: viewModel.timezone || DEFAULT_TIMEZONE,
+        notes: data.notes,
+      };
+
+      const booking = await presenter.createBooking(createData, nowStr);
 
       if (isMountedRef.current) {
         setBookingSuccess(booking);
@@ -234,11 +266,12 @@ export function useBookingPresenter(
         setSelectedTimeSlot(null);
         
         // Refresh schedule
-        const nowStr = dayjs().toISOString();
+        const refreshNowStr = getShopNow().toISOString();
         const newSchedule = await presenter.getDaySchedule(
           viewModel.selectedMachineId,
           viewModel.selectedDate,
-          nowStr
+          refreshNowStr,
+          viewModel.timezone || DEFAULT_TIMEZONE
         );
         if (isMountedRef.current) {
           setDaySchedule(newSchedule);

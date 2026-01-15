@@ -1,13 +1,14 @@
 import {
-  CreateCustomerData,
-  Customer,
-  CustomerStats,
-  ICustomerRepository,
-  UpdateCustomerData
+    CreateCustomerData,
+    Customer,
+    CustomerStats,
+    ICustomerRepository,
+    UpdateCustomerData
 } from '@/src/application/repositories/ICustomerRepository';
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
+import dayjs from 'dayjs';
 
 export class SupabaseCustomerRepository implements ICustomerRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
@@ -133,8 +134,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
   }
 
   async getStats(todayStr: string): Promise<CustomerStats> {
-    const today = new Date(todayStr);
-    today.setHours(0, 0, 0, 0);
+    const today = dayjs(todayStr).startOf('day');
 
     const { data, error } = await this.supabase
       .from('customers')
@@ -152,7 +152,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return {
       totalCustomers: data.length,
       vipCustomers: data.filter(c => c.is_vip).length,
-      newCustomersToday: data.filter(c => new Date(c.created_at || '') >= today).length,
+      newCustomersToday: data.filter(c => dayjs(c.created_at || '').isAfter(today) || dayjs(c.created_at || '').isSame(today)).length,
       // Use centralized config for "returning/regular" customer threshold
       returningCustomers: data.filter(c => (c.visit_count || 0) >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
     };

@@ -1,3 +1,4 @@
+import { getShopNow } from "@/src/lib/date";
 import { BackendView } from "@/src/presentation/components/backend/BackendView";
 import { createServerBackendPresenter } from "@/src/presentation/presenters/backend/BackendPresenterServerFactory";
 import type { Metadata } from "next";
@@ -32,7 +33,8 @@ export default async function BackendPage() {
   const presenter = await createServerBackendPresenter();
 
   try {
-    const nowStr = new Date().toISOString();
+    // Use Shop timezone for consistent server/client date handling
+    const nowStr = getShopNow().toISOString();
     const viewModel = await presenter.getViewModel(nowStr);
 
     return <BackendView initialViewModel={viewModel} />;

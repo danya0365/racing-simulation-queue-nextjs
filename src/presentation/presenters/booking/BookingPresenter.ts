@@ -2,31 +2,39 @@
  * BookingPresenter
  * Handles business logic for Booking page
  * Receives repositories via dependency injection
+ * 
+ * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
  */
 
 import {
-    AdvanceBooking,
-    CreateAdvanceBookingData,
-    DaySchedule,
-    IAdvanceBookingRepository,
-} from '@/src/application/repositories/IAdvanceBookingRepository';
+  Booking,
+  BookingDaySchedule,
+  CreateBookingData,
+  IBookingRepository,
+} from '@/src/application/repositories/IBookingRepository';
 import { IMachineRepository, Machine } from '@/src/application/repositories/IMachineRepository';
 import { Metadata } from 'next';
+
+import { SHOP_TIMEZONE } from '@/src/lib/date';
+
+const DEFAULT_TIMEZONE = SHOP_TIMEZONE;
+
 
 export interface BookingViewModel {
   machines: Machine[];
   selectedMachineId: string | null;
   selectedDate: string;
   availableDates: string[];
-  daySchedule: DaySchedule | null;
+  timezone: string;
+  daySchedule: BookingDaySchedule | null;
 }
 
 /**
- * Presenter for Advance Booking page
+ * Presenter for Booking page
  */
 export class BookingPresenter {
   constructor(
-    private readonly advanceBookingRepo: IAdvanceBookingRepository,
+    private readonly bookingRepo: IBookingRepository,
     private readonly machineRepo: IMachineRepository
   ) {}
 
@@ -38,7 +46,7 @@ export class BookingPresenter {
       // Get machines and available dates in parallel
       const [machines, availableDates] = await Promise.all([
         this.machineRepo.getAll(),
-        this.advanceBookingRepo.getAvailableDates(todayStr, 7),
+        this.bookingRepo.getAvailableDates(todayStr, 7),
       ]);
 
       // Filter active machines only
@@ -50,6 +58,7 @@ export class BookingPresenter {
         selectedMachineId: activeMachines.length > 0 ? activeMachines[0].id : null,
         selectedDate: today,
         availableDates,
+        timezone: DEFAULT_TIMEZONE,
         daySchedule: null,
       };
     } catch (error) {
@@ -60,36 +69,50 @@ export class BookingPresenter {
 
   /**
    * Get schedule for a specific day and machine
+   * @param machineId - Machine UUID
+   * @param date - Local date in YYYY-MM-DD format
+   * @param referenceTime - ISO 8601 timestamp for marking passed slots (optional)
+   * @param timezone - IANA timezone
    */
-  async getDaySchedule(machineId: string, date: string, now: string): Promise<DaySchedule> {
-    return this.advanceBookingRepo.getDaySchedule(machineId, date, now);
+  async getDaySchedule(
+    machineId: string, 
+    date: string, 
+    referenceTime: string,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<BookingDaySchedule> {
+    return this.bookingRepo.getDaySchedule(machineId, date, timezone, referenceTime);
   }
 
   /**
-   * Create a new advance booking
+   * Create a new booking
+   * @param data - Booking data with local date/time
+   * @param referenceTime - Current time for validation (unused for now but kept for API consistency)
    */
-  async createBooking(data: CreateAdvanceBookingData, now: string): Promise<AdvanceBooking> {
+  async createBooking(data: CreateBookingData, referenceTime: string): Promise<Booking> {
     // Validate slot availability first
-    const isAvailable = await this.advanceBookingRepo.isSlotAvailable(
+    const isAvailable = await this.bookingRepo.isSlotAvailable(
       data.machineId,
-      data.bookingDate,
-      data.startTime,
-      data.duration,
-      now
+      data.localDate,
+      data.localStartTime,
+      data.durationMinutes,
+      data.timezone || DEFAULT_TIMEZONE
     );
 
     if (!isAvailable) {
       throw new Error('ช่วงเวลานี้ไม่ว่าง กรุณาเลือกเวลาอื่น');
     }
 
-    return this.advanceBookingRepo.create(data);
+    // Log referenceTime usage (for future validation if needed)
+    console.log('Creating booking with referenceTime:', referenceTime);
+
+    return this.bookingRepo.create(data);
   }
 
   /**
-   * Cancel an advance booking
+   * Cancel a booking
    */
   async cancelBooking(id: string): Promise<boolean> {
-    return this.advanceBookingRepo.cancel(id);
+    return this.bookingRepo.cancel(id);
   }
 
   /**
@@ -99,10 +122,10 @@ export class BookingPresenter {
     machineId: string,
     date: string,
     startTime: string,
-    duration: number,
-    now: string
+    durationMinutes: number,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<boolean> {
-    return this.advanceBookingRepo.isSlotAvailable(machineId, date, startTime, duration, now);
+    return this.bookingRepo.isSlotAvailable(machineId, date, startTime, durationMinutes, timezone);
   }
 
   /**

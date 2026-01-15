@@ -1,11 +1,13 @@
 'use client';
 
 import { DEFAULT_DURATION, DURATION_OPTIONS, OPERATING_HOURS } from '@/src/config/booking.config';
+import { SHOP_TIMEZONE } from '@/src/lib/date';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { TimezoneNotice } from '@/src/presentation/components/ui/TimezoneNotice';
 import { TimeBookingPresenter, TimeBookingViewModel } from '@/src/presentation/presenters/timeBooking/TimeBookingPresenter';
 import {
-    BookingStep,
-    useTimeBookingPresenter
+  BookingStep,
+  useTimeBookingPresenter
 } from '@/src/presentation/presenters/timeBooking/useTimeBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
@@ -31,7 +33,7 @@ export function TimeBookingView({
   initialViewModel, 
   presenterOverride 
 }: TimeBookingViewProps) {
-  const { customerInfo } = useCustomerStore();
+  const { customerInfo, setCustomerInfo } = useCustomerStore();
 
   // ✅ Use presenter hook for state management
   const [state, actions] = useTimeBookingPresenter(initialViewModel, presenterOverride);
@@ -74,7 +76,7 @@ export function TimeBookingView({
     }).format(dayjs(dateStr).toDate());
   };
 
-  // Handle form submit
+  // Handle form submit - uses new CreateBookingData format
   const handleSubmit = async () => {
     if (!state.selectedMachineId || !state.selectedSlot || !name.trim() || !phone.trim()) {
       actions.setError('กรุณากรอกข้อมูลให้ครบ');
@@ -82,14 +84,25 @@ export function TimeBookingView({
     }
 
     try {
-      await actions.createBooking({
+      const booking = await actions.createBooking({
         machineId: state.selectedMachineId,
         customerName: name.trim(),
         customerPhone: phone.trim(),
-        bookingDate: state.selectedDate,
-        startTime: state.selectedSlot.startTime,
-        duration,
+        localDate: state.selectedDate,
+        localStartTime: state.selectedSlot.startTime,
+        durationMinutes: duration,
+        timezone: state.viewModel?.timezone || SHOP_TIMEZONE,
       });
+      
+      // ✅ IMPORTANT: Save customerId to store for cancellation later
+      // This is the ONLY secure way - customerId must come from create booking response
+      if (booking?.customerId) {
+        setCustomerInfo({
+          phone: phone.trim(),
+          name: name.trim(),
+          id: booking.customerId,
+        });
+      }
     } catch {
       // Error already handled in hook
     }
@@ -160,13 +173,13 @@ export function TimeBookingView({
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8">
             <p className="text-white/60 text-sm mb-2">การจองของคุณ</p>
             <p className="text-2xl font-bold text-emerald-300 mb-2">
-              📅 {formatDateDisplay(state.success.bookingDate)}
+              📅 {formatDateDisplay(state.success.localDate)}
             </p>
             <p className="text-4xl font-bold text-white">
-              🕐 {state.success.startTime.slice(0, 5)} - {state.success.endTime.slice(0, 5)}
+              🕐 {state.success.localStartTime.slice(0, 5)} - {state.success.localEndTime.slice(0, 5)}
             </p>
             <p className="text-white/80 mt-4">{state.selectedMachine?.name}</p>
-            <p className="text-white/60 text-sm">{state.success.duration} นาที</p>
+            <p className="text-white/60 text-sm">{state.success.durationMinutes} นาที</p>
           </div>
 
           {/* Actions */}
@@ -247,6 +260,9 @@ export function TimeBookingView({
       {/* Main Content */}
       <main className="relative z-10 flex-1 px-4 py-6">
         <div className="max-w-md mx-auto">
+          
+          {/* 🌍 Timezone Notice - Shows when user's timezone differs from shop */}
+          <TimezoneNotice />
           
           {/* Step 1: Machine Selection */}
           {state.step === 'machine' && (

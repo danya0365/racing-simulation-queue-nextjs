@@ -1,6 +1,7 @@
 'use client';
 
 import type { CreateCustomerData, Customer, UpdateCustomerData } from '@/src/application/repositories/ICustomerRepository';
+import { getShopTodayString } from '@/src/lib/date';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CustomersPresenter, CustomersViewModel } from './CustomersPresenter';
 import { createClientCustomersPresenter } from './CustomersPresenterClientFactory';
@@ -65,7 +66,7 @@ export function useCustomersPresenter(
     setError(null);
 
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getShopTodayString();
       const vm = await presenter.getViewModel(todayStr);
       if (isMountedRef.current) {
         setViewModel(vm);

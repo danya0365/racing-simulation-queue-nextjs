@@ -1,8 +1,9 @@
 'use client';
 
-import { AdvanceBooking, BookingSessionLog, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingDaySchedule, BookingLog } from '@/src/application/repositories/IBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { createBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
 import { BookingDetailModal } from '@/src/presentation/components/backend/BookingDetailModal';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
@@ -11,19 +12,25 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+
+const DEFAULT_TIMEZONE = SHOP_TIMEZONE;
+
+
 /**
  * AdvanceControlView - Game Room Control for Advance Bookings
  * 
  * This control panel is designed for the advance booking system.
  * It shows real-time status based on scheduled time slots.
  * 
+ * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
+ * 
  * Route: /backend/advance-control
  */
 export function AdvanceControlView() {
   const [machines, setMachines] = useState<Machine[]>([]);
-  const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map());
-  const [allBookings, setAllBookings] = useState<AdvanceBooking[]>([]);
-  const [sessionLogs, setSessionLogs] = useState<Map<string, BookingSessionLog[]>>(new Map());
+  const [allSchedules, setAllSchedules] = useState<Map<string, BookingDaySchedule>>(new Map());
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
+  const [sessionLogs, setSessionLogs] = useState<Map<string, BookingLog[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,14 +38,14 @@ export function AdvanceControlView() {
   const [completeBookingId, setCompleteBookingId] = useState<string | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
-  // Get today's date in local YYYY-MM-DD
+  // Get today's date in Shop timezone (YYYY-MM-DD)
   const today = useMemo(() => {
-    return dayjs().format('YYYY-MM-DD');
+    return getShopTodayString();
   }, []);
 
-  // ✅ Use factory for repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(
-    () => createAdvanceBookingRepositories(),
+  // ✅ Use factory for repositories - now using new IBookingRepository
+  const { bookingRepo, machineRepo } = useMemo(
+    () => createBookingRepositories(),
     []
   );
 
@@ -59,14 +66,14 @@ export function AdvanceControlView() {
       setMachines(activeMachines);
 
       // Load schedules and bookings for all machines
-      const schedulesMap = new Map<string, DaySchedule>();
-      const allMachineBookings: AdvanceBooking[] = [];
+      const schedulesMap = new Map<string, BookingDaySchedule>();
+      const allMachineBookings: Booking[] = [];
 
-      const nowStr = dayjs().toISOString();
+      const referenceTime = getShopNow().toISOString();
       await Promise.all(activeMachines.map(async (machine) => {
         const [schedule, machineBookings] = await Promise.all([
-          advanceBookingRepo.getDaySchedule(machine.id, today, nowStr),
-          advanceBookingRepo.getByMachineAndDate(machine.id, today),
+          bookingRepo.getDaySchedule(machine.id, today, DEFAULT_TIMEZONE, referenceTime),
+          bookingRepo.getByMachineAndDate(machine.id, today),
         ]);
         schedulesMap.set(machine.id, schedule);
         allMachineBookings.push(...machineBookings);
@@ -74,8 +81,8 @@ export function AdvanceControlView() {
 
       // Fetch session logs for current bookings
       const bookingIds = allMachineBookings.map(b => b.id);
-      const logs = await advanceBookingRepo.getSessionLogs(bookingIds);
-      const logsMap = new Map<string, BookingSessionLog[]>();
+      const logs = await bookingRepo.getSessionLogs(bookingIds);
+      const logsMap = new Map<string, BookingLog[]>();
       
       bookingIds.forEach(id => {
         logsMap.set(id, logs.filter(l => l.bookingId === id));
@@ -93,7 +100,7 @@ export function AdvanceControlView() {
       setLoading(false);
       setIsUpdating(false);
     }
-  }, [machineRepo, advanceBookingRepo, today]);
+  }, [machineRepo, bookingRepo, today]);
 
   useEffect(() => {
     loadData();
@@ -115,7 +122,7 @@ export function AdvanceControlView() {
   };
 
   // Get current booking for a machine (based on time)
-  const getCurrentBooking = (machineId: string): AdvanceBooking | null => {
+  const getCurrentBooking = (machineId: string): Booking | null => {
     const machineBookings = allBookings.filter(b => 
       b.machineId === machineId && 
       (b.status === 'confirmed' || b.status === 'pending')
@@ -123,14 +130,14 @@ export function AdvanceControlView() {
     const now = getCurrentTimeString();
     
     return machineBookings.find(booking => {
-      const start = booking.startTime.slice(0, 5);
-      const end = booking.endTime.slice(0, 5);
+      const start = booking.localStartTime.slice(0, 5);
+      const end = booking.localEndTime.slice(0, 5);
       return now >= start && now < end;
     }) || null;
   };
 
   // Get next booking for a machine
-  const getNextBooking = (machineId: string): AdvanceBooking | null => {
+  const getNextBooking = (machineId: string): Booking | null => {
     const machineBookings = allBookings.filter(b => 
       b.machineId === machineId && 
       (b.status === 'confirmed' || b.status === 'pending')
@@ -138,12 +145,12 @@ export function AdvanceControlView() {
     const now = getCurrentTimeString();
     
     return machineBookings
-      .filter(b => b.startTime.slice(0, 5) > now)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime))[0] || null;
+      .filter(b => b.localStartTime.slice(0, 5) > now)
+      .sort((a, b) => a.localStartTime.localeCompare(b.localStartTime))[0] || null;
   };
 
   // Get upcoming bookings for a machine
-  const getUpcomingBookings = (machineId: string): AdvanceBooking[] => {
+  const getUpcomingBookings = (machineId: string): Booking[] => {
     const machineBookings = allBookings.filter(b => 
       b.machineId === machineId && 
       (b.status === 'confirmed' || b.status === 'pending')
@@ -151,8 +158,8 @@ export function AdvanceControlView() {
     const now = getCurrentTimeString();
     
     return machineBookings
-      .filter(b => b.startTime.slice(0, 5) > now)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      .filter(b => b.localStartTime.slice(0, 5) > now)
+      .sort((a, b) => a.localStartTime.localeCompare(b.localStartTime))
       .slice(0, 3);
   };
 
@@ -163,7 +170,7 @@ export function AdvanceControlView() {
     setIsUpdating(true);
     try {
       // Update booking status to completed
-      await advanceBookingRepo.update(completeBookingId, { status: 'completed' });
+      await bookingRepo.update(completeBookingId, { status: 'completed' });
       await loadData();
     } catch (err) {
       setError('ไม่สามารถอัพเดทสถานะได้');
@@ -178,7 +185,7 @@ export function AdvanceControlView() {
   const handleStartSession = async (bookingId: string) => {
     setIsUpdating(true);
     try {
-      await advanceBookingRepo.logSession(bookingId, 'START');
+      await bookingRepo.logSession(bookingId, 'START');
       // Refresh data to show updated state
       await loadData();
     } catch (err) {
@@ -193,7 +200,7 @@ export function AdvanceControlView() {
   const handleStopSession = async (bookingId: string) => {
     setIsUpdating(true);
     try {
-      await advanceBookingRepo.logSession(bookingId, 'STOP');
+      await bookingRepo.logSession(bookingId, 'STOP');
       // Refresh data to show updated state
       await loadData();
     } catch (err) {
@@ -424,9 +431,9 @@ export function AdvanceControlView() {
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-orange-400">
-                          {formatTime(currentBooking.startTime)} - {formatTime(currentBooking.endTime)}
+                          {formatTime(currentBooking.localStartTime)} - {formatTime(currentBooking.localEndTime)}
                         </p>
-                        <p className="text-sm text-white/60">{getTimeRemaining(currentBooking.endTime)}</p>
+                        <p className="text-sm text-white/60">{getTimeRemaining(currentBooking.localEndTime)}</p>
                       </div>
                     </div>
 
@@ -522,7 +529,7 @@ export function AdvanceControlView() {
                           <p className="text-xs text-white/50">{nextBooking.customerPhone}</p>
                         </div>
                         <p className="text-sm font-bold text-purple-400">
-                          {formatTime(nextBooking.startTime)}
+                          {formatTime(nextBooking.localStartTime)}
                         </p>
                       </div>
                     </div>
@@ -548,10 +555,10 @@ export function AdvanceControlView() {
                         >
                           <div>
                             <p className="font-medium text-white text-sm">{booking.customerName}</p>
-                            <p className="text-xs text-white/50">{booking.duration} นาที</p>
+                            <p className="text-xs text-white/50">{booking.durationMinutes} นาที</p>
                           </div>
                           <p className="text-sm font-bold text-purple-400">
-                            {formatTime(booking.startTime)}
+                            {formatTime(booking.localStartTime)}
                           </p>
                         </div>
                       ))}

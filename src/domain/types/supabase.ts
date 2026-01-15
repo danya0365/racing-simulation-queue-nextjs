@@ -66,6 +66,38 @@ export type Database = {
           },
         ]
       }
+      booking_logs: {
+        Row: {
+          action: string
+          booking_id: string
+          created_by: string | null
+          id: string
+          recorded_at: string | null
+        }
+        Insert: {
+          action: string
+          booking_id: string
+          created_by?: string | null
+          id?: string
+          recorded_at?: string | null
+        }
+        Update: {
+          action?: string
+          booking_id?: string
+          created_by?: string | null
+          id?: string
+          recorded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_session_logs: {
         Row: {
           action: string
@@ -94,6 +126,78 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "advance_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          business_timezone: string
+          created_at: string | null
+          customer_id: string
+          duration_minutes: number
+          end_at: string
+          id: string
+          is_cross_midnight: boolean | null
+          local_date: string | null
+          local_end_date: string | null
+          local_end_time: string | null
+          local_start_time: string | null
+          machine_id: string
+          notes: string | null
+          start_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          business_timezone?: string
+          created_at?: string | null
+          customer_id: string
+          duration_minutes?: number
+          end_at: string
+          id?: string
+          is_cross_midnight?: boolean | null
+          local_date?: string | null
+          local_end_date?: string | null
+          local_end_time?: string | null
+          local_start_time?: string | null
+          machine_id: string
+          notes?: string | null
+          start_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          business_timezone?: string
+          created_at?: string | null
+          customer_id?: string
+          duration_minutes?: number
+          end_at?: string
+          id?: string
+          is_cross_midnight?: boolean | null
+          local_date?: string | null
+          local_end_date?: string | null
+          local_end_time?: string | null
+          local_start_time?: string | null
+          machine_id?: string
+          notes?: string | null
+          start_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
             referencedColumns: ["id"]
           },
         ]
@@ -455,6 +559,10 @@ export type Database = {
         Args: { p_booking_id: string; p_customer_id?: string }
         Returns: Json
       }
+      rpc_cancel_booking: {
+        Args: { p_booking_id: string; p_customer_id?: string }
+        Returns: Json
+      }
       rpc_cancel_queue_guest: {
         Args: { p_queue_id: string; p_customer_id: string }
         Returns: boolean
@@ -472,13 +580,24 @@ export type Database = {
         Returns: Json
       }
       rpc_create_booking: {
-        Args: {
-          p_customer_name: string
-          p_customer_phone: string
-          p_machine_id: string
-          p_duration: number
-          p_notes?: string
-        }
+        Args:
+          | {
+              p_customer_name: string
+              p_customer_phone: string
+              p_machine_id: string
+              p_duration: number
+              p_notes?: string
+            }
+          | {
+              p_machine_id: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_local_date: string
+              p_local_start_time: string
+              p_duration_minutes: number
+              p_timezone?: string
+              p_notes?: string
+            }
         Returns: Json
       }
       rpc_get_active_and_recent_queues: {
@@ -553,12 +672,61 @@ export type Database = {
           cancelled_queues: number
         }[]
       }
+      rpc_get_booking_logs: {
+        Args: { p_booking_ids: string[] }
+        Returns: {
+          booking_id: string
+          action: string
+          recorded_at: string
+        }[]
+      }
       rpc_get_booking_session_logs: {
         Args: { p_booking_ids: string[] }
         Returns: {
           booking_id: string
           action: string
           recorded_at: string
+        }[]
+      }
+      rpc_get_bookings_by_machine_date: {
+        Args: { p_machine_id: string; p_date: string; p_customer_id?: string }
+        Returns: {
+          booking_id: string
+          machine_id: string
+          customer_name: string
+          customer_phone: string
+          start_at: string
+          end_at: string
+          local_date: string
+          local_start_time: string
+          local_end_time: string
+          duration_minutes: number
+          business_timezone: string
+          is_cross_midnight: boolean
+          status: string
+          is_owner: boolean
+          created_at: string
+        }[]
+      }
+      rpc_get_bookings_schedule: {
+        Args: {
+          p_machine_id: string
+          p_date: string
+          p_timezone?: string
+          p_customer_id?: string
+        }
+        Returns: {
+          booking_id: string
+          start_at: string
+          end_at: string
+          local_start_time: string
+          local_end_time: string
+          duration_minutes: number
+          is_cross_midnight: boolean
+          status: string
+          customer_name: string
+          customer_phone: string
+          is_owner: boolean
         }[]
       }
       rpc_get_customer_advance_bookings: {
@@ -583,6 +751,26 @@ export type Database = {
           playing_count: number
           estimated_wait_minutes: number
           next_position: number
+        }[]
+      }
+      rpc_get_my_bookings: {
+        Args: { p_customer_id: string }
+        Returns: {
+          booking_id: string
+          machine_id: string
+          machine_name: string
+          customer_name: string
+          customer_phone: string
+          start_at: string
+          end_at: string
+          local_date: string
+          local_start_time: string
+          local_end_time: string
+          duration_minutes: number
+          business_timezone: string
+          is_cross_midnight: boolean
+          status: string
+          created_at: string
         }[]
       }
       rpc_get_my_queue_status: {
@@ -632,6 +820,20 @@ export type Database = {
           status: Database["public"]["Enums"]["queue_status"]
           queue_position: number
         }[]
+      }
+      rpc_is_booking_slot_available: {
+        Args: {
+          p_machine_id: string
+          p_local_date: string
+          p_local_start_time: string
+          p_duration_minutes: number
+          p_timezone?: string
+        }
+        Returns: boolean
+      }
+      rpc_log_booking: {
+        Args: { p_booking_id: string; p_action: string }
+        Returns: Json
       }
       rpc_log_booking_session: {
         Args: { p_booking_id: string; p_action: string }
@@ -684,6 +886,7 @@ export type Database = {
         | "confirmed"
         | "cancelled"
         | "completed"
+      booking_status: "pending" | "confirmed" | "cancelled" | "completed"
       machine_status: "available" | "occupied" | "maintenance"
       profile_role: "user" | "moderator" | "admin"
       queue_status: "waiting" | "playing" | "completed" | "cancelled"
@@ -808,6 +1011,7 @@ export const Constants = {
         "cancelled",
         "completed",
       ],
+      booking_status: ["pending", "confirmed", "cancelled", "completed"],
       machine_status: ["available", "occupied", "maintenance"],
       profile_role: ["user", "moderator", "admin"],
       queue_status: ["waiting", "playing", "completed", "cancelled"],

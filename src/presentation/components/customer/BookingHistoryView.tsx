@@ -1,65 +1,74 @@
 'use client';
 
-import { AdvanceBooking, DaySchedule } from '@/src/application/repositories/IAdvanceBookingRepository';
+import { Booking, BookingDaySchedule } from '@/src/application/repositories/IBookingRepository';
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { createAdvanceBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
+import { createBookingRepositories } from '@/src/infrastructure/repositories/RepositoryFactory';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
+import { TimezoneNotice } from '@/src/presentation/components/ui/TimezoneNotice';
+import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
+
+// Default timezone for Thailand
+const DEFAULT_TIMEZONE = SHOP_TIMEZONE;
+
 /**
- * AdvanceBookingHistoryView - Detailed booking schedule view
+ * BookingHistoryView - Detailed booking schedule view
  * Shows schedule for a specific date with machine filter and time slots grid
+ * 
+ * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
  */
 export function BookingHistoryView() {
+  // Customer store for customerId
+  const { customerInfo, isInitialized } = useCustomerStore();
+  
   // Data state
   const [machines, setMachines] = useState<Machine[]>([]);
-  const [schedule, setSchedule] = useState<DaySchedule | null>(null);
-  const [allSchedules, setAllSchedules] = useState<Map<string, DaySchedule>>(new Map());
-  const [bookings, setBookings] = useState<AdvanceBooking[]>([]);
+  const [schedule, setSchedule] = useState<BookingDaySchedule | null>(null);
+  const [allSchedules, setAllSchedules] = useState<Map<string, BookingDaySchedule>>(new Map());
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Filter state
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return getShopTodayString();
   });
 
-  // ✅ Use factory for repositories
-  const { advanceBookingRepo, machineRepo } = useMemo(
-    () => createAdvanceBookingRepositories(),
+  // ✅ Use factory for repositories - now using new IBookingRepository
+  const { bookingRepo, machineRepo } = useMemo(
+    () => createBookingRepositories(),
     []
   );
 
   // Generate date options (7 days before + today + 7 days ahead)
   const dateOptions = useMemo(() => {
     const dates: { date: string; label: string; dayOfWeek: string; dayNum: number; month: string; }[] = [];
-    const today = new Date();
+    const today = dayjs();
     
     for (let i = -7; i <= 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const dYear = date.getFullYear();
-      const dMonth = String(date.getMonth() + 1).padStart(2, '0');
-      const dDay = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${dYear}-${dMonth}-${dDay}`;
+      const date = today.add(i, 'day');
+      const dateStr = date.format('YYYY-MM-DD');
       
       let label = '';
       if (i === 0) label = 'วันนี้';
       else if (i === -1) label = 'เมื่อวาน';
       else if (i === 1) label = 'พรุ่งนี้';
-      else label = new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(date);
+      else label = new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(date.toDate());
       
       dates.push({
         date: dateStr,
         label,
-        dayOfWeek: new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(date),
-        dayNum: date.getDate(),
-        month: new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(date),
+        dayOfWeek: new Intl.DateTimeFormat('th-TH', { weekday: 'short' }).format(date.toDate()),
+        dayNum: date.date(),
+        month: new Intl.DateTimeFormat('th-TH', { month: 'short' }).format(date.toDate()),
       });
     }
     return dates;
@@ -86,16 +95,18 @@ export function BookingHistoryView() {
     
     setIsUpdating(true);
     try {
+      const referenceTime = getShopNow().toISOString();
+      const customerId = customerInfo.id || undefined;
+      
       if (selectedMachineId === 'all') {
         // Load for ALL machines
-        const allMachineBookings: AdvanceBooking[] = [];
-        const schedulesMap = new Map<string, DaySchedule>();
+        const allMachineBookings: Booking[] = [];
+        const schedulesMap = new Map<string, BookingDaySchedule>();
         
-        const now = new Date().toISOString();
         await Promise.all(machines.map(async (machine) => {
           const [machineSchedule, machineBookings] = await Promise.all([
-            advanceBookingRepo.getDaySchedule(machine.id, selectedDate, now),
-            advanceBookingRepo.getByMachineAndDate(machine.id, selectedDate),
+            bookingRepo.getDaySchedule(machine.id, selectedDate, DEFAULT_TIMEZONE, referenceTime, customerId),
+            bookingRepo.getByMachineAndDate(machine.id, selectedDate, customerId),
           ]);
           schedulesMap.set(machine.id, machineSchedule);
           allMachineBookings.push(...machineBookings);
@@ -106,10 +117,9 @@ export function BookingHistoryView() {
         setSchedule(null);
       } else {
         // Load for specific machine
-        const now = new Date().toISOString();
         const [machineSchedule, machineBookings] = await Promise.all([
-          advanceBookingRepo.getDaySchedule(selectedMachineId, selectedDate, now),
-          advanceBookingRepo.getByMachineAndDate(selectedMachineId, selectedDate),
+          bookingRepo.getDaySchedule(selectedMachineId, selectedDate, DEFAULT_TIMEZONE, referenceTime, customerId),
+          bookingRepo.getByMachineAndDate(selectedMachineId, selectedDate, customerId),
         ]);
         setSchedule(machineSchedule);
         setBookings(machineBookings);
@@ -120,13 +130,14 @@ export function BookingHistoryView() {
     } finally {
       setIsUpdating(false);
     }
-  }, [selectedMachineId, selectedDate, machines, advanceBookingRepo]);
+  }, [selectedMachineId, selectedDate, machines, bookingRepo, customerInfo.id]);
 
   useEffect(() => {
-    if (machines.length > 0) {
+    // Wait for store to initialize before loading (so customerId is available from localStorage)
+    if (machines.length > 0 && isInitialized) {
       loadSchedule();
     }
-  }, [loadSchedule, machines.length]);
+  }, [loadSchedule, machines.length, isInitialized]);
 
   // Format date for display
   const formatDateDisplay = (dateStr: string) => {
@@ -135,7 +146,7 @@ export function BookingHistoryView() {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(dateStr));
+    }).format(dayjs(dateStr).toDate());
   };
 
   // Get status styling
@@ -172,6 +183,9 @@ export function BookingHistoryView() {
           <p className="text-muted">ดูตารางและประวัติการจองทั้งหมด</p>
         </div>
 
+        {/* 🌍 Timezone Notice */}
+        <TimezoneNotice />
+
         {/* Date Carousel */}
         <AnimatedCard className="p-6 mb-6">
           <label className="block text-sm font-medium text-muted mb-4">📅 เลือกวันที่</label>
@@ -197,10 +211,7 @@ export function BookingHistoryView() {
                 const currentIdx = dateOptions.findIndex(opt => opt.date === selectedDate);
                 const distance = Math.abs(index - currentIdx);
                 const isSelected = d.date === selectedDate;
-                const isToday = d.date === (() => {
-                  const dNow = new Date();
-                  return `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
-                })();
+                const isToday = d.date === getShopTodayString();
                 
                 // Calculate scale and opacity
                 const scale = isSelected ? 1.1 : distance === 1 ? 0.85 : 0.7;
@@ -447,24 +458,38 @@ export function BookingHistoryView() {
           ) : (
             <div className="space-y-3">
               {bookings
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .sort((a, b) => a.localStartTime.localeCompare(b.localStartTime))
                 .map((booking) => {
                   const statusConfig = getStatusConfig(booking.status);
                   const machine = machines.find(m => m.id === booking.machineId);
+                  const isOwner = booking.isOwner;
                   
                   return (
                     <div
                       key={booking.id}
-                      className="p-4 bg-surface border border-border rounded-xl hover:border-purple-500/50 transition-all"
+                      className={`p-4 rounded-xl transition-all ${
+                        isOwner 
+                          ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-purple-500/50 ring-2 ring-purple-500/20' 
+                          : 'bg-surface border border-border hover:border-purple-500/50'
+                      }`}
                     >
+                      {isOwner && (
+                        <div className="mb-2 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs font-bold rounded-full inline-block">
+                          ⭐ การจองของคุณ
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-xl text-white shadow-lg">
-                            🎮
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white shadow-lg ${
+                            isOwner 
+                              ? 'bg-gradient-to-br from-yellow-500 to-orange-600' 
+                              : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                          }`}>
+                            {isOwner ? '⭐' : '🎮'}
                           </div>
                           <div>
                             <p className="font-bold text-foreground">
-                              {booking.startTime.slice(0, 5)} - {booking.endTime.slice(0, 5)}
+                              {booking.localStartTime.slice(0, 5)} - {booking.localEndTime.slice(0, 5)}
                               {selectedMachineId === 'all' && machine && (
                                 <span className="ml-2 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
                                   {machine.name}
@@ -472,10 +497,13 @@ export function BookingHistoryView() {
                               )}
                             </p>
                             <p className="text-sm text-muted">
-                              {booking.customerName} • {booking.customerPhone}
+                              {booking.customerName}
+                              {booking.customerPhone && (
+                                <span> • {booking.customerPhone}</span>
+                              )}
                             </p>
                             <p className="text-xs text-muted">
-                              ระยะเวลา: {booking.duration} นาที
+                              ระยะเวลา: {booking.durationMinutes} นาที
                             </p>
                           </div>
                         </div>

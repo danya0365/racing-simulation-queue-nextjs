@@ -1,3 +1,4 @@
+import { getShopNow, getShopTodayString } from "@/src/lib/date";
 import { HomeView } from "@/src/presentation/components/home/HomeView";
 import { createServerHomePresenter } from "@/src/presentation/presenters/home/HomePresenterServerFactory";
 import type { Metadata } from "next";
@@ -34,10 +35,9 @@ export default async function HomePage() {
   const presenter = await createServerHomePresenter();
 
   try {
-    // Get view model from presenter
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const nowStr = now.toISOString();
+    // Get view model from presenter - using Shop timezone for consistency
+    const todayStr = getShopTodayString();
+    const nowStr = getShopNow().toISOString();
     const viewModel = await presenter.getViewModel(todayStr, nowStr);
 
     return <HomeView initialViewModel={viewModel} />;

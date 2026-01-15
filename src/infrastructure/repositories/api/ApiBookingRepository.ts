@@ -1,33 +1,44 @@
 /**
- * ApiAdvanceBookingRepository
- * Implements IAdvanceBookingRepository using API calls instead of direct Supabase connection
+ * ApiBookingRepository
+ * Implements IBookingRepository using API calls instead of direct Supabase connection
  * 
  * ✅ For use in CLIENT-SIDE components only
  * ✅ No connection pool issues - calls go through Next.js API routes
+ * ✅ Uses new TIMESTAMPTZ-based booking system
  */
 
 'use client';
 
 import {
-    AdvanceBooking,
-    AdvanceBookingStats,
-    BookingSessionLog,
-    CreateAdvanceBookingData,
-    DaySchedule,
-    IAdvanceBookingRepository,
-    UpdateAdvanceBookingData,
-} from '@/src/application/repositories/IAdvanceBookingRepository';
+    Booking,
+    BookingDaySchedule,
+    BookingLog,
+    BookingStats,
+    CreateBookingData,
+    IBookingRepository,
+    UpdateBookingData,
+} from '@/src/application/repositories/IBookingRepository';
 
-export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
+export class ApiBookingRepository implements IBookingRepository {
   private baseUrl = '/api/bookings';
 
   /**
    * Get schedule for a specific day and machine
+   * Supports timezone-aware queries
    */
-  async getDaySchedule(machineId: string, date: string, referenceTime?: string): Promise<DaySchedule> {
-    const params = new URLSearchParams({ machineId, date });
+  async getDaySchedule(
+    machineId: string, 
+    date: string, 
+    timezone: string,
+    referenceTime?: string,
+    customerId?: string
+  ): Promise<BookingDaySchedule> {
+    const params = new URLSearchParams({ machineId, date, timezone });
     if (referenceTime) {
       params.append('referenceTime', referenceTime);
+    }
+    if (customerId) {
+      params.append('customerId', customerId);
     }
     const res = await fetch(`${this.baseUrl}/schedule?${params}`);
     if (!res.ok) {
@@ -56,7 +67,7 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   /**
    * Get booking by ID
    */
-  async getById(id: string): Promise<AdvanceBooking | null> {
+  async getById(id: string): Promise<Booking | null> {
     const res = await fetch(`${this.baseUrl}/${id}`);
     if (res.status === 404) return null;
     if (!res.ok) {
@@ -67,10 +78,11 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   }
 
   /**
-   * Get all advance bookings for a customer
+   * Get all bookings for the current customer (by customer_id)
+   * SECURE: Only returns bookings that belong to this customer_id
    */
-  async getByCustomerPhone(phone: string): Promise<AdvanceBooking[]> {
-    const res = await fetch(`${this.baseUrl}/by-phone?phone=${encodeURIComponent(phone)}`);
+  async getMyBookings(customerId: string): Promise<Booking[]> {
+    const res = await fetch(`${this.baseUrl}/my-bookings?customerId=${encodeURIComponent(customerId)}`);
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'ไม่สามารถโหลดข้อมูลการจองได้');
@@ -79,10 +91,12 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   }
 
   /**
-   * Get all advance bookings for a machine on a date
+   * Get all bookings for a machine on a date
    */
-  async getByMachineAndDate(machineId: string, date: string): Promise<AdvanceBooking[]> {
+  async getByMachineAndDate(machineId: string, date: string, customerId?: string): Promise<Booking[]> {
     const params = new URLSearchParams({ machineId, date });
+    if (customerId) params.append('customerId', customerId);
+    
     const res = await fetch(`${this.baseUrl}?${params}`);
     if (!res.ok) {
       const error = await res.json();
@@ -92,9 +106,9 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   }
 
   /**
-   * Create a new advance booking
+   * Create a new booking
    */
-  async create(data: CreateAdvanceBookingData): Promise<AdvanceBooking> {
+  async create(data: CreateBookingData): Promise<Booking> {
     const res = await fetch(this.baseUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -108,9 +122,9 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   }
 
   /**
-   * Update an existing advance booking
+   * Update an existing booking
    */
-  async update(id: string, data: UpdateAdvanceBookingData): Promise<AdvanceBooking> {
+  async update(id: string, data: UpdateBookingData): Promise<Booking> {
     const res = await fetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -124,13 +138,13 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   }
 
   /**
-   * Cancel an advance booking
+   * Cancel a booking
    */
-  async cancel(id: string): Promise<boolean> {
+  async cancel(id: string, customerId?: string): Promise<boolean> {
     const res = await fetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'cancel' }),
+      body: JSON.stringify({ action: 'cancel', customerId }),
     });
     if (!res.ok) {
       const error = await res.json();
@@ -143,11 +157,17 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   /**
    * Check if a time slot is available
    */
-  async isSlotAvailable(machineId: string, date: string, startTime: string, duration: number, referenceTime?: string): Promise<boolean> {
+  async isSlotAvailable(
+    machineId: string,
+    date: string,
+    startTime: string,
+    durationMinutes: number,
+    timezone?: string
+  ): Promise<boolean> {
     const res = await fetch(`${this.baseUrl}/schedule`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ machineId, date, startTime, duration, referenceTime }),
+      body: JSON.stringify({ machineId, date, startTime, durationMinutes, timezone }),
     });
     if (!res.ok) {
       const error = await res.json();
@@ -160,7 +180,7 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   /**
    * Get statistics
    */
-  async getStats(): Promise<AdvanceBookingStats> {
+  async getStats(): Promise<BookingStats> {
     const res = await fetch(`${this.baseUrl}?action=stats`);
     if (!res.ok) {
       const error = await res.json();
@@ -187,10 +207,9 @@ export class ApiAdvanceBookingRepository implements IAdvanceBookingRepository {
   /**
    * Get session logs for a list of bookings
    */
-  async getSessionLogs(bookingIds: string[]): Promise<BookingSessionLog[]> {
+  async getSessionLogs(bookingIds: string[]): Promise<BookingLog[]> {
     if (bookingIds.length === 0) return [];
     
-    // Pass ids as comma separated string
     const res = await fetch(`${this.baseUrl}/logs?ids=${bookingIds.join(',')}`);
     if (!res.ok) {
       const error = await res.json();
