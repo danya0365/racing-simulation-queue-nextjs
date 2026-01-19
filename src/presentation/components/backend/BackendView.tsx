@@ -2,7 +2,7 @@
 
 import { Customer, UpdateCustomerData } from '@/src/application/repositories/ICustomerRepository';
 import type { MachineStatus } from '@/src/application/repositories/IMachineRepository';
-import type { QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import type { WalkInStatus } from '@/src/application/repositories/IWalkInQueueRepository';
 import { CUSTOMER_CONFIG } from '@/src/config/customerConfig';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
@@ -10,8 +10,8 @@ import { ConfirmationModal } from '@/src/presentation/components/ui/Confirmation
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
 import {
-  BackendSkeleton,
-  CustomersTabSkeleton
+    BackendSkeleton,
+    CustomersTabSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
@@ -24,6 +24,8 @@ import { BookingsTab } from './BookingsTab';
 import { FullscreenControlPanel } from './FullscreenControlPanel';
 import { QueueDetailModal } from './QueueDetailModal';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
+// Type alias for backward compatibility - includes legacy 'playing' and 'completed' statuses
+type QueueStatus = WalkInStatus | 'playing' | 'completed' | 'cancelled';
 
 interface BackendViewProps {
   initialViewModel?: BackendViewModel;
@@ -154,7 +156,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           )}
           {state.activeTab === 'queues' && (
             <QueuesTab
-              queues={viewModel.activeQueues}
+              queues={viewModel.activeQueues || []}
               isUpdating={state.isUpdating}
               onUpdateStatus={actions.updateQueueStatus}
               onDelete={actions.deleteQueue}
@@ -324,20 +326,39 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
   };
 
   // Get queues for a specific machine
-  const getMachineQueues = (machineId: string) => {
-    return viewModel.activeQueues.filter(q => q.machineId === machineId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getMachineQueues = (machineId: string): any[] => {
+    // Note: In new walk-in queue, queues are not machine-specific
+    // This function is kept for backward compatibility but returns empty
+    return (viewModel.activeQueues || []).filter((q: any) => q.machineId === machineId || q.preferredMachineId === machineId);
   };
 
   // Get current playing queue for a machine
-  const getCurrentPlayer = (machineId: string) => {
-    return viewModel.activeQueues.find(q => q.machineId === machineId && q.status === 'playing');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getCurrentPlayer = (machineId: string): any => {
+    // Note: In new schema, use activeSessions to track who is playing
+    const activeSession = (viewModel.activeSessions || []).find(s => s.stationId === machineId);
+    if (activeSession) {
+      return {
+        id: activeSession.id,
+        customerName: activeSession.customerName,
+        customerPhone: '',
+        bookingTime: activeSession.startTime,
+        duration: activeSession.durationMinutes || 0,
+        status: 'playing',
+      };
+    }
+    return undefined;
   };
 
   // Get waiting queues for a machine
-  const getWaitingQueues = (machineId: string) => {
-    return viewModel.activeQueues
-      .filter(q => q.machineId === machineId && q.status === 'waiting')
-      .sort((a, b) => a.position - b.position);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getWaitingQueues = (machineId: string): any[] => {
+    // In new schema, walk-in queue is not machine-specific
+    // Return queues that prefer this machine
+    return (viewModel.activeQueues || [])
+      .filter((q: any) => q.preferredMachineId === machineId && q.status === 'waiting')
+      .sort((a: any, b: any) => (a.queueNumber || a.position || 0) - (b.queueNumber || b.position || 0));
   };
 
   // Get next in queue
@@ -656,17 +677,8 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
 
 // Queues Tab
 interface QueuesTabProps {
-  queues: Array<{
-    id: string;
-    machineId: string;
-    customerName: string;
-    customerPhone: string;
-    bookingTime: string;
-    duration: number;
-    status: string;
-    position: number;
-    notes?: string;
-  }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queues: any[];
   isUpdating: boolean;
   onUpdateStatus: (id: string, status: QueueStatus) => Promise<void>;
   onDelete: (id: string) => Promise<void>;

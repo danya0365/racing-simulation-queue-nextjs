@@ -99,18 +99,21 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
 
   // Focus Mode
   if (isFocusMode && viewModel?.queue) {
+    // Map WalkInQueue to old format for CustomerFocusMode
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawQueue = viewModel.queue as any;
     return (
       <Portal>
         <CustomerFocusMode
           queue={{
-            id: viewModel.queue.id,
-            machineName: viewModel.machine?.name || 'Unknown',
-            customerName: viewModel.queue.customerName,
-            customerPhone: viewModel.queue.customerPhone,
-            bookingTime: viewModel.queue.bookingTime,
-            duration: viewModel.queue.duration,
-            status: viewModel.queue.status,
-            position: viewModel.queue.position,
+            id: rawQueue.id,
+            machineName: viewModel.machine?.name || rawQueue.preferredStationType || 'Unknown',
+            customerName: rawQueue.customerName,
+            customerPhone: rawQueue.customerPhone,
+            bookingTime: rawQueue.joinedAt || new Date().toISOString(),
+            duration: rawQueue.durationMinutes || 30,
+            status: rawQueue.status,
+            position: rawQueue.queueNumber || 0,
             queueAhead: viewModel.queueAhead,
             estimatedWaitMinutes: viewModel.estimatedWaitMinutes,
           }}
@@ -163,12 +166,18 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
     );
   }
 
-  const queue = viewModel.queue;
-  const machineName = viewModel.machine?.name || 'Unknown';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const queue = viewModel.queue as any;
+  const machineName = viewModel.machine?.name || queue.preferredStationType || 'Unknown';
   const queueAhead = viewModel.queueAhead;
   const estimatedWaitMinutes = viewModel.estimatedWaitMinutes;
   const statusConfig = getStatusConfig(queue.status);
   const isNextUp = queueAhead === 0 && queue.status === 'waiting';
+  
+  // Backward compatibility mappings
+  const queuePosition = queue.queueNumber || queue.position || 0;
+  const queueBookingTime = queue.joinedAt || queue.bookingTime || new Date().toISOString();
+  const queueDuration = queue.durationMinutes || queue.duration || 30;
 
   return (
     <div className="h-full overflow-auto scrollbar-thin">
@@ -188,7 +197,7 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
           </div>
           <h1 className="text-2xl font-bold">
             <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              📋 สถานะคิว #{queue.position}
+              📋 สถานะคิว #{queuePosition}
             </span>
           </h1>
         </div>
@@ -206,7 +215,7 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
 
             {/* Queue Number */}
             <div className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-2">
-              #{queue.position}
+              #{queuePosition}
             </div>
             <div className={`text-xl font-bold bg-gradient-to-r ${statusConfig.color} bg-clip-text text-transparent mb-2`}>
               {statusConfig.label}
@@ -250,15 +259,15 @@ export function QueueStatusView({ queueId }: QueueStatusViewProps) {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted">📅 วันที่</span>
-                <span className="font-medium text-foreground">{formatDate(queue.bookingTime)}</span>
+                <span className="font-medium text-foreground">{formatDate(queueBookingTime)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted">⏰ เวลา</span>
-                <span className="font-medium text-foreground">{formatTime(queue.bookingTime)}</span>
+                <span className="font-medium text-foreground">{formatTime(queueBookingTime)}</span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-muted">⏱️ ระยะเวลา</span>
-                <span className="font-medium text-cyan-400">{queue.duration} นาที</span>
+                <span className="font-medium text-cyan-400">{queueDuration} นาที</span>
               </div>
             </div>
           </AnimatedCard>

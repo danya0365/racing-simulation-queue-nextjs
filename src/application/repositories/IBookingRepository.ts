@@ -15,7 +15,7 @@
 
 export type BookingSlotStatus = 'available' | 'booked' | 'passed';
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'confirmed' | 'checked_in' | 'cancelled' | 'completed';
 
 /**
  * Represents a single time slot in the schedule
@@ -60,6 +60,9 @@ export interface Booking {
   
   // Duration in minutes
   durationMinutes: number;
+  
+  // Pricing
+  totalPrice?: number;  // Calculated total price based on duration and machine rate
   
   // Business timezone for display
   businessTimezone: string; // e.g., "Asia/Bangkok"
@@ -116,6 +119,7 @@ export interface BookingStats {
   totalBookings: number;
   pendingBookings: number;
   confirmedBookings: number;
+  checkedInBookings: number;
   cancelledBookings: number;
   completedBookings: number;
 }

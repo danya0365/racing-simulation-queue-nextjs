@@ -1,15 +1,19 @@
 'use client';
 
 import { Machine } from '@/src/application/repositories/IMachineRepository';
-import { Queue } from '@/src/application/repositories/IQueueRepository';
+import { WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 
+// Type alias for backward compatibility
+type Queue = WalkInQueue;
+
 // Queue Detail Modal
 interface QueueDetailModalProps {
   machine: Machine;
-  queues: Queue[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queues: any[];
   onClose: () => void;
 }
 
@@ -18,9 +22,12 @@ export function QueueDetailModal({
   queues, 
   onClose 
 }: QueueDetailModalProps) {
-  const waitingQueues = queues.filter(q => q.status === 'waiting').sort((a, b) => a.position - b.position);
-  const playingQueue = queues.find(q => q.status === 'playing');
-  const completedQueues = queues.filter(q => q.status === 'completed').sort((a, b) => dayjs(b.updatedAt || b.bookingTime).unix() - dayjs(a.updatedAt || a.bookingTime).unix());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const waitingQueues = queues.filter((q: any) => q.status === 'waiting').sort((a: any, b: any) => (a.queueNumber || a.position || 0) - (b.queueNumber || b.position || 0));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playingQueue = queues.find((q: any) => q.status === 'playing' || q.status === 'called' || q.status === 'seated');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const completedQueues = queues.filter((q: any) => q.status === 'completed' || q.status === 'seated').sort((a: any, b: any) => dayjs(b.updatedAt || b.seatedAt || b.joinedAt).unix() - dayjs(a.updatedAt || a.seatedAt || a.joinedAt).unix());
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {

@@ -64,16 +64,29 @@ export function useQueueStatusPresenter(
 
     try {
       const currentActiveBookings = useCustomerStore.getState().activeBookings;
-      const queueIds = currentActiveBookings.map(b => b.id);
       
-      const queues = await presenter.loadQueueStatusData(queueIds);
+      // Get first booking's customerId for the API call
+      const customerId = currentActiveBookings[0]?.customerId;
+      if (!customerId && currentActiveBookings.length === 0) {
+        // No bookings, set empty view model
+        if (isMountedRef.current) {
+          setViewModel(presenter.getViewModel([]));
+        }
+        return;
+      }
       
+      // Use loadMyQueueStatus with customerId
+      const queues = await presenter.loadMyQueueStatus(customerId || '');
+      
+      // Update local store with fetched data
       queues.forEach(queue => {
         const local = currentActiveBookings.find(b => b.id === queue.id);
-        if (!local || local.status !== queue.status || local.position !== queue.position) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const queuePosition = (queue as any).queueNumber || (queue as any).position || 0;
+        if (!local || local.status !== queue.status || local.position !== queuePosition) {
           updateBooking(queue.id, {
-            status: queue.status,
-            position: queue.position,
+            status: queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
+            position: queuePosition,
           });
         }
       });
@@ -83,11 +96,20 @@ export function useQueueStatusPresenter(
         .filter(b => !fetchedIds.has(b.id))
         .map(b => ({
           ...b,
-          queueAhead: Math.max(0, b.position - 1),
-          estimatedWaitMinutes: Math.max(0, b.position - 1) * 30,
+          queueNumber: b.position || 0,
+          queuesAhead: Math.max(0, (b.position || 1) - 1),
+          estimatedWaitMinutes: Math.max(0, (b.position || 1) - 1) * 30,
+          partySize: 1,
+          joinedAt: b.bookingTime || new Date().toISOString(),
+          // Backward compatibility
+          queueAhead: Math.max(0, (b.position || 1) - 1),
+          position: b.position || 0,
+          bookingTime: b.bookingTime,
+          duration: b.duration || 30,
         }));
 
-      const allQueues = [...queues, ...localOnlyQueues];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allQueues = [...queues, ...localOnlyQueues] as any[];
       const vm = presenter.getViewModel(allQueues);
       
       if (isMountedRef.current) {

@@ -3,26 +3,39 @@
  * Handles business logic for Admin/Backend page
  * Receives repository via dependency injection
  * 
- * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
+ * ✅ Updated to use IWalkInQueueRepository and ISessionRepository (new schema)
+ * ✅ Uses IBookingRepository (TIMESTAMPTZ-based)
  */
 
 import { Booking, BookingStats, IBookingRepository } from '@/src/application/repositories/IBookingRepository';
 import { IMachineRepository, Machine, MachineStats, MachineStatus } from '@/src/application/repositories/IMachineRepository';
-import { IQueueRepository, Queue, QueueStats, QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import { ISessionRepository, Session, SessionStats } from '@/src/application/repositories/ISessionRepository';
+import { IWalkInQueueRepository, WalkInQueue, WalkInQueueStats } from '@/src/application/repositories/IWalkInQueueRepository';
 import { Metadata } from 'next';
 
 export interface BackendViewModel {
   machines: Machine[];
   machineStats: MachineStats;
-  queues: Queue[];
-  queueStats: QueueStats;
-  /** Active queues (waiting/playing) + recently finished (24h) - for 24-hour operations */
-  activeQueues: Queue[];
-  waitingQueues: Queue[];
+  /** Walk-in queue entries */
+  walkInQueues: WalkInQueue[];
+  walkInQueueStats: WalkInQueueStats;
+  /** Waiting queue entries */
+  waitingQueues: WalkInQueue[];
+  /** Active sessions */
+  activeSessions: Session[];
+  sessionStats: SessionStats;
   /** Today's bookings */
   todayBookings: Booking[];
   /** Booking stats */
   bookingStats: BookingStats;
+  
+  // Backward compatibility fields (deprecated, use walkInQueues instead)
+  /** @deprecated Use walkInQueues instead */
+  activeQueues?: WalkInQueue[];
+  /** @deprecated Use walkInQueues instead */
+  queues?: WalkInQueue[];
+  /** @deprecated Use walkInQueueStats instead */
+  queueStats?: WalkInQueueStats;
 }
 
 /**
@@ -31,7 +44,8 @@ export interface BackendViewModel {
 export class BackendPresenter {
   constructor(
     private readonly machineRepository: IMachineRepository,
-    private readonly queueRepository: IQueueRepository,
+    private readonly walkInQueueRepository: IWalkInQueueRepository,
+    private readonly sessionRepository: ISessionRepository,
     private readonly bookingRepository?: IBookingRepository
   ) {}
 
@@ -50,42 +64,41 @@ export class BackendPresenter {
   /**
    * Get dashboard data (Stats + Light Machine Check)
    */
-  async getDashboardData(now: string): Promise<Partial<BackendViewModel>> {
+  async getDashboardData(): Promise<Partial<BackendViewModel>> {
     try {
-      // Parallel fetch: Stats + Machines (needed for stats display sometimes) + Waiting Queues count
-      const [backendStats, machines] = await this.withTimeout(Promise.all([
-        this.queueRepository.getBackendStats(),
+      // Parallel fetch: Stats + Machines + Queue Stats + Session Stats
+      const [machines, walkInQueueStats, sessionStats] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
+        this.walkInQueueRepository.getStats(),
+        this.sessionRepository.getStats(),
       ]));
 
+      const activeMachines = machines.filter(m => m.isActive);
       const machineStats: MachineStats = {
-        totalMachines: backendStats?.total_machines || 0,
-        availableMachines: backendStats?.available_machines || 0,
-        occupiedMachines: backendStats?.occupied_machines || 0,
-        maintenanceMachines: backendStats?.maintenance_machines || 0,
+        totalMachines: activeMachines.length,
+        availableMachines: activeMachines.filter(m => m.status === 'available').length,
+        occupiedMachines: activeMachines.filter(m => m.status === 'occupied').length,
+        maintenanceMachines: machines.filter(m => m.status === 'maintenance').length,
       };
 
-      const queueStats: QueueStats = {
-        totalQueues: backendStats?.total_queues || 0,
-        waitingQueues: backendStats?.waiting_queues || 0,
-        playingQueues: backendStats?.playing_queues || 0,
-        completedQueues: backendStats?.completed_queues || 0,
-        cancelledQueues: backendStats?.cancelled_queues || 0,
-      };
-
-      // For dashboard, we might want top 5 recent queues.
-      // But getActiveAndRecent is cheap enough (today's data).
-      // Let's use getWaiting just for the count if stats didn't have it, but stats has it.
-      // We need `activeQueues` for "Recent Queues" list in dashboard.
-      const activeQueues = await this.withTimeout(this.queueRepository.getActiveAndRecent(now));
+      // Get waiting queues and active sessions
+      const [waitingQueues, activeSessions] = await this.withTimeout(Promise.all([
+        this.walkInQueueRepository.getWaiting(),
+        this.sessionRepository.getActiveSessions(),
+      ]));
 
       return {
         machineStats,
-        queueStats,
-        machines, // Needed for counts if stats fail or for logic
-        activeQueues, // For recent activity list
-        waitingQueues: activeQueues.filter(q => q.status === 'waiting'),
-        queues: activeQueues,
+        walkInQueueStats,
+        sessionStats,
+        machines,
+        waitingQueues,
+        walkInQueues: waitingQueues,
+        activeSessions,
+        // Backward compatibility
+        activeQueues: waitingQueues,
+        queues: waitingQueues,
+        queueStats: walkInQueueStats,
       };
     } catch (error) {
       console.error('Error getting dashboard data:', error);
@@ -94,29 +107,34 @@ export class BackendPresenter {
   }
 
   /**
-   * Get control room data (Realtime machines + queues)
+   * Get control room data (Realtime machines + queues + sessions)
    */
-  async getControlData(now: string): Promise<Partial<BackendViewModel>> {
+  async getControlData(): Promise<Partial<BackendViewModel>> {
     try {
-      const [machines, activeQueues] = await this.withTimeout(Promise.all([
+      const [machines, waitingQueues, activeSessions] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
-        this.queueRepository.getActiveAndRecent(now),
+        this.walkInQueueRepository.getWaiting(),
+        this.sessionRepository.getActiveSessions(),
       ]));
 
-      // Recalculate basic stats on client for immediate consistency
+      // Calculate machine stats
+      const activeMachines = machines.filter(m => m.isActive);
       const machineStats: MachineStats = {
-        totalMachines: machines.length,
-        availableMachines: machines.filter(m => m.status === 'available').length,
-        occupiedMachines: machines.filter(m => m.status === 'occupied').length,
+        totalMachines: activeMachines.length,
+        availableMachines: activeMachines.filter(m => m.status === 'available').length,
+        occupiedMachines: activeMachines.filter(m => m.status === 'occupied').length,
         maintenanceMachines: machines.filter(m => m.status === 'maintenance').length,
       };
 
       return {
         machines,
-        activeQueues,
-        waitingQueues: activeQueues.filter(q => q.status === 'waiting'),
-        queues: activeQueues,
-        machineStats
+        waitingQueues,
+        walkInQueues: waitingQueues,
+        activeSessions,
+        machineStats,
+        // Backward compatibility
+        activeQueues: waitingQueues,
+        queues: waitingQueues,
       };
     } catch (error) {
       console.error('Error getting control data:', error);
@@ -126,11 +144,9 @@ export class BackendPresenter {
 
   /**
    * Get view model for the backend page (Unified loader)
-   * This is kept for backward compatibility but internal logic can use partials
    */
   async getViewModel(now: string): Promise<BackendViewModel> {
-    // Default to loading control data as it's the most comprehensive set commonly needed
-    const data = await this.getControlData(now);
+    const data = await this.getControlData();
 
     // Fetch today's bookings if repository is available
     let todayBookings: Booking[] = [];
@@ -138,6 +154,7 @@ export class BackendPresenter {
       totalBookings: 0,
       pendingBookings: 0,
       confirmedBookings: 0,
+      checkedInBookings: 0,
       cancelledBookings: 0,
       completedBookings: 0,
     };
@@ -165,6 +182,7 @@ export class BackendPresenter {
           totalBookings: todayBookings.length,
           pendingBookings: todayBookings.filter(b => b.status === 'pending').length,
           confirmedBookings: todayBookings.filter(b => b.status === 'confirmed').length,
+          checkedInBookings: todayBookings.filter(b => b.status === 'checked_in').length,
           cancelledBookings: todayBookings.filter(b => b.status === 'cancelled').length,
           completedBookings: todayBookings.filter(b => b.status === 'completed').length,
         };
@@ -173,16 +191,26 @@ export class BackendPresenter {
       }
     }
 
-    // Fill missing stats with defaults if needed
+    // Get full stats
+    const [walkInQueueStats, sessionStats] = await Promise.all([
+      this.walkInQueueRepository.getStats(),
+      this.sessionRepository.getStats(),
+    ]);
+
     return {
       machines: data.machines || [],
       machineStats: data.machineStats || { totalMachines: 0, availableMachines: 0, occupiedMachines: 0, maintenanceMachines: 0 },
-      queues: data.queues || [],
-      queueStats: { totalQueues: 0, waitingQueues: 0, playingQueues: 0, completedQueues: 0, cancelledQueues: 0 },
-      activeQueues: data.activeQueues || [],
+      walkInQueues: data.walkInQueues || [],
+      walkInQueueStats,
       waitingQueues: data.waitingQueues || [],
+      activeSessions: data.activeSessions || [],
+      sessionStats,
       todayBookings,
       bookingStats,
+      // Backward compatibility
+      activeQueues: data.walkInQueues || [],
+      queues: data.walkInQueues || [],
+      queueStats: walkInQueueStats,
     };
   }
 
@@ -196,17 +224,105 @@ export class BackendPresenter {
     };
   }
 
+  // ============================================================
+  // WALK-IN QUEUE OPERATIONS
+  // ============================================================
+
   /**
-   * Update queue status
+   * Call a customer from walk-in queue
    */
-  async updateQueueStatus(queueId: string, status: QueueStatus): Promise<Queue> {
+  async callQueueCustomer(queueId: string): Promise<WalkInQueue> {
     try {
-      return await this.queueRepository.updateStatus(queueId, status);
+      return await this.walkInQueueRepository.callCustomer(queueId);
     } catch (error) {
-      console.error('Error updating queue status:', error);
+      console.error('Error calling queue customer:', error);
       throw error;
     }
   }
+
+  /**
+   * Seat a customer (creates a session)
+   */
+  async seatQueueCustomer(queueId: string, machineId: string): Promise<WalkInQueue> {
+    try {
+      return await this.walkInQueueRepository.seatCustomer({ queueId, machineId });
+    } catch (error) {
+      console.error('Error seating queue customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a queue entry
+   */
+  async cancelQueue(queueId: string): Promise<boolean> {
+    try {
+      return await this.walkInQueueRepository.cancel(queueId);
+    } catch (error) {
+      console.error('Error cancelling queue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all walk-in queues
+   */
+  async getAllQueues(): Promise<WalkInQueue[]> {
+    try {
+      return await this.walkInQueueRepository.getAll();
+    } catch (error) {
+      console.error('Error getting all queues:', error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // SESSION OPERATIONS
+  // ============================================================
+
+  /**
+   * Start a session (for walk-in customer)
+   */
+  async startSession(stationId: string, customerName: string, queueId?: string): Promise<Session> {
+    try {
+      return await this.sessionRepository.startSession({
+        stationId,
+        customerName,
+        queueId,
+      });
+    } catch (error) {
+      console.error('Error starting session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * End a session
+   */
+  async endSession(sessionId: string, totalAmount?: number): Promise<Session> {
+    try {
+      return await this.sessionRepository.endSession({ sessionId, totalAmount });
+    } catch (error) {
+      console.error('Error ending session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active sessions
+   */
+  async getActiveSessions(): Promise<Session[]> {
+    try {
+      return await this.sessionRepository.getActiveSessions();
+    } catch (error) {
+      console.error('Error getting active sessions:', error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // MACHINE OPERATIONS
+  // ============================================================
 
   /**
    * Update machine status
@@ -221,55 +337,7 @@ export class BackendPresenter {
   }
 
   /**
-   * Delete a queue
-   */
-  async deleteQueue(queueId: string): Promise<boolean> {
-    try {
-      return await this.queueRepository.delete(queueId);
-    } catch (error) {
-      console.error('Error deleting queue:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all queues
-   */
-  async getAllQueues(): Promise<Queue[]> {
-    try {
-      return await this.queueRepository.getAll();
-    } catch (error) {
-      console.error('Error getting all queues:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get queues by machine
-   */
-  async getQueuesByMachine(machineId: string): Promise<Queue[]> {
-    try {
-      return await this.queueRepository.getByMachineId(machineId);
-    } catch (error) {
-      console.error('Error getting machine queues:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Reset all queues for a machine
-   */
-  async resetMachineQueue(machineId: string, now: string): Promise<{ cancelledCount: number; completedCount: number }> {
-    try {
-      return await this.queueRepository.resetMachineQueue(machineId, now);
-    } catch (error) {
-      console.error('Error resetting machine queue:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update machine details (name, description, position, isActive, status, etc.)
+   * Update machine details
    */
   async updateMachine(machineId: string, data: {
     name?: string;
@@ -278,6 +346,8 @@ export class BackendPresenter {
     imageUrl?: string;
     isActive?: boolean;
     status?: MachineStatus;
+    type?: string;
+    hourlyRate?: number;
   }): Promise<Machine> {
     try {
       return await this.machineRepository.update(machineId, data);

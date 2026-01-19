@@ -4,7 +4,7 @@
  * 
  * ✅ Uses API-based repositories to avoid Supabase connection pool issues
  * ✅ Centralized repository creation for client-side components
- * ✅ Now only uses IBookingRepository (TIMESTAMPTZ-based system)
+ * ✅ Now uses IWalkInQueueRepository and ISessionRepository (new schema)
  */
 
 'use client';
@@ -12,11 +12,14 @@
 import { IBookingRepository } from '@/src/application/repositories/IBookingRepository';
 import { ICustomerRepository } from '@/src/application/repositories/ICustomerRepository';
 import { IMachineRepository } from '@/src/application/repositories/IMachineRepository';
-import { IQueueRepository } from '@/src/application/repositories/IQueueRepository';
+import { ISessionRepository } from '@/src/application/repositories/ISessionRepository';
+import { IWalkInQueueRepository } from '@/src/application/repositories/IWalkInQueueRepository';
 import { ApiBookingRepository } from '@/src/infrastructure/repositories/api/ApiBookingRepository';
 import { ApiCustomerRepository } from '@/src/infrastructure/repositories/api/ApiCustomerRepository';
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
-import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
+// TODO: Create ApiWalkInQueueRepository and ApiSessionRepository
+// import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
+// import { ApiSessionRepository } from '@/src/infrastructure/repositories/api/ApiSessionRepository';
 
 /**
  * Creates booking and machine repositories (TIMESTAMPTZ-based system)
@@ -47,13 +50,6 @@ export function createMachineRepository(): IMachineRepository {
 }
 
 /**
- * Creates queue repository only
- */
-export function createQueueRepository(): IQueueRepository {
-  return new ApiQueueRepository();
-}
-
-/**
  * Creates customer repository only
  */
 export function createCustomerRepository(): ICustomerRepository {
@@ -62,17 +58,24 @@ export function createCustomerRepository(): ICustomerRepository {
 
 /**
  * Creates all common repositories
+ * Note: WalkInQueue and Session repositories need API implementations
  */
 export function createAllRepositories(): {
   machineRepo: IMachineRepository;
-  queueRepo: IQueueRepository;
   bookingRepo: IBookingRepository;
   customerRepo: ICustomerRepository;
 } {
   return {
     machineRepo: new ApiMachineRepository(),
-    queueRepo: new ApiQueueRepository(),
     bookingRepo: new ApiBookingRepository(),
     customerRepo: new ApiCustomerRepository(),
   };
 }
+
+// Re-export types for convenience
+export type {
+    IBookingRepository,
+    ICustomerRepository,
+    IMachineRepository, ISessionRepository, IWalkInQueueRepository
+};
+

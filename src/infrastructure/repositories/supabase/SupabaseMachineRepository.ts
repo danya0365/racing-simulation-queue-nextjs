@@ -1,10 +1,10 @@
 import {
-  CreateMachineData,
-  IMachineRepository,
-  Machine,
-  MachineStats,
-  MachineStatus,
-  UpdateMachineData
+    CreateMachineData,
+    IMachineRepository,
+    Machine,
+    MachineStats,
+    MachineStatus,
+    UpdateMachineData
 } from '@/src/application/repositories/IMachineRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -67,6 +67,8 @@ export class SupabaseMachineRepository implements IMachineRepository {
         description: data.description,
         position: data.position,
         image_url: data.imageUrl,
+        type: data.type,
+        hourly_rate: data.hourlyRate,
       })
       .select()
       .single();
@@ -85,6 +87,8 @@ export class SupabaseMachineRepository implements IMachineRepository {
         image_url: data.imageUrl,
         is_active: data.isActive,
         status: data.status,
+        type: data.type,
+        hourly_rate: data.hourlyRate,
       })
       .eq('id', id)
       .select()
@@ -132,20 +136,17 @@ export class SupabaseMachineRepository implements IMachineRepository {
   }
 
   async getDashboardInfo(): Promise<import("@/src/application/repositories/IMachineRepository").MachineDashboardDTO[]> {
-    const { data, error } = await this.supabase
-      .rpc('rpc_get_machine_dashboard_info');
-
-    if (error) {
-      console.error('Error fetching machine dashboard info:', error);
-      return [];
-    }
-
-    return (data as Database['public']['Functions']['rpc_get_machine_dashboard_info']['Returns']).map(row => ({
-      machineId: row.machine_id,
-      waitingCount: row.waiting_count,
-      playingCount: row.playing_count,
-      estimatedWaitMinutes: row.estimated_wait_minutes,
-      nextPosition: row.next_position,
+    // RPC rpc_get_machine_dashboard_info was deprecated
+    // Now we get machines and return basic info
+    // Session-based tracking is handled by ISessionRepository
+    const machines = await this.getAll();
+    
+    return machines.map(machine => ({
+      machineId: machine.id,
+      waitingCount: 0, // Use IWalkInQueueRepository for queue info
+      playingCount: machine.status === 'occupied' ? 1 : 0,
+      estimatedWaitMinutes: 0,
+      nextPosition: 0,
     }));
   }
 
@@ -158,7 +159,8 @@ export class SupabaseMachineRepository implements IMachineRepository {
       imageUrl: raw.image_url || undefined,
       isActive: raw.is_active,
       status: raw.status as MachineStatus,
-      currentQueueId: raw.current_queue_id || undefined,
+      type: (raw as { type?: string }).type || undefined,
+      hourlyRate: (raw as { hourly_rate?: number }).hourly_rate || undefined,
       createdAt: raw.created_at || '',
       updatedAt: raw.updated_at || '',
     };

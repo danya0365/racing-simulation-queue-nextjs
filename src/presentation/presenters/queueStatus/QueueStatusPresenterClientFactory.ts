@@ -3,21 +3,22 @@
  * Factory for creating QueueStatusPresenter instances on the client side
  * 
  * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ * ✅ Uses new IWalkInQueueRepository
  */
 
 'use client';
 
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
-import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
+import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
 import { QueueStatusPresenter } from './QueueStatusPresenter';
 
 export class QueueStatusPresenterClientFactory {
   static create(): QueueStatusPresenter {
     // ✅ Using API repositories - no direct Supabase connection
-    const queueRepository = new ApiQueueRepository();
+    const walkInQueueRepository = new ApiWalkInQueueRepository();
     const machineRepository = new ApiMachineRepository();
 
-    return new QueueStatusPresenter(queueRepository, machineRepository);
+    return new QueueStatusPresenter(walkInQueueRepository, machineRepository);
   }
 }
 

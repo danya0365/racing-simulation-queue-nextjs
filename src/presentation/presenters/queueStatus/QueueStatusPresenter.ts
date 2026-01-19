@@ -2,33 +2,56 @@
  * QueueStatusPresenter
  * Handles business logic for Queue Status page
  * Receives repository via dependency injection
+ * 
+ * ✅ Updated to use IWalkInQueueRepository (new schema)
  */
 
 import { IMachineRepository, Machine } from '@/src/application/repositories/IMachineRepository';
-import { IQueueRepository, Queue } from '@/src/application/repositories/IQueueRepository';
+import { IWalkInQueueRepository, WalkInQueue, WalkInStatus } from '@/src/application/repositories/IWalkInQueueRepository';
 import { Metadata } from 'next';
 
 export interface QueueStatusData {
   id: string;
-  machineId: string;
   customerId?: string;
-  machineName: string;
+  machineName?: string;
   customerName: string;
   customerPhone: string;
-  bookingTime: string;
-  duration: number;
-  status: 'waiting' | 'playing' | 'completed' | 'cancelled';
-  position: number;
-  queueAhead: number;
-  /** Estimated wait time in minutes - sum of durations from playing + waiting queues ahead */
+  partySize: number;
+  preferredStationType?: string;
+  queueNumber: number;
+  status: WalkInStatus | 'playing' | 'completed' | 'cancelled';
+  joinedAt: string;
+  calledAt?: string;
+  seatedAt?: string;
+  /** Number of queues ahead */
+  queuesAhead: number;
+  /** Estimated wait time in minutes */
   estimatedWaitMinutes: number;
+  /** Wait time since joining */
+  waitTimeMinutes?: number;
+  
+  // Backward compatibility fields (deprecated)
+  /** @deprecated Use queueNumber instead */
+  position?: number;
+  /** @deprecated Use joinedAt instead */
+  bookingTime?: string;
+  /** @deprecated */
+  duration?: number;
+  /** @deprecated Use queuesAhead instead */
+  queueAhead?: number;
 }
 
 export interface QueueStatusViewModel {
   queues: QueueStatusData[];
   waitingQueues: QueueStatusData[];
-  playingQueues: QueueStatusData[];
-  completedQueues: QueueStatusData[];
+  calledQueues: QueueStatusData[];
+  seatedQueues: QueueStatusData[];
+  
+  // Backward compatibility fields (deprecated)
+  /** @deprecated Use calledQueues/seatedQueues instead */
+  playingQueues?: QueueStatusData[];
+  /** @deprecated Use seatedQueues instead */
+  completedQueues?: QueueStatusData[];
 }
 
 /**
@@ -37,7 +60,7 @@ export interface QueueStatusViewModel {
  */
 export class QueueStatusPresenter {
   constructor(
-    private readonly queueRepository: IQueueRepository,
+    private readonly walkInQueueRepository: IWalkInQueueRepository,
     private readonly machineRepository: IMachineRepository
   ) {}
 
@@ -54,9 +77,9 @@ export class QueueStatusPresenter {
   /**
    * Get queue by ID
    */
-  async getQueueById(id: string): Promise<Queue | null> {
+  async getQueueById(id: string): Promise<WalkInQueue | null> {
     try {
-      return await this.queueRepository.getById(id);
+      return await this.walkInQueueRepository.getById(id);
     } catch (error) {
       throw error;
     }
@@ -76,67 +99,11 @@ export class QueueStatusPresenter {
   /**
    * Get all queues
    */
-  async getAllQueues(): Promise<Queue[]> {
+  async getAllQueues(): Promise<WalkInQueue[]> {
     try {
-      return await this.queueRepository.getAll();
+      return await this.walkInQueueRepository.getAll();
     } catch (error) {
       throw error;
-    }
-  }
-
-  /**
-   * Calculate queue ahead count and estimated wait time for a specific queue
-   * Returns { queueAhead, estimatedWaitMinutes }
-   */
-  async calculateQueueAhead(queue: Queue): Promise<{ queueAhead: number; estimatedWaitMinutes: number }> {
-    try {
-      // Get only queues for this machine instead of all queues in system
-      const machineQueues = await this.queueRepository.getByMachineId(queue.machineId);
-      
-      return this.calculateQueueAheadSync(queue, machineQueues);
-    } catch (e) {
-      return { 
-        queueAhead: Math.max(0, queue.position - 1), 
-        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 // Fallback: 30 min per queue
-      };
-    }
-  }
-
-  /**
-   * Helper to calculate queue ahead without fetching data
-   */
-  private calculateQueueAheadSync(queue: Queue, machineQueues: Queue[]): { queueAhead: number; estimatedWaitMinutes: number } {
-    try {
-      // Get waiting queues ahead (lower position = ahead)
-      const waitingAhead = machineQueues.filter(
-        q => q.status === 'waiting' && q.position < queue.position
-      );
-      
-      // Get playing queue (if any)
-      const playingQueue = machineQueues.find(q => q.status === 'playing');
-      
-      // Calculate estimated wait time
-      let estimatedWaitMinutes = 0;
-      
-      // Add playing queue duration (assume just started for simplicity)
-      if (playingQueue) {
-        estimatedWaitMinutes += playingQueue.duration;
-      }
-      
-      // Add all waiting queues ahead
-      for (const q of waitingAhead) {
-        estimatedWaitMinutes += q.duration;
-      }
-      
-      return {
-        queueAhead: waitingAhead.length + (playingQueue ? 1 : 0),
-        estimatedWaitMinutes
-      };
-    } catch (e) {
-      return { 
-        queueAhead: Math.max(0, queue.position - 1), 
-        estimatedWaitMinutes: Math.max(0, queue.position - 1) * 30 
-      };
     }
   }
 
@@ -145,16 +112,12 @@ export class QueueStatusPresenter {
    */
   async cancelQueue(queueId: string, customerId?: string): Promise<void> {
     try {
-      await this.queueRepository.cancel(queueId, customerId);
+      await this.walkInQueueRepository.cancel(queueId, customerId);
     } catch (error) {
       throw error;
     }
   }
 
-  /**
-   * Load queue status data for multiple queue IDs
-   * Optimized to fetch data in parallel
-   */
   /**
    * Helper to wrap promise with timeout
    */
@@ -167,36 +130,45 @@ export class QueueStatusPresenter {
     ]);
   }
 
-  async loadQueueStatusData(queueIds: string[]): Promise<QueueStatusData[]> {
-    if (!queueIds.length) return [];
+  /**
+   * Load queue status data for a customer
+   * Uses the new RPC function that returns status with queue position
+   */
+  async loadMyQueueStatus(customerId: string): Promise<QueueStatusData[]> {
+    if (!customerId) return [];
 
     try {
-      // ✅ Use RPC to fetch everything in 1 Request
-      // This calculates status, waiting time, and queue ahead on the server
-      const queuesWithStatus = await this.withTimeout(this.queueRepository.getByIdsWithStatus(queueIds));
+      const queues = await this.withTimeout(
+        this.walkInQueueRepository.getMyQueueStatus(customerId)
+      );
 
-      // Map to Presenter Model
-      const results: QueueStatusData[] = queuesWithStatus.map(q => ({
+      // Map to presenter model with backward-compatible fields
+      return queues.map(q => ({
         id: q.id,
-        machineId: q.machineId,
         customerId: q.customerId,
-        machineName: q.machineName || 'Unknown',
         customerName: q.customerName,
         customerPhone: q.customerPhone,
-        bookingTime: q.bookingTime,
-        duration: q.duration,
-        status: q.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-        position: q.position,
-        queueAhead: q.queueAhead,
-        estimatedWaitMinutes: q.estimatedWaitMinutes,
+        partySize: q.partySize,
+        preferredStationType: q.preferredStationType,
+        queueNumber: q.queueNumber,
+        status: q.status,
+        joinedAt: q.joinedAt,
+        calledAt: q.calledAt,
+        seatedAt: q.seatedAt,
+        queuesAhead: q.queuesAhead || 0,
+        estimatedWaitMinutes: q.estimatedWaitMinutes || 0,
+        waitTimeMinutes: q.waitTimeMinutes,
+        // Backward compatibility
+        position: q.queueNumber,
+        bookingTime: q.joinedAt,
+        duration: 30, // Default duration
+        queueAhead: q.queuesAhead || 0,
+        machineName: q.preferredMachineName || q.preferredStationType || 'ไม่ระบุ',
       }));
-
-      return results;
 
     } catch (error) {
       console.error('Error loading queue status data:', error);
-      // Re-throw so the UI can show the error state
-      throw error; 
+      throw error;
     }
   }
 
@@ -204,11 +176,18 @@ export class QueueStatusPresenter {
    * Get view model from queue status data
    */
   getViewModel(queues: QueueStatusData[]): QueueStatusViewModel {
+    const waitingQueues = queues.filter(q => q.status === 'waiting');
+    const calledQueues = queues.filter(q => q.status === 'called');
+    const seatedQueues = queues.filter(q => q.status === 'seated');
+    
     return {
       queues,
-      waitingQueues: queues.filter(q => q.status === 'waiting'),
-      playingQueues: queues.filter(q => q.status === 'playing'),
-      completedQueues: queues.filter(q => q.status === 'completed' || q.status === 'cancelled'),
+      waitingQueues,
+      calledQueues,
+      seatedQueues,
+      // Backward compatibility
+      playingQueues: calledQueues, // 'called' is similar to old 'playing'
+      completedQueues: seatedQueues, // 'seated' is similar to old 'completed'
     };
   }
 }

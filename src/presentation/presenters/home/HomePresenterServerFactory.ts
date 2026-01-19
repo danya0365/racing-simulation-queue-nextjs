@@ -1,5 +1,12 @@
+/**
+ * HomePresenterServerFactory
+ * Factory for creating HomePresenter instances on the server side
+ * 
+ * ✅ Uses new IWalkInQueueRepository
+ */
+
 import { SupabaseMachineRepository } from '@/src/infrastructure/repositories/supabase/SupabaseMachineRepository';
-import { SupabaseQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseQueueRepository';
+import { SupabaseWalkInQueueRepository } from '@/src/infrastructure/repositories/supabase/SupabaseWalkInQueueRepository';
 import { createClient } from '@/src/infrastructure/supabase/server';
 import { HomePresenter } from './HomePresenter';
 
@@ -9,9 +16,9 @@ export class HomePresenterServerFactory {
     
     // ✅ Using Supabase Repositories for production/real data
     const machineRepository = new SupabaseMachineRepository(supabase);
-    const queueRepository = new SupabaseQueueRepository(supabase);
+    const walkInQueueRepository = new SupabaseWalkInQueueRepository(supabase);
 
-    return new HomePresenter(machineRepository, queueRepository);
+    return new HomePresenter(machineRepository, walkInQueueRepository);
   }
 }
 

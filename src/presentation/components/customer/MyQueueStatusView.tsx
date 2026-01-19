@@ -174,11 +174,11 @@ export function MyQueueStatusView() {
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-muted">
-                        {queue.status === 'completed' ? '✅' : '❌'}
+                        {queue.status === 'completed' || queue.status === 'seated' ? '✅' : '❌'}
                       </span>
                       <span className="text-muted">{queue.machineName}</span>
                     </div>
-                    <span className="text-sm text-muted">{formatTime(queue.bookingTime)}</span>
+                    <span className="text-sm text-muted">{formatTime(queue.bookingTime || queue.joinedAt)}</span>
                   </div>
                 ))}
               </div>
@@ -218,7 +218,7 @@ interface QueueCardProps {
 }
 
 function QueueCard({ queue, formatTime, onFocus, onCancel }: QueueCardProps) {
-  const isNextUp = queue.queueAhead === 0;
+  const isNextUp = (queue.queueAhead ?? queue.queuesAhead ?? 0) === 0;
   
   // Use estimated wait time from presenter (calculated from actual durations)
   const estimatedWaitMinutes = queue.estimatedWaitMinutes;
@@ -257,8 +257,8 @@ function QueueCard({ queue, formatTime, onFocus, onCancel }: QueueCardProps) {
               <p className="font-bold text-foreground">{queue.machineName}</p>
               <p className="text-sm text-muted">{queue.customerName}</p>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs text-muted">⏰ {formatTime(queue.bookingTime)}</span>
-                <span className="text-xs text-muted">⏱️ {queue.duration} นาที</span>
+                <span className="text-xs text-muted">⏰ {formatTime(queue.bookingTime || queue.joinedAt)}</span>
+                <span className="text-xs text-muted">⏱️ {queue.duration || 30} นาที</span>
               </div>
             </div>
           </div>
@@ -270,7 +270,7 @@ function QueueCard({ queue, formatTime, onFocus, onCancel }: QueueCardProps) {
             ) : (
               <>
                 <div className="text-foreground font-medium">
-                  อีก {queue.queueAhead} คิว
+                  อีก {queue.queueAhead ?? queue.queuesAhead ?? 0} คิว
                 </div>
                 <div className="text-sm text-muted">
                   ~{estimatedWaitMinutes} นาที
@@ -349,7 +349,7 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
     return new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(dayjs(queue.bookingTime).toDate());
+    }).format(dayjs(queue.bookingTime || queue.joinedAt).toDate());
   };
 
   // Use estimated wait time from presenter (calculated from actual durations)
@@ -359,7 +359,7 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
     : 'ใกล้ถึงคิวแล้ว!';
 
   // Is next in queue?
-  const isNextUp = queue.queueAhead === 0;
+  const isNextUp = (queue.queueAhead ?? queue.queuesAhead ?? 0) === 0;
 
   return (
     <div className={`fixed inset-0 z-[100] overflow-hidden ${
@@ -422,19 +422,19 @@ function CustomerFocusMode({ queue, onRefresh, onCancel, onExit }: CustomerFocus
         ) : (
           <div className="text-center mb-6">
             <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
-              มี {queue.queueAhead} คิวก่อนหน้า
+              มี {queue.queueAhead ?? queue.queuesAhead ?? 0} คิวก่อนหน้า
             </h2>
             <p className="text-white/60 text-lg">{estimatedWaitText}</p>
           </div>
         )}
 
         {/* Progress Bar */}
-        {!isNextUp && queue.queueAhead < 5 && (
+        {!isNextUp && (queue.queueAhead ?? queue.queuesAhead ?? 0) < 5 && (
           <div className="w-full max-w-sm mb-6">
             <div className="bg-white/10 rounded-full h-4 overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(10, 100 - (queue.queueAhead * 20))}%` }}
+                style={{ width: `${Math.max(10, 100 - ((queue.queueAhead ?? queue.queuesAhead ?? 0) * 20))}%` }}
               />
             </div>
             <p className="text-center text-white/40 text-sm mt-2">ความคืบหน้า</p>

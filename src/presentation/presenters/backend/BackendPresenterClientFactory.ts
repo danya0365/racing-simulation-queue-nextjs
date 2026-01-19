@@ -3,25 +3,31 @@
  * Factory for creating BackendPresenter instances on the client side
  * 
  * ✅ Uses API-based repositories to avoid Supabase connection pool issues
- * ✅ Now uses IBookingRepository (TIMESTAMPTZ-based) instead of IAdvanceBookingRepository
+ * ✅ Uses new IWalkInQueueRepository and ISessionRepository
  */
 
 'use client';
 
 import { ApiBookingRepository } from '@/src/infrastructure/repositories/api/ApiBookingRepository';
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
-import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
+import { ApiSessionRepository } from '@/src/infrastructure/repositories/api/ApiSessionRepository';
+import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
 import { BackendPresenter } from './BackendPresenter';
 
 export class BackendPresenterClientFactory {
   static create(): BackendPresenter {
     // ✅ Using API repositories - no direct Supabase connection
-    // ✅ Using new IBookingRepository (TIMESTAMPTZ-based)
     const machineRepository = new ApiMachineRepository();
-    const queueRepository = new ApiQueueRepository();
+    const walkInQueueRepository = new ApiWalkInQueueRepository();
+    const sessionRepository = new ApiSessionRepository();
     const bookingRepository = new ApiBookingRepository();
 
-    return new BackendPresenter(machineRepository, queueRepository, bookingRepository);
+    return new BackendPresenter(
+      machineRepository,
+      walkInQueueRepository,
+      sessionRepository,
+      bookingRepository
+    );
   }
 }
 

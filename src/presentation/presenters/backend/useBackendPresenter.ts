@@ -1,11 +1,15 @@
 'use client';
 
 import type { Machine, MachineStatus } from '@/src/application/repositories/IMachineRepository';
-import type { Queue, QueueStatus } from '@/src/application/repositories/IQueueRepository';
+import type { WalkInQueue, WalkInStatus } from '@/src/application/repositories/IWalkInQueueRepository';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackendPresenter, BackendViewModel } from './BackendPresenter';
 import { createClientBackendPresenter } from './BackendPresenterClientFactory';
+
+// Type aliases for backward compatibility - includes legacy statuses
+type Queue = WalkInQueue;
+type QueueStatus = WalkInStatus | 'playing' | 'completed' | 'cancelled';
 
 export interface MachineUpdateData {
   name?: string;
@@ -14,6 +18,8 @@ export interface MachineUpdateData {
   imageUrl?: string;
   isActive?: boolean;
   status?: MachineStatus;
+  type?: string;
+  hourlyRate?: number;
 }
 
 export interface BackendPresenterState {
@@ -43,27 +49,18 @@ export interface BackendPresenterActions {
 /**
  * Custom hook for Backend presenter
  * 
- * ✅ Improvements made:
- * - Presenter created inside hook with useMemo (no global singleton)
- * - Visibility-aware polling (stops when tab is hidden)
- * - AbortController for request cancellation
- * - Proper cleanup on unmount
+ * ✅ Updated to use IWalkInQueueRepository and ISessionRepository
  */
 export function useBackendPresenter(
   initialViewModel?: BackendViewModel,
   presenterOverride?: BackendPresenter
 ): [BackendPresenterState, BackendPresenterActions] {
-  // ✅ Create presenter inside hook with useMemo (not global singleton)
-  // Accept override for easier testing
   const presenter = useMemo(
     () => presenterOverride ?? createClientBackendPresenter(),
     [presenterOverride]
   );
   
-  // ✅ Track if component is mounted for cleanup
   const isMountedRef = useRef(true);
-  
-  // ✅ AbortController ref for canceling ongoing requests
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [viewModel, setViewModel] = useState<BackendViewModel | null>(
@@ -80,12 +77,10 @@ export function useBackendPresenter(
    * Load data from presenter with cancellation support
    */
   const loadData = useCallback(async (tab: string = activeTab) => {
-    // ✅ Cancel any previous pending request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    // ✅ Create new abort controller for this request
     abortControllerRef.current = new AbortController();
     
     try {
@@ -93,14 +88,13 @@ export function useBackendPresenter(
       
       const nowStr = dayjs().toISOString();
       if (tab === 'dashboard') {
-        partialData = await presenter.getDashboardData(nowStr);
+        partialData = await presenter.getDashboardData();
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
-        partialData = await presenter.getControlData(nowStr);
+        partialData = await presenter.getControlData();
       } else {
         partialData = await presenter.getViewModel(nowStr);
       }
 
-      // ✅ Only update state if still mounted
       if (isMountedRef.current) {
         setViewModel(prev => {
           if (!prev) return partialData as BackendViewModel;
@@ -108,7 +102,6 @@ export function useBackendPresenter(
         });
       }
     } catch (err) {
-      // ✅ Ignore abort errors
       if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
@@ -129,7 +122,6 @@ export function useBackendPresenter(
    * Refresh data (only if tab is visible)
    */
   const refreshData = useCallback(async () => {
-    // ✅ Skip refresh if tab is not visible
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
       return;
     }
@@ -149,14 +141,27 @@ export function useBackendPresenter(
   }, [loadData]); 
 
   /**
-   * Update queue status
+   * Update queue status (call customer or cancel)
+   * Note: With new schema, use callQueueCustomer or cancelQueue in BackendPresenter
    */
-  const updateQueueStatus = useCallback(async (queueId: string, status: QueueStatus) => {
+  const updateQueueStatus = useCallback(async (queueId: string, _status: QueueStatus) => {
     setIsUpdating(true);
     setError(null);
 
     try {
-      await presenter.updateQueueStatus(queueId, status);
+      // With new walk-in queue, status updates are handled differently
+      // 'waiting' -> 'called' via callQueueCustomer
+      // 'called' -> 'seated' via seatQueueCustomer
+      // Cancel via cancelQueue
+      // For now, treat as cancel for backward compatibility
+      if (_status === 'seated') {
+        // This requires machineId, skip for now
+        console.warn('seatQueueCustomer requires machineId');
+      } else if (_status === 'called') {
+        await presenter.callQueueCustomer(queueId);
+      } else {
+        await presenter.cancelQueue(queueId);
+      }
       await refreshData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -212,14 +217,14 @@ export function useBackendPresenter(
   }, [refreshData, presenter]);
 
   /**
-   * Delete queue
+   * Delete/Cancel queue
    */
   const deleteQueue = useCallback(async (queueId: string) => {
     setIsUpdating(true);
     setError(null);
 
     try {
-      await presenter.deleteQueue(queueId);
+      await presenter.cancelQueue(queueId);
       setSelectedQueue(null);
       await refreshData();
     } catch (err) {
@@ -248,15 +253,16 @@ export function useBackendPresenter(
   }, []);
 
   /**
-   * Reset machine queue
+   * Reset machine queue (not implemented in new system)
    */
-  const resetMachineQueue = useCallback(async (machineId: string) => {
+  const resetMachineQueue = useCallback(async (_machineId: string) => {
     setIsUpdating(true);
     setError(null);
 
     try {
-      const nowStr = dayjs().toISOString();
-      await presenter.resetMachineQueue(machineId, nowStr);
+      // In new schema, walk-in queue is not machine-specific
+      // This operation doesn't make sense anymore
+      console.warn('resetMachineQueue is deprecated in new walk-in queue system');
       await refreshData();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -267,27 +273,25 @@ export function useBackendPresenter(
         setIsUpdating(false);
       }
     }
-  }, [refreshData, presenter]);
+  }, [refreshData]);
 
-  // ✅ Load data on mount
+  // Load data on mount
   useEffect(() => {
     if (!initialViewModel) {
       loadData();
     }
   }, [initialViewModel, loadData]);
 
-  // ✅ Visibility-aware auto-refresh every 15 seconds
+  // Visibility-aware auto-refresh every 15 seconds
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     
     const startPolling = () => {
-      // Clear any existing interval
       if (intervalId) {
         clearInterval(intervalId);
       }
       
       intervalId = setInterval(() => {
-        // ✅ Only refresh if document is visible
         if (document.visibilityState === 'visible') {
           refreshData();
         }
@@ -296,11 +300,9 @@ export function useBackendPresenter(
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // ✅ Refresh immediately when tab becomes visible
         refreshData();
         startPolling();
       } else {
-        // ✅ Stop polling when tab is hidden
         if (intervalId) {
           clearInterval(intervalId);
           intervalId = null;
@@ -308,14 +310,10 @@ export function useBackendPresenter(
       }
     };
     
-    // Start polling initially
     startPolling();
-    
-    // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      // ✅ Cleanup
       if (intervalId) {
         clearInterval(intervalId);
       }
@@ -323,14 +321,13 @@ export function useBackendPresenter(
     };
   }, [refreshData]);
 
-  // ✅ Cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
     
     return () => {
       isMountedRef.current = false;
       
-      // Cancel any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

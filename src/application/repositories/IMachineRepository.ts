@@ -14,7 +14,10 @@ export interface Machine {
   imageUrl?: string;
   isActive: boolean;
   status: MachineStatus;
-  currentQueueId?: string;
+  /** Station type for categorization (e.g., Racing Sim, PS5, PC) */
+  type?: string;
+  /** Price per hour in THB */
+  hourlyRate?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +42,8 @@ export interface CreateMachineData {
   description: string;
   position: number;
   imageUrl?: string;
+  type?: string;
+  hourlyRate?: number;
 }
 
 export interface UpdateMachineData {
@@ -48,6 +53,8 @@ export interface UpdateMachineData {
   imageUrl?: string;
   isActive?: boolean;
   status?: MachineStatus;
+  type?: string;
+  hourlyRate?: number;
 }
 
 export interface IMachineRepository {

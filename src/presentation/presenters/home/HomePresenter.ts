@@ -2,17 +2,19 @@
  * HomePresenter
  * Handles business logic for Home page
  * Receives repository via dependency injection
+ * 
+ * ✅ Updated to use IWalkInQueueRepository (new schema)
  */
 
 import { IMachineRepository, Machine, MachineStats } from '@/src/application/repositories/IMachineRepository';
-import { IQueueRepository, Queue, QueueStats } from '@/src/application/repositories/IQueueRepository';
+import { IWalkInQueueRepository, WalkInQueue, WalkInQueueStats } from '@/src/application/repositories/IWalkInQueueRepository';
 import { Metadata } from 'next';
 
 export interface HomeViewModel {
   machines: Machine[];
   machineStats: MachineStats;
-  waitingQueues: Queue[];
-  queueStats: QueueStats;
+  waitingQueues: WalkInQueue[];
+  queueStats: WalkInQueueStats;
   currentTime: string;
 }
 
@@ -23,7 +25,7 @@ export interface HomeViewModel {
 export class HomePresenter {
   constructor(
     private readonly machineRepository: IMachineRepository,
-    private readonly queueRepository: IQueueRepository
+    private readonly walkInQueueRepository: IWalkInQueueRepository
   ) {}
 
   /**
@@ -47,12 +49,11 @@ export class HomePresenter {
       const [allMachines, machineStats, waitingQueues, queueStats] = await this.withTimeout(Promise.all([
         this.machineRepository.getAll(),
         this.machineRepository.getStats(),
-        this.queueRepository.getWaiting(),
-        this.queueRepository.getStats(todayStr),
+        this.walkInQueueRepository.getWaiting(),
+        this.walkInQueueRepository.getStats(),
       ]));
 
       // Filter only active machines for client display
-      // isActive = false means hidden from clients completely
       const machines = allMachines.filter(m => m.isActive);
 
       return {

@@ -22,9 +22,12 @@ export interface FullscreenControlPanelProps {
   onToggleMachine: (machine: BackendViewModel['machines'][0]) => Promise<void>;
   onRefresh: () => Promise<void>;
   onExit: () => void;
-  getCurrentPlayer: (machineId: string) => BackendViewModel['activeQueues'][0] | undefined;
-  getWaitingQueues: (machineId: string) => BackendViewModel['activeQueues'];
-  getNextInQueue: (machineId: string) => BackendViewModel['activeQueues'][0] | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getCurrentPlayer: (machineId: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getWaitingQueues: (machineId: string) => any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getNextInQueue: (machineId: string) => any;
   formatTime: (dateString: string) => string;
   /** If true, uses fixed positioning (modal mode). If false, uses normal flow (page mode). */
   isModal?: boolean;
@@ -356,7 +359,7 @@ export function FullscreenControlPanel({
         <Portal>
           <QueueDetailModal
             machine={viewModel.machines.find(m => m.id === viewQueueMachineId)!}
-            queues={viewModel.activeQueues.filter(q => q.machineId === viewQueueMachineId)}
+            queues={(viewModel.activeQueues || []).filter((q: any) => q.machineId === viewQueueMachineId || q.preferredMachineId === viewQueueMachineId)}
             onClose={() => setViewQueueMachineId(null)}
           />
         </Portal>

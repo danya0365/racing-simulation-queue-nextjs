@@ -31,19 +31,35 @@ export function GameRoomControlView() {
   };
 
   // Get current playing queue for a machine
-  const getCurrentPlayer = (machineId: string) => {
-    return viewModel?.activeQueues.find(q => q.machineId === machineId && q.status === 'playing');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getCurrentPlayer = (machineId: string): any => {
+    // In new schema, use activeSessions to track who is playing
+    const activeSession = (viewModel?.activeSessions || []).find(s => s.stationId === machineId);
+    if (activeSession) {
+      return {
+        id: activeSession.id,
+        customerName: activeSession.customerName,
+        customerPhone: '',
+        bookingTime: activeSession.startTime,
+        duration: activeSession.durationMinutes || 0,
+        status: 'playing',
+      };
+    }
+    return undefined;
   };
 
   // Get waiting queues for a machine
-  const getWaitingQueues = (machineId: string) => {
-    return viewModel?.activeQueues
-      .filter(q => q.machineId === machineId && q.status === 'waiting')
-      .sort((a, b) => a.position - b.position) || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getWaitingQueues = (machineId: string): any[] => {
+    // In new schema, walk-in queue is not machine-specific
+    return (viewModel?.activeQueues || [])
+      .filter((q: any) => q.preferredMachineId === machineId && q.status === 'waiting')
+      .sort((a: any, b: any) => (a.queueNumber || a.position || 0) - (b.queueNumber || b.position || 0)) || [];
   };
 
   // Get next in queue
-  const getNextInQueue = (machineId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getNextInQueue = (machineId: string): any => {
     const waiting = getWaitingQueues(machineId);
     return waiting.length > 0 ? waiting[0] : null;
   };

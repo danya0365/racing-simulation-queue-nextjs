@@ -66,33 +66,46 @@ export function useSingleQueuePresenter(
       const currentLocal = localBookingRef.current;
       
       if (vm.queue) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawQueue = vm.queue as any;
+        const queuePosition = rawQueue.queueNumber || rawQueue.position || 0;
+        
         if (!currentLocal || 
-            currentLocal.status !== vm.queue.status || 
-            currentLocal.position !== vm.queue.position) {
+            currentLocal.status !== rawQueue.status || 
+            currentLocal.position !== queuePosition) {
           updateBooking(queueId, {
-            status: vm.queue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
-            position: vm.queue.position,
+            status: rawQueue.status as 'waiting' | 'playing' | 'completed' | 'cancelled',
+            position: queuePosition,
           });
         }
         if (isMountedRef.current) {
           setViewModel(vm);
         }
       } else if (currentLocal) {
-        const queueAhead = Math.max(0, currentLocal.position - 1);
+        const queueAhead = Math.max(0, (currentLocal.position || 1) - 1);
         if (isMountedRef.current) {
+          // Create a mock WalkInQueue for backward compatibility
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mockQueue: any = {
+            id: currentLocal.id,
+            customerId: currentLocal.customerId,
+            customerName: currentLocal.customerName,
+            customerPhone: currentLocal.customerPhone,
+            partySize: 1,
+            preferredStationType: undefined,
+            preferredMachineId: currentLocal.machineId,
+            queueNumber: currentLocal.position || 0,
+            status: currentLocal.status,
+            joinedAt: currentLocal.bookingTime || new Date().toISOString(),
+            createdAt: currentLocal.createdAt,
+            // Backward compatibility fields
+            position: currentLocal.position,
+            bookingTime: currentLocal.bookingTime,
+            duration: currentLocal.duration,
+            machineId: currentLocal.machineId,
+          };
           setViewModel({
-            queue: {
-              id: currentLocal.id,
-              machineId: currentLocal.machineId,
-              customerName: currentLocal.customerName,
-              customerPhone: currentLocal.customerPhone,
-              bookingTime: currentLocal.bookingTime,
-              duration: currentLocal.duration,
-              status: currentLocal.status,
-              position: currentLocal.position,
-              createdAt: currentLocal.createdAt,
-              updatedAt: currentLocal.createdAt,
-            },
+            queue: mockQueue,
             machine: { 
               id: currentLocal.machineId, 
               name: currentLocal.machineName,
@@ -104,7 +117,7 @@ export function useSingleQueuePresenter(
               updatedAt: '',
             },
             queueAhead,
-            estimatedWaitMinutes: queueAhead * currentLocal.duration,
+            estimatedWaitMinutes: queueAhead * (currentLocal.duration || 30),
           });
         }
       } else {

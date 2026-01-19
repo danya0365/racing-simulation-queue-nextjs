@@ -3,21 +3,22 @@
  * Factory for creating SingleQueuePresenter instances on the client side
  * 
  * ✅ Uses API-based repositories to avoid Supabase connection pool issues
+ * ✅ Uses new IWalkInQueueRepository
  */
 
 'use client';
 
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
-import { ApiQueueRepository } from '@/src/infrastructure/repositories/api/ApiQueueRepository';
+import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
 import { SingleQueuePresenter } from './SingleQueuePresenter';
 
 export class SingleQueuePresenterClientFactory {
   static create(): SingleQueuePresenter {
     // ✅ Using API repositories - no direct Supabase connection
-    const queueRepository = new ApiQueueRepository();
+    const walkInQueueRepository = new ApiWalkInQueueRepository();
     const machineRepository = new ApiMachineRepository();
-    
-    return new SingleQueuePresenter(queueRepository, machineRepository);
+
+    return new SingleQueuePresenter(walkInQueueRepository, machineRepository);
   }
 }
 
