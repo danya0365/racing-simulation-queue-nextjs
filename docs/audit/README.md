@@ -10,6 +10,7 @@
     - [หน้าสถานะการจอง (Booking Status - app/customer/booking-status/page.tsx)](./pages/booking-status.md) ✅
     - [หน้าตารางการจองรวม (Booking History - app/customer/booking-history/page.tsx)](./pages/booking-history.md) ✅
     - [หน้าโปรไฟล์ (Profile - app/profile/page.tsx)](./pages/profile.md) ⚠️ พบช่องโหว่
+    - [หน้าแดชบอร์ดแอดมิน (Backend Dashboard - app/backend/page.tsx)](./pages/backend-dashboard.md) ✅
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
