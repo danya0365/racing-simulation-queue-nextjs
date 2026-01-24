@@ -15,6 +15,8 @@ export function DashboardTab({ viewModel }: DashboardTabProps) {
         return { label: 'รอยืนยัน', color: 'text-yellow-400' };
       case 'confirmed':
         return { label: 'ยืนยันแล้ว', color: 'text-emerald-400' };
+      case 'seated':
+        return { label: 'กำลังเล่น', color: 'text-indigo-400' };
       case 'completed':
         return { label: 'สำเร็จ', color: 'text-blue-400' };
       case 'cancelled':
