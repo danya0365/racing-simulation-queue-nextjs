@@ -9,6 +9,7 @@
     - [หน้าจองเวลา (Time Booking - app/time-booking/page.tsx)](./pages/time-booking.md) ✅
     - [หน้าสถานะการจอง (Booking Status - app/customer/booking-status/page.tsx)](./pages/booking-status.md) ✅
     - [หน้าตารางการจองรวม (Booking History - app/customer/booking-history/page.tsx)](./pages/booking-history.md) ✅
+    - [หน้าโปรไฟล์ (Profile - app/profile/page.tsx)](./pages/profile.md) ⚠️ พบช่องโหว่
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
