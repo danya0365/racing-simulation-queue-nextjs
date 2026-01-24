@@ -19,7 +19,7 @@ interface ActiveBooking {
   bookingTime: string;
   duration: number;
   position: number;
-  status: 'waiting' | 'playing' | 'completed' | 'cancelled';
+  status: 'waiting' | 'called' | 'seated' | 'playing' | 'completed' | 'cancelled';
   createdAt: string;
 }
 
@@ -113,7 +113,7 @@ export const useCustomerStore = create<CustomerStore>()(
         const state = get();
         // Return only active bookings (waiting or playing)
         return state.activeBookings.filter(
-          (b) => b.status === 'waiting' || b.status === 'playing'
+          (b) => b.status === 'waiting' || b.status === 'called' || b.status === 'seated' || b.status === 'playing'
         );
       },
       

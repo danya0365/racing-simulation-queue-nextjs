@@ -49,26 +49,26 @@ export function JoinWalkInView() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-5xl mb-6 shadow-xl shadow-cyan-500/30">
             🏎️
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             เข้าคิวเล่นเกม
           </h1>
-          <p className="text-white/60">
+          <p className="text-gray-600 dark:text-white/60">
             กรอกข้อมูลเพื่อรับลำดับคิว Racing Simulation
           </p>
         </div>
 
-        <AnimatedCard className="p-8" glowColor="rgba(6, 182, 212, 0.2)">
+        <AnimatedCard className="p-8 bg-white dark:bg-surface/80 border border-gray-200 dark:border-white/10 shadow-xl shadow-gray-200/50 dark:shadow-none" glowColor="rgba(6, 182, 212, 0.2)">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
             <div className="space-y-2">
-              <label htmlFor="customerName" className="block text-sm font-medium text-white/70">
+              <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 dark:text-white/70">
                 ชื่อ-นามสกุล
               </label>
               <input
                 id="customerName"
                 type="text"
                 required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all placeholder:text-gray-400 dark:placeholder:text-white/30"
                 placeholder="ระบุชื่อของคุณ"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
@@ -77,7 +77,7 @@ export function JoinWalkInView() {
 
             {/* Phone */}
             <div className="space-y-2">
-              <label htmlFor="customerPhone" className="block text-sm font-medium text-white/70">
+              <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 dark:text-white/70">
                 เบอร์โทรศัพท์
               </label>
               <input
@@ -85,17 +85,17 @@ export function JoinWalkInView() {
                 type="tel"
                 required
                 pattern="[0-9]{10}"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-mono"
+                className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-mono placeholder:text-gray-400 dark:placeholder:text-white/30"
                 placeholder="0XXXXXXXXX"
                 value={formData.customerPhone}
                 onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
               />
-              <p className="text-[10px] text-white/40">ใช้สำหรับแจ้งเตือนและตรวจสอบคิว</p>
+              <p className="text-[10px] text-gray-500 dark:text-white/40">ใช้สำหรับแจ้งเตือนและตรวจสอบคิว</p>
             </div>
 
             {/* Party Size */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-white/70">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white/70">
                 จำนวนผู้เล่น
               </label>
               <div className="grid grid-cols-4 gap-2">
@@ -103,11 +103,11 @@ export function JoinWalkInView() {
                   <button
                     key={num}
                     type="button"
-                    onClick={() => setFormData({ ...formData, party_size: num })}
+                    onClick={() => setFormData({ ...formData, partySize: num })}
                     className={`py-2 rounded-lg border transition-all ${
-                      formData.party_size === num
+                      formData.partySize === num
                         ? 'bg-cyan-500 border-cyan-400 text-white shadow-lg shadow-cyan-500/20'
-                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                        : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/10'
                     }`}
                   >
                     {num}
@@ -118,7 +118,7 @@ export function JoinWalkInView() {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm animate-shake">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3 text-red-600 dark:text-red-400 text-sm animate-shake">
                 ⚠️ {error}
               </div>
             )}
@@ -143,7 +143,7 @@ export function JoinWalkInView() {
         </AnimatedCard>
 
         {/* Footer Info */}
-        <div className="mt-8 text-center text-white/40 text-sm">
+        <div className="mt-8 text-center text-gray-400 dark:text-white/40 text-sm">
           <p>เปิดบริการ 24 ชั่วโมง • ประสบการณ์แข่งรถระดับมืออาชีพ</p>
         </div>
       </div>

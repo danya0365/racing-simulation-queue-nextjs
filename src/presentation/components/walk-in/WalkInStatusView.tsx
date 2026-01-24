@@ -50,9 +50,9 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
       <div className="w-full max-w-md">
         {/* Header / Current Time */}
         <div className="flex justify-between items-center mb-8 px-2">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1 border border-white/20">
-            <span className="text-white/60 text-xs mr-2">เวลา:</span>
-            <span className="text-white font-mono font-bold">{currentTime.format('HH:mm:ss')}</span>
+          <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-500/10 dark:to-pink-500/10 border border-purple-300 dark:border-purple-500/30 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
+            <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">เวลา:</span>
+            <span className="text-purple-900 dark:text-white font-mono font-bold text-lg">{currentTime.format('HH:mm:ss')}</span>
           </div>
           <button 
             onClick={handleRefresh}
@@ -64,25 +64,25 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
         </div>
 
         {/* Main Status Hero */}
-        <AnimatedCard className="p-8 text-center overflow-hidden relative" glowColor="rgba(255,255,255,0.1)">
+        <AnimatedCard className="p-8 text-center overflow-hidden relative bg-white dark:bg-surface/80" glowColor="rgba(255,255,255,0.1)">
           {/* Animated Glow Background for Called state */}
           {(isCalled || isNextUp) && (
-            <div className="absolute inset-0 bg-cyan-500/10 animate-pulse pointer-events-none" />
+            <div className="absolute inset-0 bg-cyan-100/50 dark:bg-cyan-500/10 animate-pulse pointer-events-none" />
           )}
 
           <div className={`w-32 h-32 md:w-40 md:h-40 rounded-full mx-auto mb-6 bg-gradient-to-br ${getStatusColor()} flex flex-col items-center justify-center shadow-2xl relative z-10 ${isCalled || isNextUp ? 'animate-bounce' : ''}`}>
-            <span className="text-white/60 text-xs md:text-sm uppercase tracking-widest">ลำดับคิว</span>
+            <span className="text-white/90 dark:text-white/80 text-xs md:text-sm uppercase tracking-widest">ลำดับคิว</span>
             <span className="text-5xl md:text-6xl font-black text-white">#{queue.queueNumber}</span>
           </div>
 
           <div className="relative z-10 space-y-2">
             <h2 className={`text-2xl md:text-3xl font-black uppercase tracking-tight ${
-              isSeated ? 'text-emerald-400' : isCalled ? 'text-cyan-400' : 'text-white'
+              isSeated ? 'text-emerald-600 dark:text-emerald-400' : isCalled ? 'text-cyan-600 dark:text-cyan-400' : 'text-gray-900 dark:text-white'
             }`}>
               {isSeated ? '✅ พร้อมเล่นแล้ว' : isCalled ? '🔔 ถึงคิวคุณแล้ว!' : '⌛ กำลังรอคิว'}
             </h2>
             
-            <p className="text-white/60 text-lg">
+            <p className="text-gray-600 dark:text-white/60 text-lg">
               {isSeated 
                 ? 'ขอให้สนุกกับการซิ่ง!' 
                 : isCalled 
@@ -92,9 +92,9 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
           </div>
 
           {!isSeated && !isCalled && (
-            <div className="mt-8 pt-8 border-t border-white/10 space-y-1">
-              <p className="text-white/40 text-sm">เวลารอโดยประมาณ</p>
-              <p className="text-3xl font-bold text-cyan-400">
+            <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/10 space-y-1">
+              <p className="text-gray-500 dark:text-white/40 text-sm">เวลารอโดยประมาณ</p>
+              <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
                 ~{queue.estimatedWaitMinutes ?? (queue.queuesAhead ?? 0) * 30} นาที
               </p>
             </div>
@@ -103,19 +103,19 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
 
         {/* Customer Info Card */}
         <div className="mt-6 grid grid-cols-2 gap-4 animate-page-in delay-200">
-           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
-              <p className="text-white/40 text-xs uppercase mb-1">ผู้เล่น</p>
-              <p className="text-white font-bold truncate">{queue.customerName}</p>
+           <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-none">
+              <p className="text-gray-500 dark:text-white/40 text-xs uppercase mb-1">ผู้เล่น</p>
+              <p className="text-gray-900 dark:text-white font-bold truncate">{queue.customerName}</p>
            </div>
-           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
-              <p className="text-white/40 text-xs uppercase mb-1">กลุ่ม</p>
-              <p className="text-white font-bold">{queue.partySize} ท่าน</p>
+           <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-2xl p-4 shadow-none">
+              <p className="text-gray-500 dark:text-white/40 text-xs uppercase mb-1">กลุ่ม</p>
+              <p className="text-gray-900 dark:text-white font-bold">{queue.partySize} ท่าน</p>
            </div>
         </div>
 
         {/* Help Notice */}
-        <div className="mt-8 p-4 bg-white/5 border border-dashed border-white/20 rounded-2xl text-center">
-            <p className="text-white/60 text-sm italic">
+        <div className="mt-8 p-4 bg-white/50 dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/20 rounded-2xl text-center">
+            <p className="text-gray-600 dark:text-white/60 text-sm italic">
               "กรุณาอยู่ใกล้ๆ บริเวณร้านเพื่อไม่ให้พลาดการเรียกคิว"
             </p>
         </div>
@@ -125,8 +125,7 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
           <div className="mt-8 flex flex-col gap-3">
              <GlowButton 
                color="red" 
-               variant="ghost" 
-               className="w-full text-white/40 hover:text-red-400 border-white/10"
+               className="w-full"
                onClick={() => {
                  if (confirm('คุณต้องการยกเลิกคิวนี้ใช่หรือไม่?')) {
                    onCancel();

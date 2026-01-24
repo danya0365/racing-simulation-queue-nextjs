@@ -11,6 +11,7 @@ interface GlowButtonProps {
   disabled?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  type?: 'button' | 'submit' | 'reset';
 }
 
 const glowColors: Record<GlowColor, { base: string; glow: string; hover: string }> = {
@@ -63,11 +64,13 @@ export function GlowButton({
   disabled = false,
   className = '',
   size = 'md',
+  type = 'button',
 }: GlowButtonProps) {
   const colorConfig = glowColors[color];
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`
