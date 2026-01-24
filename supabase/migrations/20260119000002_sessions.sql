@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS public.sessions (
 
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 
--- Everyone can view sessions (for display)
-CREATE POLICY "Sessions are viewable by everyone"
+-- Only admins/moderators can view sessions directly
+CREATE POLICY "Sessions are viewable by admins/moderators"
     ON public.sessions FOR SELECT
-    USING (true);
+    USING (public.is_moderator_or_admin());
 
 -- Only admins/moderators can create sessions
 CREATE POLICY "Sessions can be created by admins/moderators"

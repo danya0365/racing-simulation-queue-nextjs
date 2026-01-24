@@ -55,15 +55,23 @@ CREATE TABLE IF NOT EXISTS public.walk_in_queue (
 
 ALTER TABLE public.walk_in_queue ENABLE ROW LEVEL SECURITY;
 
--- Everyone can view queue (for queue display)
-CREATE POLICY "Walk-in queue is viewable by everyone"
+CREATE POLICY "Walk-in queue is viewable by admins or owners"
     ON public.walk_in_queue FOR SELECT
-    USING (true);
+    USING (
+        public.is_moderator_or_admin() 
+        OR 
+        EXISTS (
+            SELECT 1 FROM public.customers c
+            JOIN public.profiles p ON p.id = c.profile_id
+            WHERE c.id = public.walk_in_queue.customer_id 
+            AND p.auth_id = auth.uid()
+        )
+    );
 
--- Anyone can join queue
-CREATE POLICY "Walk-in queue can be created by anyone"
+-- Only admins/moderators can insert directly. Guests must use rpc_join_walk_in_queue.
+CREATE POLICY "Walk-in queue can be created by admins"
     ON public.walk_in_queue FOR INSERT
-    WITH CHECK (true);
+    WITH CHECK (public.is_moderator_or_admin());
 
 -- Only admins/moderators can update
 CREATE POLICY "Walk-in queue can be updated by admins/moderators"

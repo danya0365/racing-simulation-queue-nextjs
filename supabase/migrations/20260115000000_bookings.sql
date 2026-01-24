@@ -121,13 +121,23 @@ END $$;
 
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Bookings are viewable by everyone"
+CREATE POLICY "Bookings are viewable by admins or owners"
     ON public.bookings FOR SELECT
-    USING (true);
+    USING (
+        public.is_moderator_or_admin() 
+        OR 
+        EXISTS (
+            SELECT 1 FROM public.customers c
+            JOIN public.profiles p ON p.id = c.profile_id
+            WHERE c.id = public.bookings.customer_id 
+            AND p.auth_id = auth.uid()
+        )
+    );
 
-CREATE POLICY "Bookings can be created by anyone"
+-- Only admins/moderators can insert directly. Guests must use rpc_create_booking.
+CREATE POLICY "Bookings can be created by admins"
     ON public.bookings FOR INSERT
-    WITH CHECK (true);
+    WITH CHECK (public.is_moderator_or_admin());
 
 CREATE POLICY "Bookings can be updated by admins/moderators"
     ON public.bookings FOR UPDATE
