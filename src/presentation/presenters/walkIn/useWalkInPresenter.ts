@@ -52,7 +52,7 @@ export function useWalkInPresenter(
       const customerId = currentActive?.customerId;
 
       const [machines, status] = await Promise.all([
-        presenter.getAvailableMachines(),
+        presenter.getActiveMachines(),
         customerId ? presenter.getMyQueueStatus(customerId) : Promise.resolve(null)
       ]);
 
@@ -72,6 +72,9 @@ export function useWalkInPresenter(
                   customerName: status.customerName,
                   customerPhone: status.customerPhone,
                   partySize: status.partySize,
+                  preferredStationType: status.preferredStationType,
+                  preferredMachineName: status.preferredMachineName,
+                  notes: status.notes,
                   joinedAt: status.joinedAt,
                   createdAt: status.createdAt
               });
@@ -109,6 +112,9 @@ export function useWalkInPresenter(
         partySize: queue.partySize,
         status: queue.status,
         queueNumber: queue.queueNumber,
+        preferredStationType: queue.preferredStationType,
+        preferredMachineName: queue.preferredMachineName,
+        notes: queue.notes,
         joinedAt: queue.joinedAt,
         createdAt: queue.createdAt,
       });

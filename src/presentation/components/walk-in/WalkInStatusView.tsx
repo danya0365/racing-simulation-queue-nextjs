@@ -140,6 +140,41 @@ export function WalkInStatusView({ queue, onCancel, onRefresh }: WalkInStatusVie
              </div>
           </div>
 
+          {/* Booking Details */}
+          <div className="mt-4 animate-page-in delay-300 space-y-3">
+             {/* Machine & Type */}
+             <div className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                   <p className="text-gray-500 dark:text-white/40 text-xs uppercase mb-1">เครื่องที่เลือก</p>
+                   <p className="text-gray-900 dark:text-white font-bold">
+                     {queue.preferredMachineName || (queue.preferredStationType ? `${queue.preferredStationType} (Any)` : 'ไม่ระบุ')}
+                   </p>
+                </div>
+                <div className="text-2xl opacity-50">
+                  {queue.preferredStationType?.includes('PS5') ? '🎮' : '🏎️'}
+                </div>
+             </div>
+
+             {/* Notes */}
+             {queue.notes && (
+               <div className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4">
+                  <p className="text-gray-500 dark:text-white/40 text-xs uppercase mb-1">หมายเหตุ</p>
+                  <p className="text-gray-700 dark:text-white/80 text-sm whitespace-pre-wrap">
+                    {queue.notes}
+                  </p>
+               </div>
+             )}
+
+             {/* Phone */}
+             <div className="bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                 <div>
+                    <p className="text-gray-500 dark:text-white/40 text-xs uppercase mb-1">เบอร์โทรศัพท์</p>
+                    <p className="text-gray-900 dark:text-white font-mono tracking-wider">{queue.customerPhone}</p>
+                 </div>
+                 <div className="text-xl opacity-50">📞</div>
+             </div>
+          </div>
+
           {/* Help Notice */}
           <div className="mt-8 p-4 bg-white/50 dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/20 rounded-2xl text-center">
               <p className="text-gray-600 dark:text-white/60 text-sm italic">

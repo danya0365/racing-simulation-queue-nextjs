@@ -390,8 +390,12 @@ CREATE OR REPLACE FUNCTION public.rpc_get_my_walk_in_queue(
 RETURNS TABLE (
     queue_id UUID,
     queue_number INTEGER,
+    customer_name TEXT,
+    customer_phone TEXT,
     party_size INTEGER,
     preferred_station_type TEXT,
+    preferred_machine_name TEXT,
+    notes TEXT,
     status TEXT,
     queues_ahead INTEGER,
     estimated_wait_minutes INTEGER,
@@ -406,8 +410,12 @@ BEGIN
     SELECT 
         wq.id AS queue_id,
         wq.queue_number,
+        c.name AS customer_name,
+        c.phone AS customer_phone,
         wq.party_size,
         wq.preferred_station_type,
+        m.name AS preferred_machine_name,
+        wq.notes,
         wq.status::TEXT,
         (
             SELECT COUNT(*)::INTEGER 
@@ -424,6 +432,8 @@ BEGIN
         wq.joined_at,
         wq.called_at
     FROM public.walk_in_queue wq
+    JOIN public.customers c ON c.id = wq.customer_id
+    LEFT JOIN public.machines m ON m.id = wq.preferred_machine_id
     WHERE wq.customer_id = p_customer_id
       AND wq.status IN ('waiting', 'called')
     ORDER BY wq.joined_at DESC

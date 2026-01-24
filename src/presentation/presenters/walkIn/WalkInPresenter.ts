@@ -46,11 +46,13 @@ export class WalkInPresenter {
   }
 
   /**
-   * Get available machines
+   * Get active machines (status can be anything, but must be isActive=true)
    */
-  async getAvailableMachines(): Promise<Machine[]> {
+  async getActiveMachines(): Promise<Machine[]> {
     try {
-      return await this.machineRepo.getAvailable();
+      // We want all machines that are present in the shop (isActive), regardless of status (occupied/available)
+      const machines = await this.machineRepo.getAll();
+      return machines.filter(m => m.isActive);
     } catch (error) {
       console.error('Error getting machines:', error);
       return [];

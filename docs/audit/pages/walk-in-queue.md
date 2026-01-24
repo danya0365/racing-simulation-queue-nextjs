@@ -49,6 +49,12 @@
 > 1. สร้าง `ActiveWalkInQueue` interface แยกใน `useCustomerStore`
 > 2. ปรับปรุง `useWalkInPresenter` ให้บันทึกข้อมูลลง Store ใหม่นี้
 > 3. ตรวจสอบหน้า Admin ว่าไม่มีข้อมูลชนกัน
+>
+> **24 ม.ค. 2026 (Late Night)**: พบว่าหน้าแสดงผลขาดรายละเอียด (ชื่อเครื่อง/Notes)
+>
+> **การแก้ไข**:
+> 1. อัปเดต `rpc_get_my_walk_in_queue` ให้ Join ตาราง Machines และ Return Notes
+> 2. ปรับปรุง UI `WalkInStatusView` และ `JoinWalkInView` ให้รองรับการแสดงผลครบถ้วน
 
 ---
 *สถานะปัจจุบัน: พร้อมใช้งาน ไม่พบบัควิกฤต (Critical Bugs) หลงเหลือ*
@@ -62,8 +68,8 @@
 | Feature | Database Support | Current UI Support | Gap |
 | :--- | :--- | :--- | :--- |
 | **จำนวนคน (Party Size)** | ✅ 1-10 คน | ⚠️ 1-4 คน (UI Limit) | ปรับเพิ่มได้ถ้าต้องการรองรับกลุ่มใหญ่ |
-| **เลือกประเภทเครื่อง (Station Type)** | ✅ Text (e.g., PS5, Sim) | ❌ ไม่รองรับ | ลูกค้าเลือกไม่ได้ว่าอยากเล่นเครื่องไหน |
-| **เลือกเครื่องระบุเจาะจง (Specific Machine)** | ✅ FK to Machine | ❌ ไม่รองรับ | - |
-| **โน้ตเพิ่มเติม (Notes)** | ✅ Text | ❌ ไม่รองรับ | - |
+| **เลือกประเภทเครื่อง (Station Type)** | ✅ Text (e.g., PS5, Sim) | ⚠️ Auto-derived from Machine | เลือกเครื่องที่ต้องการได้โดยตรง (Type จะถูกระบุอัตโนมัติ) |
+| **เลือกเครื่องระบุเจาะจง (Specific Machine)** | ✅ FK to Machine | ✅ รองรับแล้ว (Dropdown) | ลูกค้าสามารถเลือกเครื่องที่ว่างหรือรอคิวเครื่องที่ต้องการได้ |
+| **โน้ตเพิ่มเติม (Notes)** | ✅ Text | ✅ รองรับแล้ว | ระบุความต้องการพิเศษได้ |
 
 **ข้อเสนอแนะ**: ควรเพิ่ม Dropdown เลือก "ประเภทเครื่อง" (Standard / VIP / PS5) ในหน้า Join Queue เพื่อให้การจัดคิวแม่นยำขึ้น

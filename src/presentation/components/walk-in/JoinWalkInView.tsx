@@ -138,6 +138,54 @@ export function JoinWalkInView() {
                 </div>
               </div>
 
+              {/* Machine Selection (Optional) */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/70">
+                  เลือกเครื่องเล่น (ไม่บังคับ)
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all appearance-none"
+                    value={formData.preferredMachineId || ''}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const machine = availableMachines.find(m => m.id === selectedId);
+                      setFormData({ 
+                        ...formData, 
+                        preferredMachineId: selectedId || undefined,
+                        preferredStationType: machine?.type // Auto-derive type from machine
+                      });
+                    }}
+                  >
+                    <option value="">-- ไม่ระบุ (เครื่องไหนก็ได้) --</option>
+                    {availableMachines.map((machine) => (
+                      <option key={machine.id} value={machine.id}>
+                        {machine.status === 'occupied' ? '🔴' : '🟢'} {machine.name} ({machine.type || 'General'})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                    ▼
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500 dark:text-white/40">
+                  *สัญลักษณ์ 🔴 คือเครื่องที่มีคนเล่นอยู่ (คุณสามารถเข้าคิวรอเครื่องนี้ได้)
+                </p>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/70">
+                  หมายเหตุเพิ่มเติม (ถ้ามี)
+                </label>
+                <textarea
+                  className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all placeholder:text-gray-400 dark:placeholder:text-white/30 resize-none h-24"
+                  placeholder="เช่น มากัน 3 คน ขอที่นั่งติดกัน, ขอจอย PS5 2 จอย"
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3 text-red-600 dark:text-red-400 text-sm animate-shake">

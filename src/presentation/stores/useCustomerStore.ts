@@ -34,6 +34,9 @@ interface ActiveWalkInQueue {
   joinedAt: string;
   estimatedWaitMinutes?: number;
   queuesAhead?: number;
+  preferredStationType?: string;
+  preferredMachineName?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -133,6 +136,7 @@ export const useCustomerStore = create<CustomerStore>()(
       getActiveBookings: () => {
         const state = get();
         // Return only active bookings (waiting or playing)
+        return state.activeBookings.filter(
           (b) => b.status === 'waiting' || b.status === 'called' || b.status === 'seated' || b.status === 'playing'
         );
       },

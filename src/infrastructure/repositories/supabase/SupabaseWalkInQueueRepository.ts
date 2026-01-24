@@ -8,12 +8,12 @@
  */
 
 import {
-    IWalkInQueueRepository,
-    JoinWalkInQueueData,
-    SeatCustomerData,
-    WalkInQueue,
-    WalkInQueueStats,
-    WalkInStatus,
+  IWalkInQueueRepository,
+  JoinWalkInQueueData,
+  SeatCustomerData,
+  WalkInQueue,
+  WalkInQueueStats,
+  WalkInStatus,
 } from '@/src/application/repositories/IWalkInQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -143,23 +143,15 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
       return [];
     }
 
-    return (data || []).map((row: {
-      queue_id: string;
-      queue_number: number;
-      party_size: number;
-      preferred_station_type: string | null;
-      status: string;
-      queues_ahead: number;
-      estimated_wait_minutes: number;
-      joined_at: string;
-      called_at: string | null;
-    }) => ({
+    return (data || []).map((row) => ({
       id: row.queue_id,
       customerId,
-      customerName: '',
-      customerPhone: '',
+      customerName: row.customer_name,
+      customerPhone: row.customer_phone,
       partySize: row.party_size,
       preferredStationType: row.preferred_station_type || undefined,
+      preferredMachineName: row.preferred_machine_name || undefined,
+      notes: row.notes || undefined,
       queueNumber: row.queue_number,
       status: row.status as WalkInStatus,
       joinedAt: row.joined_at,

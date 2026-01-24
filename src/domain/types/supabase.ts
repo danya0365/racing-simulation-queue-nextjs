@@ -711,9 +711,13 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: {
           called_at: string
+          customer_name: string
+          customer_phone: string
           estimated_wait_minutes: number
           joined_at: string
+          notes: string
           party_size: number
+          preferred_machine_name: string
           preferred_station_type: string
           queue_id: string
           queue_number: number
