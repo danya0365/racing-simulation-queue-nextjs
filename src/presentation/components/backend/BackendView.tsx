@@ -149,6 +149,8 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               viewModel={viewModel}
               isUpdating={state.isUpdating}
               onUpdateQueueStatus={actions.updateQueueStatus}
+              onSeatCustomer={actions.seatCustomer}
+              onEndSession={actions.endSession}
               onUpdateMachineStatus={actions.updateMachineStatus}
               onResetQueue={actions.resetMachineQueue}
               onRefresh={actions.refreshData}
@@ -156,7 +158,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           )}
           {state.activeTab === 'queues' && (
             <QueuesTab
-              queues={viewModel.activeQueues || []}
+              queues={viewModel.walkInQueues || []}
               isUpdating={state.isUpdating}
               onUpdateStatus={actions.updateQueueStatus}
               onDelete={actions.deleteQueue}
@@ -308,12 +310,23 @@ interface LiveControlTabProps {
   viewModel: BackendViewModel;
   isUpdating: boolean;
   onUpdateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
+  onSeatCustomer: (queueId: string, machineId: string) => Promise<void>;
+  onEndSession: (sessionId: string, totalAmount?: number) => Promise<void>;
   onUpdateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
   onResetQueue: (machineId: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }
 
-function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMachineStatus, onResetQueue, onRefresh }: LiveControlTabProps) {
+function LiveControlTab({ 
+  viewModel, 
+  isUpdating, 
+  onUpdateQueueStatus, 
+  onSeatCustomer,
+  onEndSession,
+  onUpdateMachineStatus, 
+  onResetQueue, 
+  onRefresh 
+}: LiveControlTabProps) {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [resetConfirmMachineId, setResetConfirmMachineId] = useState<string | null>(null);
   const [viewQueueMachineId, setViewQueueMachineId] = useState<string | null>(null); // New state to track which machine's queue to view
@@ -325,41 +338,27 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
     }).format(dayjs(dateString).toDate());
   };
 
-  // Get queues for a specific machine
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getMachineQueues = (machineId: string): any[] => {
-    // Note: In new walk-in queue, queues are not machine-specific
-    // This function is kept for backward compatibility but returns empty
-    return (viewModel.activeQueues || []).filter((q: any) => q.machineId === machineId || q.preferredMachineId === machineId);
+  // Get queues for a specific machine (Waiting or Called)
+  const getMachineQueues = (machineId: string): WalkInQueue[] => {
+    return (viewModel.walkInQueues || []).filter(q => q.preferredMachineId === machineId);
   };
 
-  // Get current playing queue for a machine
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getCurrentPlayer = (machineId: string): any => {
-    // Note: In new schema, use activeSessions to track who is playing
-    const activeSession = (viewModel.activeSessions || []).find(s => s.stationId === machineId);
-    if (activeSession) {
-      return {
-        id: activeSession.id,
-        customerName: activeSession.customerName,
-        customerPhone: '',
-        bookingTime: activeSession.startTime,
-        duration: activeSession.durationMinutes || 0,
-        status: 'playing',
-      };
+  // Get current session for a machine
+  const getCurrentPlayer = (machineId: string) => {
+    return (viewModel.activeSessions || []).find(s => s.stationId === machineId);
+  };
+
+  // Get waiting/called queues (Global or for this machine)
+  const getQueuesByStatus = (status: WalkInStatus, machineId?: string): WalkInQueue[] => {
+    const filtered = (viewModel.walkInQueues || []).filter(q => q.status === status);
+    if (machineId) {
+      return filtered.filter(q => q.preferredMachineId === machineId);
     }
-    return undefined;
+    return filtered;
   };
 
-  // Get waiting queues for a machine
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getWaitingQueues = (machineId: string): any[] => {
-    // In new schema, walk-in queue is not machine-specific
-    // Return queues that prefer this machine
-    return (viewModel.activeQueues || [])
-      .filter((q: any) => q.preferredMachineId === machineId && q.status === 'waiting')
-      .sort((a: any, b: any) => (a.queueNumber || a.position || 0) - (b.queueNumber || b.position || 0));
-  };
+  const getWaitingQueues = (machineId?: string) => getQueuesByStatus('waiting', machineId);
+  const getCalledQueues = (machineId?: string) => getQueuesByStatus('called', machineId);
 
   // Get next in queue
   const getNextInQueue = (machineId: string) => {
@@ -367,26 +366,24 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
     return waiting.length > 0 ? waiting[0] : null;
   };
 
-  // Call next queue (mark as playing)
+  // Call next queue (mark as called)
   const handleCallNext = async (machineId: string) => {
     const next = getNextInQueue(machineId);
     if (next) {
-      await onUpdateQueueStatus(next.id, 'playing');
-      await onUpdateMachineStatus(machineId, 'occupied');
+      await onUpdateQueueStatus(next.id, 'called');
     }
   };
 
-  // Mark current player as done
+  // Seat a customer
+  const handleSeat = async (queueId: string, machineId: string) => {
+    await onSeatCustomer(queueId, machineId);
+  };
+
+  // Mark current session as done
   const handleMarkDone = async (machineId: string) => {
-    const current = getCurrentPlayer(machineId);
-    if (current) {
-      await onUpdateQueueStatus(current.id, 'completed');
-      
-      // Check if there's next queue
-      const next = getNextInQueue(machineId);
-      if (!next) {
-        await onUpdateMachineStatus(machineId, 'available');
-      }
+    const currentSession = getCurrentPlayer(machineId);
+    if (currentSession) {
+      await onEndSession(currentSession.id);
     }
   };
 
@@ -507,9 +504,8 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
                     <div>
                       <p className="text-xs text-orange-400 mb-1">🏁 กำลังเล่น</p>
                       <p className="font-bold text-foreground">{currentPlayer.customerName}</p>
-                      <p className="text-sm text-muted">{currentPlayer.customerPhone}</p>
                       <p className="text-xs text-muted mt-1">
-                        ⏰ เริ่ม {formatTime(currentPlayer.bookingTime)} • {currentPlayer.duration} นาที
+                        ⏰ เริ่ม {formatTime(currentPlayer.startTime)} • {currentPlayer.durationMinutes || 0} นาที
                       </p>
                     </div>
                     <GlowButton 
@@ -530,52 +526,77 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
 
               {/* Queue Section */}
               {!isMaintenance && (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-foreground">
-                      📋 คิวรอ ({waitingQueues.length} คน)
-                    </span>
-                    {nextInQueue && !currentPlayer && (
-                      <GlowButton 
-                        color="purple" 
-                        size="sm"
-                        onClick={() => handleCallNext(machine.id)}
-                        disabled={isUpdating}
-                      >
-                        📢 เรียกคิว
-                      </GlowButton>
-                    )}
-                  </div>
-                  
-                  {waitingQueues.length > 0 ? (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {waitingQueues.slice(0, 4).map((queue, index) => (
-                        <div 
-                          key={queue.id}
-                          className={`flex items-center justify-between p-2 rounded-lg ${
-                            index === 0 ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-surface'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                              index === 0 ? 'bg-purple-500 text-white' : 'bg-muted-light text-muted'
-                            }`}>
-                              {queue.position}
-                            </span>
-                            <span className={`text-sm ${index === 0 ? 'font-medium text-foreground' : 'text-muted'}`}>
-                              {queue.customerName}
-                            </span>
+                <div className="mb-4 space-y-4">
+                  {/* Called Customers */}
+                  {getCalledQueues(machine.id).length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-cyan-400 animate-pulse">
+                          🔔 เรียกแล้ว ({getCalledQueues(machine.id).length})
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {getCalledQueues(machine.id).map((q) => (
+                          <div key={q.id} className="flex items-center justify-between p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-foreground">#{q.queueNumber} {q.customerName}</span>
+                            </div>
+                            {!currentPlayer && (
+                              <GlowButton color="cyan" size="sm" onClick={() => handleSeat(q.id, machine.id)} disabled={isUpdating}>
+                                💺 จัดที่นั่ง
+                              </GlowButton>
+                            )}
                           </div>
-                          <span className="text-xs text-muted">{formatTime(queue.bookingTime)}</span>
-                        </div>
-                      ))}
-                      {waitingQueues.length > 4 && (
-                        <p className="text-xs text-muted text-center">+{waitingQueues.length - 4} คิวเพิ่มเติม</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Waiting List */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-foreground">
+                        📋 คิวรอ ({getWaitingQueues(machine.id).length} คน)
+                      </span>
+                      {getNextInQueue(machine.id) && !currentPlayer && (
+                        <GlowButton 
+                          color="purple" 
+                          size="sm"
+                          onClick={() => handleCallNext(machine.id)}
+                          disabled={isUpdating}
+                        >
+                          📢 เรียกคิว
+                        </GlowButton>
                       )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted text-center py-2">ไม่มีคิวรอ</p>
-                  )}
+                    
+                    {getWaitingQueues(machine.id).length > 0 ? (
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {getWaitingQueues(machine.id).slice(0, 4).map((queue, index) => (
+                          <div 
+                            key={queue.id}
+                            className={`flex items-center justify-between p-2 rounded-lg ${
+                              index === 0 ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-surface'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                index === 0 ? 'bg-purple-500 text-white' : 'bg-muted-light text-muted'
+                              }`}>
+                                {queue.queueNumber}
+                              </span>
+                              <span className={`text-sm ${index === 0 ? 'font-medium text-foreground' : 'text-muted'}`}>
+                                {queue.customerName}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted">{formatTime(queue.joinedAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted text-center py-2">ไม่มีคิวรอ</p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -599,7 +620,7 @@ function LiveControlTab({ viewModel, isUpdating, onUpdateQueueStatus, onUpdateMa
                     onClick={() => setViewQueueMachineId(machine.id)}
                     className="flex-1"
                   >
-                    🔍 ดูคิว ({waitingQueues.length})
+                    🔍 ดูคิว ({getMachineQueues(machine.id).length})
                   </AnimatedButton>
                 )}
                 <AnimatedButton 
@@ -700,10 +721,10 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
     switch (status) {
       case 'waiting':
         return { label: 'รอคิว', color: 'bg-purple-500', textColor: 'text-purple-400' };
-      case 'playing':
-        return { label: 'กำลังเล่น', color: 'bg-cyan-500', textColor: 'text-cyan-400' };
-      case 'completed':
-        return { label: 'เสร็จสิ้น', color: 'bg-emerald-500', textColor: 'text-emerald-400' };
+      case 'called':
+        return { label: 'เรียกแล้ว', color: 'bg-cyan-500', textColor: 'text-cyan-400' };
+      case 'seated':
+        return { label: 'เริ่มเล่นแล้ว', color: 'bg-emerald-500', textColor: 'text-emerald-400' };
       case 'cancelled':
         return { label: 'ยกเลิก', color: 'bg-red-500', textColor: 'text-red-400' };
       default:
@@ -739,8 +760,8 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
   const filterButtons = [
     { key: 'all', label: 'ทั้งหมด', icon: '📋', color: 'from-gray-500 to-gray-600' },
     { key: 'waiting', label: 'รอคิว', icon: '⏳', color: 'from-purple-500 to-violet-600' },
-    { key: 'playing', label: 'กำลังเล่น', icon: '🏁', color: 'from-cyan-500 to-blue-600' },
-    { key: 'completed', label: 'เสร็จสิ้น', icon: '✅', color: 'from-emerald-500 to-green-600' },
+    { key: 'called', label: 'เรียกแล้ว', icon: '🔔', color: 'from-cyan-500 to-blue-600' },
+    { key: 'seated', label: 'เริ่มเล่นแล้ว', icon: '✅', color: 'from-emerald-500 to-green-600' },
     { key: 'cancelled', label: 'ยกเลิก', icon: '❌', color: 'from-red-500 to-rose-600' },
   ];
 
@@ -795,13 +816,13 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-xl font-bold text-white">
-                      #{queue.position}
+                      #{queue.queueNumber}
                     </div>
                     <div>
                       <p className="font-bold text-foreground">{queue.customerName}</p>
                       <p className="text-sm text-muted">{queue.customerPhone}</p>
                       <p className="text-xs text-muted mt-1">
-                        🕐 {formatTime(queue.bookingTime)} • {queue.duration} นาที
+                        🕐 {formatTime(queue.joinedAt)} • {queue.partySize} ท่าน
                       </p>
                     </div>
                   </div>
@@ -815,25 +836,18 @@ function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabPr
                       <AnimatedButton
                         variant="primary"
                         size="sm"
-                        onClick={() => onUpdateStatus(queue.id, 'playing')}
+                        onClick={() => onUpdateStatus(queue.id, 'called')}
                         disabled={isUpdating}
                       >
-                        ▶️ เริ่มเล่น
+                        🔔 เรียกคิว
                       </AnimatedButton>
                     )}
 
-                    {queue.status === 'playing' && (
-                      <AnimatedButton
-                        variant="success"
-                        size="sm"
-                        onClick={() => onUpdateStatus(queue.id, 'completed')}
-                        disabled={isUpdating}
-                      >
-                        ✅ เสร็จสิ้น
-                      </AnimatedButton>
+                    {queue.status === 'called' && (
+                      <div className="text-xs text-muted italic">รอจัดที่นั่งที่ 'ควบคุมห้องเกม'</div>
                     )}
 
-                    {(queue.status === 'waiting' || queue.status === 'playing') && (
+                    {(queue.status === 'waiting' || queue.status === 'called') && (
                       <AnimatedButton
                         variant="danger"
                         size="sm"

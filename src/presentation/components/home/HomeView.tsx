@@ -253,14 +253,19 @@ export function HomeView({ initialViewModel }: { initialViewModel?: HomeViewMode
             เลือกเวลาที่ต้องการและจองเลยตอนนี้!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/walk-in">
+              <GlowButton color="cyan" size="lg" className="w-full sm:w-auto">
+                🏁 เข้าคิวหน้าร้าน (Walk-in)
+              </GlowButton>
+            </Link>
             <Link href="/time-booking">
-              <GlowButton color="pink" size="lg">
-                📅 จองเลย
+              <GlowButton color="pink" size="lg" className="w-full sm:w-auto">
+                📅 จองล่วงหน้า
               </GlowButton>
             </Link>
             <Link href="/customer/booking-history">
-              <GlowButton color="purple" size="lg">
-                📋 ดูตารางทั้งหมด
+              <GlowButton color="purple" size="lg" className="w-full sm:w-auto">
+                📋 ประวัติการจอง
               </GlowButton>
             </Link>
           </div>

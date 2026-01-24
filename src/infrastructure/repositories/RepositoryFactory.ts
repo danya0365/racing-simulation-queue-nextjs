@@ -17,9 +17,8 @@ import { IWalkInQueueRepository } from '@/src/application/repositories/IWalkInQu
 import { ApiBookingRepository } from '@/src/infrastructure/repositories/api/ApiBookingRepository';
 import { ApiCustomerRepository } from '@/src/infrastructure/repositories/api/ApiCustomerRepository';
 import { ApiMachineRepository } from '@/src/infrastructure/repositories/api/ApiMachineRepository';
-// TODO: Create ApiWalkInQueueRepository and ApiSessionRepository
-// import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
-// import { ApiSessionRepository } from '@/src/infrastructure/repositories/api/ApiSessionRepository';
+import { ApiSessionRepository } from '@/src/infrastructure/repositories/api/ApiSessionRepository';
+import { ApiWalkInQueueRepository } from '@/src/infrastructure/repositories/api/ApiWalkInQueueRepository';
 
 /**
  * Creates booking and machine repositories (TIMESTAMPTZ-based system)
@@ -57,18 +56,35 @@ export function createCustomerRepository(): ICustomerRepository {
 }
 
 /**
+ * Creates walk-in queue repository
+ */
+export function createWalkInQueueRepository(): IWalkInQueueRepository {
+  return new ApiWalkInQueueRepository();
+}
+
+/**
+ * Creates session repository
+ */
+export function createSessionRepository(): ISessionRepository {
+  return new ApiSessionRepository();
+}
+
+/**
  * Creates all common repositories
- * Note: WalkInQueue and Session repositories need API implementations
  */
 export function createAllRepositories(): {
   machineRepo: IMachineRepository;
   bookingRepo: IBookingRepository;
   customerRepo: ICustomerRepository;
+  walkInRepo: IWalkInQueueRepository;
+  sessionRepo: ISessionRepository;
 } {
   return {
     machineRepo: new ApiMachineRepository(),
     bookingRepo: new ApiBookingRepository(),
     customerRepo: new ApiCustomerRepository(),
+    walkInRepo: new ApiWalkInQueueRepository(),
+    sessionRepo: new ApiSessionRepository(),
   };
 }
 
