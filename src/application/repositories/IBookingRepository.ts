@@ -15,7 +15,7 @@
 
 export type BookingSlotStatus = 'available' | 'booked' | 'passed';
 
-export type BookingStatus = 'pending' | 'confirmed' | 'checked_in' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'confirmed' | 'seated' | 'completed' | 'cancelled';
 
 /**
  * Represents a single time slot in the schedule
@@ -120,7 +120,7 @@ export interface BookingStats {
   totalBookings: number;
   pendingBookings: number;
   confirmedBookings: number;
-  checkedInBookings: number;
+  seatedBookings: number;
   cancelledBookings: number;
   completedBookings: number;
 }

@@ -810,8 +810,9 @@ export type Database = {
       booking_status:
         | "pending"
         | "confirmed"
-        | "cancelled"
+        | "seated"
         | "completed"
+        | "cancelled"
         | "checked_in"
       machine_status: "available" | "occupied" | "maintenance"
       payment_status: "unpaid" | "paid" | "partial"
@@ -948,8 +949,9 @@ export const Constants = {
       booking_status: [
         "pending",
         "confirmed",
-        "cancelled",
+        "seated",
         "completed",
+        "cancelled",
         "checked_in",
       ],
       machine_status: ["available", "occupied", "maintenance"],

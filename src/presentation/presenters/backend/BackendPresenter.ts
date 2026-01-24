@@ -154,7 +154,7 @@ export class BackendPresenter {
       totalBookings: 0,
       pendingBookings: 0,
       confirmedBookings: 0,
-      checkedInBookings: 0,
+      seatedBookings: 0,
       cancelledBookings: 0,
       completedBookings: 0,
     };
@@ -182,7 +182,7 @@ export class BackendPresenter {
           totalBookings: todayBookings.length,
           pendingBookings: todayBookings.filter(b => b.status === 'pending').length,
           confirmedBookings: todayBookings.filter(b => b.status === 'confirmed').length,
-          checkedInBookings: todayBookings.filter(b => b.status === 'checked_in').length,
+          seatedBookings: todayBookings.filter(b => b.status === 'seated').length,
           cancelledBookings: todayBookings.filter(b => b.status === 'cancelled').length,
           completedBookings: todayBookings.filter(b => b.status === 'completed').length,
         };

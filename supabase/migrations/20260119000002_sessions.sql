@@ -114,9 +114,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_payment
 CREATE TRIGGER update_sessions_updated_at
     BEFORE UPDATE ON public.sessions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
+    
 -- ============================================================
--- RPC FUNCTION: Start a session
+-- RPC FUNCTION: Start a session (IMPROVED VERSION)
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.rpc_start_session(
@@ -133,50 +133,135 @@ AS $$
 DECLARE
     v_session_id UUID;
     v_machine RECORD;
-    v_active_session RECORD;
+    v_booking_machine_id UUID;
+    v_queue_machine_id UUID;
+    v_updated_count INT;
 BEGIN
+    -- Input Validation
+    IF TRIM(COALESCE(p_customer_name, '')) = '' THEN
+        RETURN json_build_object('success', false, 'error', 'กรุณาระบุชื่อลูกค้า');
+    END IF;
+
+    IF p_booking_id IS NOT NULL AND p_queue_id IS NOT NULL THEN
+        RETURN json_build_object('success', false, 'error', 'ไม่สามารถใช้ทั้ง booking และ queue พร้อมกันได้');
+    END IF;
+
     -- Check permission
     IF NOT public.is_moderator_or_admin() THEN
         RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ดำเนินการ');
     END IF;
-    
-    -- Check machine exists and is available
-    SELECT * INTO v_machine FROM public.machines WHERE id = p_station_id;
+
+    -- Validate Booking (if provided)
+    IF p_booking_id IS NOT NULL THEN
+        SELECT machine_id INTO v_booking_machine_id
+        FROM public.bookings
+        WHERE id = p_booking_id 
+          AND status IN ('pending', 'confirmed')
+        FOR UPDATE;
+
+        IF v_booking_machine_id IS NULL THEN
+            RETURN json_build_object('success', false, 'error', 'ไม่พบ booking หรือ booking ถูกยกเลิกแล้ว');
+        END IF;
+
+        IF v_booking_machine_id != p_station_id THEN
+            RETURN json_build_object('success', false, 'error', 'Booking นี้ไม่ได้จองเครื่องนี้');
+        END IF;
+    END IF;
+
+    -- Validate Walk-in Queue (if provided)
+    IF p_queue_id IS NOT NULL THEN
+        SELECT preferred_machine_id INTO v_queue_machine_id
+        FROM public.walk_in_queue
+        WHERE id = p_queue_id 
+          AND status IN ('waiting', 'called')
+        FOR UPDATE;
+
+        IF v_queue_machine_id IS NULL THEN
+            RETURN json_build_object('success', false, 'error', 'ไม่พบ queue หรือ queue ไม่ได้อยู่ในสถานะรอหรือถูกเรียก');
+        END IF;
+
+        -- Queue can have NULL preferred_machine_id (any machine)
+        IF v_queue_machine_id IS NOT NULL AND v_queue_machine_id != p_station_id THEN
+            RETURN json_build_object('success', false, 'error', 'Queue นี้เลือกเครื่องอื่น');
+        END IF;
+    END IF;
+
+    -- Lock and Get Machine
+    SELECT * INTO v_machine 
+    FROM public.machines 
+    WHERE id = p_station_id 
+    FOR UPDATE;
     
     IF v_machine IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'ไม่พบเครื่องนี้');
     END IF;
-    
-    -- Check for existing active session on this machine
-    SELECT * INTO v_active_session 
-    FROM public.sessions 
-    WHERE station_id = p_station_id AND end_time IS NULL
-    LIMIT 1;
-    
-    IF v_active_session IS NOT NULL THEN
-        RETURN json_build_object('success', false, 'error', 'เครื่องนี้มี session ที่ยังไม่จบอยู่');
+
+    IF NOT v_machine.is_active THEN
+        RETURN json_build_object('success', false, 'error', 'เครื่องนี้ถูกปิดใช้งาน');
     END IF;
-    
-    -- Create session
+
+    IF v_machine.status != 'available' THEN
+        RETURN json_build_object('success', false, 'error', 'เครื่องนี้ไม่ว่าง (สถานะ: ' || v_machine.status || ')');
+    END IF;
+
+    -- Create Session
     INSERT INTO public.sessions (
         station_id,
+        customer_name,
         booking_id,
         queue_id,
-        customer_name,
-        notes
+        notes,
+        created_at,
+        start_time
     ) VALUES (
         p_station_id,
+        TRIM(p_customer_name),
         p_booking_id,
         p_queue_id,
-        p_customer_name,
-        p_notes
+        p_notes,
+        NOW(),
+        NOW()
     )
     RETURNING id INTO v_session_id;
-    
+
     -- Update machine status to occupied
     UPDATE public.machines
-    SET status = 'occupied', updated_at = NOW()
+    SET 
+        status = 'occupied', 
+        updated_at = NOW()
     WHERE id = p_station_id;
+
+    -- Update Booking status if provided
+    IF p_booking_id IS NOT NULL THEN
+        UPDATE public.bookings
+        SET 
+            status = 'seated',
+            updated_at = NOW()
+        WHERE id = p_booking_id
+          AND status IN ('pending', 'confirmed'); -- Extra safety check
+        
+        GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+        IF v_updated_count = 0 THEN
+            RAISE EXCEPTION 'Failed to update booking status';
+        END IF;
+    END IF;
+
+    -- Update Walk-in Queue status if provided
+    IF p_queue_id IS NOT NULL THEN
+        UPDATE public.walk_in_queue
+        SET 
+            status = 'seated', 
+            seated_at = NOW(), 
+            preferred_machine_id = p_station_id,
+            updated_at = NOW()
+        WHERE id = p_queue_id
+          AND status IN ('waiting', 'called'); -- Extra safety check
+        
+        GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+        IF v_updated_count = 0 THEN
+            RAISE EXCEPTION 'Failed to update queue status';
+        END IF;
+    END IF;
     
     -- Return the created session
     RETURN json_build_object(
@@ -184,13 +269,29 @@ BEGIN
         'session', json_build_object(
             'id', v_session_id,
             'stationId', p_station_id,
-            'customerName', p_customer_name,
+            'customerName', TRIM(p_customer_name),
             'startTime', NOW(),
-            'paymentStatus', 'unpaid'
+            'paymentStatus', 'unpaid',
+            'bookingId', p_booking_id,
+            'queueId', p_queue_id
         )
     );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Rollback happens automatically
+        RETURN json_build_object(
+            'success', false, 
+            'error', 'เกิดข้อผิดพลาด: ' || SQLERRM
+        );
 END;
 $$;
+
+-- Recommended Indexes
+CREATE INDEX IF NOT EXISTS idx_machines_id_status ON machines(id, status) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_sessions_station_id ON sessions(station_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_id_status ON bookings(id, status, machine_id);
+CREATE INDEX IF NOT EXISTS idx_walk_in_queue_id_status ON walk_in_queue(id, status, preferred_machine_id);
 
 -- ============================================================
 -- RPC FUNCTION: End a session

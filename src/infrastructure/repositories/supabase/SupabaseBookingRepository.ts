@@ -356,7 +356,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
         totalBookings: 0,
         pendingBookings: 0,
         confirmedBookings: 0,
-        checkedInBookings: 0,
+        seatedBookings: 0,
         cancelledBookings: 0,
         completedBookings: 0,
       };
@@ -366,7 +366,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
       totalBookings: data.length,
       pendingBookings: data.filter(b => b.status === 'pending').length,
       confirmedBookings: data.filter(b => b.status === 'confirmed').length,
-      checkedInBookings: data.filter(b => b.status === 'checked_in').length,
+      seatedBookings: data.filter(b => b.status === 'seated').length,
       cancelledBookings: data.filter(b => b.status === 'cancelled').length,
       completedBookings: data.filter(b => b.status === 'completed').length,
     };

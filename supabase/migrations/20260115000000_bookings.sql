@@ -10,7 +10,7 @@
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'booking_status') THEN
-        CREATE TYPE public.booking_status AS ENUM ('pending', 'confirmed', 'cancelled', 'completed');
+        CREATE TYPE public.booking_status AS ENUM ('pending', 'confirmed', 'seated', 'completed', 'cancelled');
     END IF;
 END $$;
 
