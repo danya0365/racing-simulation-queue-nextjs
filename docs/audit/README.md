@@ -13,6 +13,7 @@
     - [หน้าแดชบอร์ดแอดมิน (Backend Dashboard - app/backend/page.tsx)](./pages/backend-dashboard.md) ✅
     - [รายละเอียดเมนูแอดมิน (Backend Tabs - รายละเอียดเจาะลึก)](./pages/backend-dashboard-tabs.md) ✅
     - [หน้าห้องควบคุมเกม (Advance Control - app/backend/advance-control/page.tsx)](./pages/advance-control.md) ✅
+    - [หน้าจองคิว Walk-in (Walk-in Queue Audit)](./pages/walk-in-queue.md) ⚠️ ต้องปรับปรุง UI
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
