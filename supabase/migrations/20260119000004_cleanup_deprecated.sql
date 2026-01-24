@@ -28,7 +28,7 @@ DROP FUNCTION IF EXISTS public.rpc_search_queues_by_phone(TEXT, UUID);
 
 -- Old advance booking functions
 DROP FUNCTION IF EXISTS public.rpc_get_advance_schedule(UUID, DATE);
-DROP FUNCTION IF EXISTS public.rpc_create_advance_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT);
+DROP FUNCTION IF EXISTS public.rpc_create_advance_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT, UUID);
 DROP FUNCTION IF EXISTS public.rpc_cancel_advance_booking(UUID, UUID);
 DROP FUNCTION IF EXISTS public.rpc_get_customer_advance_bookings(TEXT);
 

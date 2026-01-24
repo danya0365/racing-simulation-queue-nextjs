@@ -168,7 +168,8 @@ CREATE OR REPLACE FUNCTION public.rpc_join_walk_in_queue(
     p_party_size INTEGER DEFAULT 1,
     p_preferred_station_type TEXT DEFAULT NULL,
     p_preferred_machine_id UUID DEFAULT NULL,
-    p_notes TEXT DEFAULT NULL
+    p_notes TEXT DEFAULT NULL,
+    p_customer_id UUID DEFAULT NULL  -- Added for ownership verification
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -178,22 +179,59 @@ DECLARE
     v_customer_id UUID;
     v_queue_id UUID;
     v_queue_number INTEGER;
+    v_existing_customer RECORD;
+    v_current_profile_id UUID;
 BEGIN
-    -- Get or create customer
-    SELECT id INTO v_customer_id
+    -- Input sanitization
+    p_customer_phone := TRIM(p_customer_phone);
+    p_customer_name := TRIM(p_customer_name);
+
+    -- Prevent concurrent duplicate creation for the same phone number
+    PERFORM pg_advisory_xact_lock(hashtext('customer_creation_' || p_customer_phone));
+    
+    -- Get current profile id once for performance
+    v_current_profile_id := public.get_active_profile_id();
+
+    -- Get customer by phone
+    SELECT * INTO v_existing_customer
     FROM public.customers
     WHERE phone = p_customer_phone
     LIMIT 1;
-    
-    IF v_customer_id IS NULL THEN
-        INSERT INTO public.customers (name, phone)
-        VALUES (p_customer_name, p_customer_phone)
-        RETURNING id INTO v_customer_id;
+
+    -- Fix: Use FOUND because "row IS NOT NULL" returns false if ANY column is null (e.g. email, profile_id)
+    IF FOUND THEN
+        -- SECURITY CHECK 1: If customer has a profile, MUST be logged in as that user to edit
+        IF v_existing_customer.profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_existing_customer.profile_id THEN
+                RETURN json_build_object(
+                    'success', false, 
+                    'error', 'เบอร์นี้ผูกกับบัญชีสมาชิก กรุณาเข้าสู่ระบบก่อนทำรายการ'
+                );
+            END IF;
+        END IF;
+
+        -- SECURITY CHECK 2: If phone exists, p_customer_id MUST match (for guest flow)
+        -- Exception: Admin/Moderator can bypass (if needed, but for now strict for guest)
+        IF p_customer_id IS NULL OR v_existing_customer.id != p_customer_id THEN
+            RETURN json_build_object(
+                'success', false, 
+                'error', 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนแล้ว กรุณาตรวจสอบหรือแจ้งพนักงาน'
+            );
+        END IF;
+
+        v_customer_id := v_existing_customer.id;
+
+        -- Update name if matched (Authorized update)
+        IF v_existing_customer.name != p_customer_name THEN
+            UPDATE public.customers
+            SET name = p_customer_name, updated_at = NOW()
+            WHERE id = v_customer_id;
+        END IF;
     ELSE
-        -- Update customer name if changed
-        UPDATE public.customers
-        SET name = p_customer_name, updated_at = NOW()
-        WHERE id = v_customer_id AND name != p_customer_name;
+        -- New customer
+        INSERT INTO public.customers (name, phone, profile_id)
+        VALUES (p_customer_name, p_customer_phone, v_current_profile_id)
+        RETURNING id INTO v_customer_id;
     END IF;
     
     -- Get next queue number for today
@@ -353,18 +391,39 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_queue RECORD;
+    v_profile_id UUID;
+    v_current_profile_id UUID;
 BEGIN
+    -- Get current profile
+    v_current_profile_id := public.get_active_profile_id();
+
     -- Get queue
-    SELECT * INTO v_queue FROM public.walk_in_queue WHERE id = p_queue_id;
+    SELECT * INTO v_queue 
+    FROM public.walk_in_queue 
+    WHERE id = p_queue_id;
     
     IF v_queue IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'ไม่พบคิวนี้');
     END IF;
+
+    -- Get profile id
+    SELECT profile_id INTO v_profile_id
+    FROM public.customers
+    WHERE id = v_queue.customer_id;
     
     -- Check permission: admin or owner
-    IF NOT public.is_moderator_or_admin() AND 
-       (p_customer_id IS NULL OR v_queue.customer_id != p_customer_id) THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกคิวนี้');
+    IF NOT public.is_moderator_or_admin() THEN
+         -- Ownership check
+         IF p_customer_id IS NULL OR v_queue.customer_id != p_customer_id THEN
+            RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกคิวนี้');
+         END IF;
+
+         -- Profile Protection check
+         IF v_profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_profile_id THEN
+                RETURN json_build_object('success', false, 'error', 'กรุณาเข้าสู่ระบบเพื่อยกเลิก');
+            END IF;
+         END IF;
     END IF;
     
     IF v_queue.status NOT IN ('waiting', 'called') THEN
@@ -499,7 +558,7 @@ $$;
 GRANT ALL ON public.walk_in_queue TO anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.rpc_get_waiting_queue() TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rpc_join_walk_in_queue(TEXT, TEXT, INTEGER, TEXT, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_join_walk_in_queue(TEXT, TEXT, INTEGER, TEXT, UUID, TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_call_queue_customer(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_seat_queue_customer(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_cancel_walk_in_queue(UUID, UUID) TO anon, authenticated;

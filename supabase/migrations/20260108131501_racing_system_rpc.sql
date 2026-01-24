@@ -68,20 +68,40 @@ CREATE OR REPLACE FUNCTION public.rpc_create_booking(
     p_customer_phone TEXT,
     p_machine_id UUID,
     p_duration INTEGER,
-    p_notes TEXT DEFAULT NULL
+    p_notes TEXT DEFAULT NULL,
+    p_customer_id UUID DEFAULT NULL -- Added for protection
 )
 RETURNS JSONB SECURITY DEFINER AS $$
 DECLARE
     v_customer_id UUID;
     v_queue_id UUID;
     v_next_pos INTEGER;
+    v_existing_customer RECORD;
+    v_current_profile_id UUID;
 BEGIN
+    -- Get current profile
+    v_current_profile_id := public.get_active_profile_id();
+
     -- 1. Find or Create Customer
-    SELECT id INTO v_customer_id FROM public.customers WHERE phone = p_customer_phone LIMIT 1;
+    SELECT * INTO v_existing_customer FROM public.customers WHERE phone = p_customer_phone LIMIT 1;
     
-    IF v_customer_id IS NULL THEN
+    IF v_existing_customer IS NOT NULL THEN
+        -- SECURITY CHECK 1: Profile Protection
+        IF v_existing_customer.profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_existing_customer.profile_id THEN
+                RETURN jsonb_build_object('success', false, 'error', 'Account protection: Please login.');
+            END IF;
+        END IF;
+
+        -- SECURITY CHECK 2: Ownership Protection
+        IF p_customer_id IS NULL OR v_existing_customer.id != p_customer_id THEN
+             RETURN jsonb_build_object('success', false, 'error', 'Phone number already registered.');
+        END IF;
+
+        v_customer_id := v_existing_customer.id;
+    ELSE
         INSERT INTO public.customers (name, phone, profile_id)
-        VALUES (p_customer_name, p_customer_phone, public.get_active_profile_id())
+        VALUES (p_customer_name, p_customer_phone, v_current_profile_id)
         RETURNING id INTO v_customer_id;
     END IF;
 
@@ -261,7 +281,7 @@ $$ LANGUAGE plpgsql;
 -- Grant execute on RPCs to anon and authenticated
 GRANT EXECUTE ON FUNCTION public.rpc_get_active_machines() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_today_queues() TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rpc_create_booking(TEXT, TEXT, UUID, INTEGER, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_create_booking(TEXT, TEXT, UUID, INTEGER, TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_all_customers_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_update_queue_status_admin(UUID, public.queue_status) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_queue_details(UUID) TO anon, authenticated;

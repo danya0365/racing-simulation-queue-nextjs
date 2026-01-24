@@ -60,6 +60,7 @@ export interface JoinWalkInQueueData {
   preferredStationType?: string;
   preferredMachineId?: string;
   notes?: string;
+  customerId: string; // For ownership verification (empty string if new/guest)
 }
 
 /**

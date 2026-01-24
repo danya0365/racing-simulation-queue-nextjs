@@ -509,30 +509,20 @@ export type Database = {
         Returns: Json
       }
       rpc_checkin_booking: { Args: { p_booking_id: string }; Returns: Json }
-      rpc_create_booking:
-        | {
-            Args: {
-              p_customer_name: string
-              p_customer_phone: string
-              p_duration: number
-              p_machine_id: string
-              p_notes?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_customer_name: string
-              p_customer_phone: string
-              p_duration_minutes: number
-              p_local_date: string
-              p_local_start_time: string
-              p_machine_id: string
-              p_notes?: string
-              p_timezone?: string
-            }
-            Returns: Json
-          }
+      rpc_create_booking: {
+        Args: {
+          p_customer_id?: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_duration_minutes: number
+          p_local_date: string
+          p_local_start_time: string
+          p_machine_id: string
+          p_notes?: string
+          p_timezone?: string
+        }
+        Returns: Json
+      }
       rpc_end_session: {
         Args: { p_session_id: string; p_total_amount?: number }
         Returns: Json
@@ -772,6 +762,7 @@ export type Database = {
       }
       rpc_join_walk_in_queue: {
         Args: {
+          p_customer_id?: string
           p_customer_name: string
           p_customer_phone: string
           p_notes?: string

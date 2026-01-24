@@ -99,6 +99,7 @@ export interface CreateBookingData {
   timezone?: string; // Defaults to 'Asia/Bangkok'
   
   notes?: string;
+  customerId: string; // Required for ownership verification (empty string if new/guest)
 }
 
 /**

@@ -6,8 +6,8 @@ import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { TimezoneNotice } from '@/src/presentation/components/ui/TimezoneNotice';
 import { TimeBookingPresenter, TimeBookingViewModel } from '@/src/presentation/presenters/timeBooking/TimeBookingPresenter';
 import {
-  BookingStep,
-  useTimeBookingPresenter
+    BookingStep,
+    useTimeBookingPresenter
 } from '@/src/presentation/presenters/timeBooking/useTimeBookingPresenter';
 import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { animated } from '@react-spring/web';
@@ -92,6 +92,7 @@ export function TimeBookingView({
         localStartTime: state.selectedSlot.startTime,
         durationMinutes: duration,
         timezone: state.viewModel?.timezone || SHOP_TIMEZONE,
+        customerId: customerInfo.id || '',
       });
       
       // ✅ IMPORTANT: Save customerId to store for cancellation later

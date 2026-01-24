@@ -7,6 +7,7 @@ import type {
   CreateBookingData,
 } from '@/src/application/repositories/IBookingRepository';
 import { getShopNow, getShopTodayString, SHOP_TIMEZONE } from '@/src/lib/date';
+import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookingPresenter, BookingViewModel } from './BookingPresenter';
 import { createClientBookingPresenter } from './BookingPresenterClientFactory';
@@ -256,6 +257,7 @@ export function useBookingPresenter(
         durationMinutes: data.duration,
         timezone: viewModel.timezone || DEFAULT_TIMEZONE,
         notes: data.notes,
+        customerId: useCustomerStore.getState().customerInfo.id || '',
       };
 
       const booking = await presenter.createBooking(createData, nowStr);

@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       preferredStationType: body.preferredStationType,
       preferredMachineId: body.preferredMachineId,
       notes: body.notes,
+      customerId: body.customerId || '',
     });
     
     return NextResponse.json(queue, { status: 201 });

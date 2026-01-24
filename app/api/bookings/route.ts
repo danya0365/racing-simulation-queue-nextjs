@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       durationMinutes: data.durationMinutes,
       timezone: data.timezone,
       notes: data.notes,
+      customerId: data.customerId || '',
     });
 
     return NextResponse.json(booking, { status: 201 });

@@ -176,6 +176,7 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
         p_preferred_station_type: data.preferredStationType,
         p_preferred_machine_id: data.preferredMachineId,
         p_notes: data.notes,
+        p_customer_id: data.customerId || undefined,
       });
 
     if (error) throw error;
@@ -250,11 +251,11 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
     return updated;
   }
 
-  async cancel(queueId: string, customerId?: string): Promise<boolean> {
+  async cancel(queueId: string, customerId: string): Promise<boolean> {
     const { data, error } = await this.supabase
       .rpc('rpc_cancel_walk_in_queue', {
         p_queue_id: queueId,
-        p_customer_id: customerId,
+        p_customer_id: customerId || undefined,
       });
 
     if (error) {

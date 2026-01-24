@@ -113,7 +113,8 @@ CREATE OR REPLACE FUNCTION public.rpc_create_advance_booking(
     p_booking_date DATE,
     p_start_time TIME,
     p_duration INTEGER,
-    p_notes TEXT DEFAULT NULL
+    p_notes TEXT DEFAULT NULL,
+    p_customer_id UUID DEFAULT NULL -- Added for ownership verification
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -124,7 +125,12 @@ DECLARE
     v_end_time TIME;
     v_booking_id UUID;
     v_conflict_count INTEGER;
+    v_existing_customer RECORD;
+    v_current_profile_id UUID;
 BEGIN
+    -- Get current profile id once
+    v_current_profile_id := public.get_active_profile_id();
+
     -- Calculate end time
     v_end_time := p_start_time + (p_duration || ' minutes')::INTERVAL;
     
@@ -145,21 +151,44 @@ BEGIN
         );
     END IF;
     
-    -- Get or create customer
-    SELECT id INTO v_customer_id
+    -- Get customer by phone
+    SELECT * INTO v_existing_customer
     FROM public.customers
     WHERE phone = p_customer_phone
     LIMIT 1;
     
-    IF v_customer_id IS NULL THEN
-        INSERT INTO public.customers (name, phone)
-        VALUES (p_customer_name, p_customer_phone)
-        RETURNING id INTO v_customer_id;
+    IF v_existing_customer IS NOT NULL THEN
+        -- SECURITY CHECK 1: If customer has a profile, MUST be logged in as that user to edit
+        IF v_existing_customer.profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_existing_customer.profile_id THEN
+                RETURN json_build_object(
+                    'success', false, 
+                    'error', 'เบอร์นี้ผูกกับบัญชีสมาชิก กรุณาเข้าสู่ระบบก่อนทำรายการ'
+                );
+            END IF;
+        END IF;
+
+        -- SECURITY CHECK 2: If phone exists, p_customer_id MUST match
+        IF p_customer_id IS NULL OR v_existing_customer.id != p_customer_id THEN
+            RETURN json_build_object(
+                'success', false, 
+                'error', 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนแล้ว กรุณาตรวจสอบหรือแจ้งพนักงาน'
+            );
+        END IF;
+
+        v_customer_id := v_existing_customer.id;
+
+        -- Update name if matched (Authorized update)
+        IF v_existing_customer.name != p_customer_name THEN
+            UPDATE public.customers
+            SET name = p_customer_name, updated_at = NOW()
+            WHERE id = v_customer_id;
+        END IF;
     ELSE
-        -- Update customer name if changed
-        UPDATE public.customers
-        SET name = p_customer_name, updated_at = NOW()
-        WHERE id = v_customer_id AND name != p_customer_name;
+        -- New customer
+        INSERT INTO public.customers (name, phone, profile_id)
+        VALUES (p_customer_name, p_customer_phone, v_current_profile_id)
+        RETURNING id INTO v_customer_id;
     END IF;
     
     -- Create the booking
@@ -220,7 +249,12 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_booking RECORD;
+    v_profile_id UUID;
+    v_current_profile_id UUID;
 BEGIN
+    -- Get current profile
+    v_current_profile_id := public.get_active_profile_id();
+
     -- Get the booking
     SELECT * INTO v_booking
     FROM public.advance_bookings
@@ -229,11 +263,26 @@ BEGIN
     IF v_booking IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'ไม่พบการจอง');
     END IF;
+
+    -- Get profile id
+    SELECT profile_id INTO v_profile_id
+    FROM public.customers
+    WHERE id = v_booking.customer_id;
     
     -- Check permission: admin or owner
-    IF NOT public.is_moderator_or_admin() AND 
-       (p_customer_id IS NULL OR v_booking.customer_id != p_customer_id) THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกการจองนี้');
+    IF NOT public.is_moderator_or_admin() THEN
+        -- Level 1: Check ownership via customer_id (basic)
+        IF p_customer_id IS NULL OR v_booking.customer_id != p_customer_id THEN
+            RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกการจองนี้');
+        END IF;
+
+        -- Level 2: Profile Protection
+        -- If booking belongs to a registered user, caller MUST be that user
+        IF v_profile_id IS NOT NULL THEN
+             IF v_current_profile_id IS NULL OR v_current_profile_id != v_profile_id THEN
+                RETURN json_build_object('success', false, 'error', 'กรุณาเข้าสู่ระบบเพื่อยกเลิกการจอง');
+             END IF;
+        END IF;
     END IF;
     
     -- Cancel the booking
@@ -286,6 +335,6 @@ $$;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.rpc_get_advance_schedule(UUID, DATE) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rpc_create_advance_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_create_advance_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_cancel_advance_booking(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_customer_advance_bookings(TEXT) TO anon, authenticated;

@@ -101,7 +101,18 @@ export function useWalkInPresenter(
     setLoading(true);
     setError(null);
     try {
-      const queue = await presenter.joinQueue(data);
+      const existingCustomerId = useCustomerStore.getState().customerInfo.id;
+      const queue = await presenter.joinQueue({
+        ...data,
+        customerId: existingCustomerId || '',
+      });
+      
+      // Update customer info with latest data from queue response
+      useCustomerStore.getState().setCustomerInfo({
+        id: queue.customerId,
+        name: queue.customerName,
+        phone: queue.customerPhone,
+      });
       
       // Save to local store
       joinWalkIn({

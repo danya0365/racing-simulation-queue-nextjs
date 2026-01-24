@@ -11,15 +11,15 @@
  */
 
 import {
-    Booking,
-    BookingDaySchedule,
-    BookingLog,
-    BookingSlotStatus,
-    BookingStats,
-    BookingTimeSlot,
-    CreateBookingData,
-    IBookingRepository,
-    UpdateBookingData,
+  Booking,
+  BookingDaySchedule,
+  BookingLog,
+  BookingSlotStatus,
+  BookingStats,
+  BookingTimeSlot,
+  CreateBookingData,
+  IBookingRepository,
+  UpdateBookingData,
 } from '@/src/application/repositories/IBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 import { Database } from '@/src/domain/types/supabase';
@@ -233,6 +233,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
         p_duration_minutes: data.durationMinutes,
         p_timezone: tz,
         p_notes: data.notes,
+        p_customer_id: data.customerId || undefined,
       });
 
     if (error) {
@@ -306,11 +307,11 @@ export class SupabaseBookingRepository implements IBookingRepository {
     return this.mapToDomain(updated);
   }
 
-  async cancel(id: string, customerId?: string): Promise<boolean> {
+  async cancel(id: string, customerId: string): Promise<boolean> {
     const { data: result, error } = await this.client
       .rpc('rpc_cancel_booking', {
         p_booking_id: id,
-        p_customer_id: customerId,
+        p_customer_id: customerId || undefined,
       });
 
     if (error) {

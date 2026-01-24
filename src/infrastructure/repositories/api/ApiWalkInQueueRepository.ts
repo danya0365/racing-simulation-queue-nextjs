@@ -124,9 +124,9 @@ export class ApiWalkInQueueRepository implements IWalkInQueueRepository {
 
   async cancel(queueId: string, customerId?: string): Promise<boolean> {
     const res = await fetch(`${this.baseUrl}/${queueId}`, {
-      method: 'DELETE',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerId }),
+      body: JSON.stringify({ action: 'cancel', customerId }),
     });
     
     if (!res.ok) {

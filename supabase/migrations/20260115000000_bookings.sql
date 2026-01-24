@@ -260,6 +260,8 @@ $$;
 -- Accepts local time + timezone and converts to UTC
 -- ============================================================
 
+DROP FUNCTION IF EXISTS public.rpc_create_booking(TEXT, TEXT, UUID, INTEGER, TEXT, UUID);
+
 CREATE OR REPLACE FUNCTION public.rpc_create_booking(
     p_machine_id UUID,
     p_customer_name TEXT,
@@ -268,7 +270,8 @@ CREATE OR REPLACE FUNCTION public.rpc_create_booking(
     p_local_start_time TIME,
     p_duration_minutes INTEGER,
     p_timezone TEXT DEFAULT 'Asia/Bangkok',
-    p_notes TEXT DEFAULT NULL
+    p_notes TEXT DEFAULT NULL,
+    p_customer_id UUID DEFAULT NULL -- Added for ownership verification
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -280,14 +283,24 @@ DECLARE
     v_start_at TIMESTAMPTZ;
     v_end_at TIMESTAMPTZ;
     v_conflict_count INTEGER;
+    v_existing_customer RECORD;
+    v_current_profile_id UUID;
 BEGIN
+    -- Input sanitization
+    p_customer_phone := TRIM(p_customer_phone);
+    p_customer_name := TRIM(p_customer_name);
+
+    -- Prevent concurrent duplicate creation for the same phone number
+    PERFORM pg_advisory_xact_lock(hashtext('customer_creation_' || p_customer_phone));
+
+    -- Get current profile id once
+    v_current_profile_id := public.get_active_profile_id();
+
     -- Convert local date+time to TIMESTAMPTZ
-    -- This creates a timestamp in the specified timezone, which PostgreSQL stores as UTC
     v_start_at := (p_local_date || ' ' || p_local_start_time)::TIMESTAMP AT TIME ZONE p_timezone;
     v_end_at := v_start_at + (p_duration_minutes || ' minutes')::INTERVAL;
     
-    -- Check for time slot conflicts using TIMESTAMPTZ range overlap
-    -- Two ranges overlap if: start1 < end2 AND start2 < end1
+    -- Check for time slot conflicts
     SELECT COUNT(*) INTO v_conflict_count
     FROM public.bookings
     WHERE machine_id = p_machine_id
@@ -302,21 +315,45 @@ BEGIN
         );
     END IF;
     
-    -- Get or create customer
-    SELECT id INTO v_customer_id
+    -- Get customer by phone
+    SELECT * INTO v_existing_customer
     FROM public.customers
     WHERE phone = p_customer_phone
     LIMIT 1;
     
-    IF v_customer_id IS NULL THEN
-        INSERT INTO public.customers (name, phone)
-        VALUES (p_customer_name, p_customer_phone)
-        RETURNING id INTO v_customer_id;
+    -- Fix: Use FOUND because "row IS NOT NULL" returns false if ANY column is null (e.g. email, profile_id)
+    IF FOUND THEN
+        -- SECURITY CHECK 1: If customer has a profile, MUST be logged in as that user to edit
+        IF v_existing_customer.profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_existing_customer.profile_id THEN
+                RETURN json_build_object(
+                    'success', false, 
+                    'error', 'เบอร์นี้ผูกกับบัญชีสมาชิก กรุณาเข้าสู่ระบบก่อนทำรายการ'
+                );
+            END IF;
+        END IF;
+
+        -- SECURITY CHECK 2: If phone exists, p_customer_id MUST match
+        IF p_customer_id IS NULL OR v_existing_customer.id != p_customer_id THEN
+            RETURN json_build_object(
+                'success', false, 
+                'error', 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนแล้ว กรุณาตรวจสอบหรือแจ้งพนักงาน'
+            );
+        END IF;
+
+        v_customer_id := v_existing_customer.id;
+
+        -- Update name if matched (Authorized update)
+        IF v_existing_customer.name != p_customer_name THEN
+            UPDATE public.customers
+            SET name = p_customer_name, updated_at = NOW()
+            WHERE id = v_customer_id;
+        END IF;
     ELSE
-        -- Update customer name if changed
-        UPDATE public.customers
-        SET name = p_customer_name, updated_at = NOW()
-        WHERE id = v_customer_id AND name != p_customer_name;
+        -- New customer
+        INSERT INTO public.customers (name, phone, profile_id)
+        VALUES (p_customer_name, p_customer_phone, v_current_profile_id)
+        RETURNING id INTO v_customer_id;
     END IF;
     
     -- Create the booking
@@ -384,7 +421,12 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_booking RECORD;
+    v_profile_id UUID;
+    v_current_profile_id UUID;
 BEGIN
+    -- Get current profile
+    v_current_profile_id := public.get_active_profile_id();
+
     -- Get the booking
     SELECT * INTO v_booking
     FROM public.bookings
@@ -393,11 +435,25 @@ BEGIN
     IF v_booking IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'ไม่พบการจอง');
     END IF;
+
+    -- Get profile id
+    SELECT profile_id INTO v_profile_id
+    FROM public.customers
+    WHERE id = v_booking.customer_id;
     
     -- Check permission: admin or owner
-    IF NOT public.is_moderator_or_admin() AND 
-       (p_customer_id IS NULL OR v_booking.customer_id != p_customer_id) THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกการจองนี้');
+    IF NOT public.is_moderator_or_admin() THEN
+        -- Ownership check
+        IF p_customer_id IS NULL OR v_booking.customer_id != p_customer_id THEN
+            RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ยกเลิกการจองนี้');
+        END IF;
+
+        -- Profile Protection check
+        IF v_profile_id IS NOT NULL THEN
+            IF v_current_profile_id IS NULL OR v_current_profile_id != v_profile_id THEN
+                RETURN json_build_object('success', false, 'error', 'กรุณาเข้าสู่ระบบเพื่อยกเลิก');
+            END IF;
+        END IF;
     END IF;
     
     -- Cancel the booking
@@ -654,7 +710,7 @@ GRANT ALL ON public.bookings TO anon, authenticated;
 GRANT ALL ON public.booking_logs TO anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.rpc_get_bookings_schedule(UUID, DATE, TEXT, UUID) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rpc_create_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_create_booking(UUID, TEXT, TEXT, DATE, TIME, INTEGER, TEXT, TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_cancel_booking(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_my_bookings(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_bookings_by_machine_date(UUID, DATE, UUID) TO anon, authenticated;

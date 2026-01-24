@@ -4,8 +4,9 @@ import { JoinWalkInQueueData } from '@/src/application/repositories/IWalkInQueue
 import { AnimatedCard } from '@/src/presentation/components/ui/AnimatedCard';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { useWalkInPresenter } from '@/src/presentation/presenters/walkIn/useWalkInPresenter';
+import { useCustomerStore } from '@/src/presentation/stores/useCustomerStore';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { WalkInStatusView } from './WalkInStatusView';
 
 /**
@@ -15,12 +16,26 @@ import { WalkInStatusView } from './WalkInStatusView';
 export function JoinWalkInView() {
   const [state, actions] = useWalkInPresenter();
   const { currentQueue, availableMachines, loading, error } = state;
+  const customerInfo = useCustomerStore((state) => state.customerInfo);
 
   const [formData, setFormData] = useState<JoinWalkInQueueData>({
     customerName: '',
     customerPhone: '',
     partySize: 1,
+    customerId: '',
   });
+
+  // Pre-fill form with customer info
+  useEffect(() => {
+    if (customerInfo.name || customerInfo.phone) {
+      setFormData((prev) => ({
+        ...prev,
+        customerName: prev.customerName || customerInfo.name,
+        customerPhone: prev.customerPhone || customerInfo.phone,
+        customerId: customerInfo.id || prev.customerId,
+      }));
+    }
+  }, [customerInfo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
