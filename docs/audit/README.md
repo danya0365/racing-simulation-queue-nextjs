@@ -6,6 +6,7 @@
 
 - [**การตรวจสอบส่วนหน้า (Pages Audit)**](./pages/) - วิเคราะห์การเรียกข้อมูล API/DB ในแต่ละหน้า
     - [หน้าแรก (Home Page - app/page.tsx)](./pages/home-page.md) ✅
+    - [หน้าจองเวลา (Time Booking - app/time-booking/page.tsx)](./pages/time-booking.md) ✅
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
