@@ -23,10 +23,25 @@ interface ActiveBooking {
   createdAt: string;
 }
 
+interface ActiveWalkInQueue {
+  id: string;
+  customerId: string;
+  queueNumber: number;
+  customerName: string;
+  customerPhone: string;
+  partySize: number;
+  status: 'waiting' | 'called' | 'seated' | 'cancelled';
+  joinedAt: string;
+  estimatedWaitMinutes?: number;
+  queuesAhead?: number;
+  createdAt: string;
+}
+
 interface CustomerStore {
   // State
   customerInfo: CustomerInfo;
   activeBookings: ActiveBooking[];
+  activeWalkIn: ActiveWalkInQueue | null;
   bookingHistory: ActiveBooking[];
   isInitialized: boolean;
   
@@ -39,6 +54,11 @@ interface CustomerStore {
   updateBooking: (id: string, updates: Partial<ActiveBooking>) => void;
   removeBooking: (id: string) => void;
   getActiveBookings: () => ActiveBooking[];
+
+  // Walk-in management
+  joinWalkIn: (queue: ActiveWalkInQueue) => void;
+  updateWalkIn: (updates: Partial<ActiveWalkInQueue>) => void;
+  leaveWalkIn: () => void;
   
   // History management
   moveToHistory: (id: string) => void;
@@ -62,6 +82,7 @@ export const useCustomerStore = create<CustomerStore>()(
     (set, get) => ({
       customerInfo: initialCustomerInfo,
       activeBookings: [],
+      activeWalkIn: null,
       bookingHistory: [],
       isInitialized: false, // Track if persisted data is loaded
       
@@ -112,10 +133,20 @@ export const useCustomerStore = create<CustomerStore>()(
       getActiveBookings: () => {
         const state = get();
         // Return only active bookings (waiting or playing)
-        return state.activeBookings.filter(
           (b) => b.status === 'waiting' || b.status === 'called' || b.status === 'seated' || b.status === 'playing'
         );
       },
+
+      joinWalkIn: (queue) =>
+        set({ activeWalkIn: queue }),
+
+      updateWalkIn: (updates) =>
+        set((state) => ({
+          activeWalkIn: state.activeWalkIn ? { ...state.activeWalkIn, ...updates } : null
+        })),
+
+      leaveWalkIn: () =>
+        set({ activeWalkIn: null }),
       
       moveToHistory: (id) =>
         set((state) => {
@@ -157,5 +188,5 @@ export const useCustomerStore = create<CustomerStore>()(
 );
 
 // Export types for use in components
-export type { ActiveBooking, CustomerInfo };
+export type { ActiveBooking, ActiveWalkInQueue, CustomerInfo };
 

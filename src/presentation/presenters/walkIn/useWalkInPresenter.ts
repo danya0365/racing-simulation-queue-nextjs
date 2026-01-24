@@ -39,7 +39,7 @@ export function useWalkInPresenter(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { activeBookings, addBooking, removeBooking, updateBooking, isInitialized } = useCustomerStore();
+  const { activeWalkIn, joinWalkIn, leaveWalkIn, updateWalkIn, isInitialized } = useCustomerStore();
 
   const loadData = useCallback(async () => {
     if (!useCustomerStore.getState().isInitialized) return;
@@ -48,8 +48,8 @@ export function useWalkInPresenter(
     setError(null);
 
     try {
-      const currentActive = useCustomerStore.getState().activeBookings;
-      const customerId = currentActive[0]?.customerId;
+      const currentActive = useCustomerStore.getState().activeWalkIn;
+      const customerId = currentActive?.customerId;
 
       const [machines, status] = await Promise.all([
         presenter.getAvailableMachines(),
@@ -60,15 +60,27 @@ export function useWalkInPresenter(
         setAvailableMachines(machines);
         setCurrentQueue(status);
         
-        // Sync with local store if status changed
+        // Sync with local store
         if (status) {
-          const local = currentActive.find(b => b.id === status.id);
-          if (!local || local.status !== status.status || local.position !== status.queueNumber) {
-            updateBooking(status.id, {
-              status: status.status,
-              position: status.queueNumber,
-            });
-          }
+           // Update if changed or just joined
+           if (!currentActive || currentActive.status !== status.status || currentActive.queueNumber !== status.queueNumber) {
+              updateWalkIn({
+                  id: status.id,
+                  customerId: status.customerId,
+                  queueNumber: status.queueNumber,
+                  status: status.status,
+                  customerName: status.customerName,
+                  customerPhone: status.customerPhone,
+                  partySize: status.partySize,
+                  joinedAt: status.joinedAt,
+                  createdAt: status.createdAt
+              });
+           }
+        } else if (currentActive) {
+            // Queue disappeared from server? (e.g. Completed/Cancelled by admin but not synced yet)
+            // Ideally we check if it was explicitly completed, but for now if API returns null, we respect that.
+            // However, getMyQueueStatus returning null means NO active queue.
+            leaveWalkIn(); 
         }
       }
     } catch (err) {
@@ -80,7 +92,7 @@ export function useWalkInPresenter(
         setLoading(false);
       }
     }
-  }, [presenter, updateBooking]);
+  }, [presenter, updateWalkIn, leaveWalkIn]);
 
   const joinQueue = useCallback(async (data: JoinWalkInQueueData) => {
     setLoading(true);
@@ -89,17 +101,15 @@ export function useWalkInPresenter(
       const queue = await presenter.joinQueue(data);
       
       // Save to local store
-      addBooking({
+      joinWalkIn({
         id: queue.id,
         customerId: queue.customerId,
         customerName: queue.customerName,
         customerPhone: queue.customerPhone,
-        machineId: queue.preferredMachineId || '',
-        machineName: queue.preferredMachineName || '',
-        bookingTime: queue.joinedAt,
-        duration: 30, // Default duration estimate
+        partySize: queue.partySize,
         status: queue.status,
-        position: queue.queueNumber,
+        queueNumber: queue.queueNumber,
+        joinedAt: queue.joinedAt,
         createdAt: queue.createdAt,
       });
 
@@ -114,16 +124,16 @@ export function useWalkInPresenter(
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  }, [presenter, addBooking]);
+  }, [presenter, joinWalkIn]);
 
   const cancelQueue = useCallback(async (queueId: string) => {
     setLoading(true);
     try {
-      const currentActive = useCustomerStore.getState().activeBookings;
-      const booking = currentActive.find(b => b.id === queueId);
-      if (booking?.customerId) {
-        await presenter.cancelQueue(queueId, booking.customerId);
-        removeBooking(queueId);
+      const currentActive = useCustomerStore.getState().activeWalkIn;
+      if (currentActive?.id === queueId) {
+        // Use customerId from store if available, or just try without it (repository might need it)
+        await presenter.cancelQueue(queueId, currentActive.customerId);
+        leaveWalkIn();
         if (isMountedRef.current) setCurrentQueue(null);
       }
     } catch (err) {
@@ -131,7 +141,7 @@ export function useWalkInPresenter(
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  }, [presenter, removeBooking]);
+  }, [presenter, leaveWalkIn]);
 
   useEffect(() => {
     if (isInitialized) {
