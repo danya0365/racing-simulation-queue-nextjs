@@ -8,6 +8,7 @@
     - [หน้าแรก (Home Page - app/page.tsx)](./pages/home-page.md) ✅
     - [หน้าจองเวลา (Time Booking - app/time-booking/page.tsx)](./pages/time-booking.md) ✅
     - [หน้าสถานะการจอง (Booking Status - app/customer/booking-status/page.tsx)](./pages/booking-status.md) ✅
+    - [หน้าตารางการจองรวม (Booking History - app/customer/booking-history/page.tsx)](./pages/booking-history.md) ✅
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
