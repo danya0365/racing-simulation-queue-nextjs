@@ -12,6 +12,7 @@
     - [หน้าโปรไฟล์ (Profile - app/profile/page.tsx)](./pages/profile.md) ⚠️ พบช่องโหว่
     - [หน้าแดชบอร์ดแอดมิน (Backend Dashboard - app/backend/page.tsx)](./pages/backend-dashboard.md) ✅
     - [รายละเอียดเมนูแอดมิน (Backend Tabs - รายละเอียดเจาะลึก)](./pages/backend-dashboard-tabs.md) ✅
+    - [หน้าห้องควบคุมเกม (Advance Control - app/backend/advance-control/page.tsx)](./pages/advance-control.md) ✅
 - [**การตรวจสอบฐานข้อมูล (Database Audit)**](./database/) - วิเคราะห์ RLS, RPCs และ Schema
     - *กำลังรอการวิเคราะห์*
 
