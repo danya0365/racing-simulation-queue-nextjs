@@ -34,7 +34,9 @@ export default async function BackendPage() {
 
   try {
     // Use Shop timezone for consistent server/client date handling
-    const nowStr = getShopNow().toISOString();
+    // FIX: Use .format() to preserve timezone offset (toISOString converts to UTC)
+    // TODO: pass date from props
+    const nowStr = getShopNow().format();
     const viewModel = await presenter.getViewModel(nowStr);
 
     return <BackendView initialViewModel={viewModel} />;

@@ -88,12 +88,20 @@ export function useBackendPresenter(
     try {
       let partialData: Partial<BackendViewModel> = {};
       
-      const nowStr = dayjs().toISOString();
+      const nowStr = dayjs().format(); // Use local format
+      
       if (tab === 'dashboard') {
-        partialData = await presenter.getDashboardData();
+        // Dashboard needs Everything (Machines, Queues, Sessions, Bookings Stats)
+        partialData = await presenter.getViewModel(nowStr);
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
+        // Operational tabs need real-time data but not full daily bookings
         partialData = await presenter.getControlData();
+      } else if (tab === 'customers' || tab === 'advanceBookings') {
+        // These tabs handle their own data fetching
+        setLoading(false);
+        return;
       } else {
+        // Fallback
         partialData = await presenter.getViewModel(nowStr);
       }
 
@@ -331,7 +339,7 @@ export function useBackendPresenter(
         if (document.visibilityState === 'visible') {
           refreshData();
         }
-      }, 15000);
+      }, 5000);
     };
     
     const handleVisibilityChange = () => {
