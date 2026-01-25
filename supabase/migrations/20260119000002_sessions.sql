@@ -136,6 +136,8 @@ DECLARE
     v_booking_machine_id UUID;
     v_queue_machine_id UUID;
     v_updated_count INT;
+    v_insert_count INT;
+    v_session_exists BOOLEAN;
 BEGIN
     -- Input Validation
     IF TRIM(COALESCE(p_customer_name, '')) = '' THEN
@@ -204,7 +206,12 @@ BEGIN
         RETURN json_build_object('success', false, 'error', 'เครื่องนี้ไม่ว่าง (สถานะ: ' || v_machine.status || ')');
     END IF;
 
-    -- Create Session
+    -- ===== CRITICAL SECTION: Create Session =====
+    -- LOG ก่อน INSERT
+    RAISE NOTICE '=== BEFORE INSERT SESSION ===';
+    RAISE NOTICE 'station_id: %, customer_name: %, queue_id: %', 
+        p_station_id, p_customer_name, p_queue_id;
+
     INSERT INTO public.sessions (
         station_id,
         customer_name,
@@ -224,12 +231,37 @@ BEGIN
     )
     RETURNING id INTO v_session_id;
 
+    GET DIAGNOSTICS v_insert_count = ROW_COUNT;
+    
+    -- LOG หลัง INSERT
+    RAISE NOTICE '=== AFTER INSERT SESSION ===';
+    RAISE NOTICE 'session_id returned: %, row_count: %', v_session_id, v_insert_count;
+    
+    -- ตรวจสอบว่า session ถูก INSERT จริงๆ หรือไม่
+    SELECT EXISTS(SELECT 1 FROM public.sessions WHERE id = v_session_id) INTO v_session_exists;
+    RAISE NOTICE 'session exists in table: %', v_session_exists;
+    
+    IF v_insert_count = 0 OR v_session_id IS NULL THEN
+        RAISE EXCEPTION 'INSERT returned no rows or NULL id';
+    END IF;
+    
+    IF NOT v_session_exists THEN
+        RAISE EXCEPTION 'Session was inserted but does not exist in table! Possible trigger deletion.';
+    END IF;
+
     -- Update machine status to occupied
     UPDATE public.machines
     SET 
         status = 'occupied', 
         updated_at = NOW()
     WHERE id = p_station_id;
+    
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+    RAISE NOTICE 'Machine update row_count: %', v_updated_count;
+    
+    IF v_updated_count = 0 THEN
+        RAISE EXCEPTION 'Failed to update machine status';
+    END IF;
 
     -- Update Booking status if provided
     IF p_booking_id IS NOT NULL THEN
@@ -238,9 +270,11 @@ BEGIN
             status = 'seated',
             updated_at = NOW()
         WHERE id = p_booking_id
-          AND status IN ('pending', 'confirmed'); -- Extra safety check
+          AND status IN ('pending', 'confirmed');
         
         GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+        RAISE NOTICE 'Booking update row_count: %', v_updated_count;
+        
         IF v_updated_count = 0 THEN
             RAISE EXCEPTION 'Failed to update booking status';
         END IF;
@@ -255,12 +289,23 @@ BEGIN
             preferred_machine_id = p_station_id,
             updated_at = NOW()
         WHERE id = p_queue_id
-          AND status IN ('waiting', 'called'); -- Extra safety check
+          AND status IN ('waiting', 'called');
         
         GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+        RAISE NOTICE 'Queue update row_count: %', v_updated_count;
+        
         IF v_updated_count = 0 THEN
             RAISE EXCEPTION 'Failed to update queue status';
         END IF;
+    END IF;
+    
+    -- ตรวจสอบอีกครั้งก่อน return ว่า session ยังอยู่หรือไม่
+    SELECT EXISTS(SELECT 1 FROM public.sessions WHERE id = v_session_id) INTO v_session_exists;
+    RAISE NOTICE '=== BEFORE RETURN ===';
+    RAISE NOTICE 'session still exists: %', v_session_exists;
+    
+    IF NOT v_session_exists THEN
+        RAISE EXCEPTION 'Session disappeared before return! Check for AFTER UPDATE triggers.';
     END IF;
     
     -- Return the created session
@@ -279,10 +324,18 @@ BEGIN
 
 EXCEPTION
     WHEN OTHERS THEN
-        -- Rollback happens automatically
+        -- Log complete error info
+        RAISE NOTICE '=== EXCEPTION CAUGHT ===';
+        RAISE NOTICE 'SQLSTATE: %, SQLERRM: %', SQLSTATE, SQLERRM;
+        
         RETURN json_build_object(
             'success', false, 
-            'error', 'เกิดข้อผิดพลาด: ' || SQLERRM
+            'error', 'เกิดข้อผิดพลาด: ' || SQLERRM,
+            'debug', json_build_object(
+                'sqlstate', SQLSTATE,
+                'queue_id', p_queue_id,
+                'session_id', v_session_id
+            )
         );
 END;
 $$;
