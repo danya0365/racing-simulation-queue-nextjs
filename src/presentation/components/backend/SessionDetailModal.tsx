@@ -101,7 +101,15 @@ export function SessionDetailModal({
   );
 }
 
-export function SessionTimer({ startTime, estimatedEndTime }: { startTime: string; estimatedEndTime?: string }) {
+export function SessionTimer({ 
+  startTime, 
+  estimatedEndTime,
+  compact = false 
+}: { 
+  startTime: string; 
+  estimatedEndTime?: string;
+  compact?: boolean;
+}) {
   const [now, setNow] = useState(dayjs());
 
   useEffect(() => {
@@ -123,7 +131,7 @@ export function SessionTimer({ startTime, estimatedEndTime }: { startTime: strin
     ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     : `${mins}:${secs.toString().padStart(2, '0')}`;
   
-  // Calculate remaining time if estimated end time is provided
+  // Calculate remaining time
   let remainingStr = null;
   let isOvertime = false;
   
@@ -141,18 +149,35 @@ export function SessionTimer({ startTime, estimatedEndTime }: { startTime: strin
       : `-${rHours > 0 ? rHours + ':' : ''}${rMins}m`;
   }
 
+  // Compact View (for Lists)
+  if (compact) {
+    return (
+      <div className="flex flex-col items-end">
+        <span className="font-mono font-bold text-lg text-emerald-400 animate-pulse tabular-nums">
+          {timeStr}
+        </span>
+        {remainingStr && (
+           <span className={`text-[10px] font-bold ${isOvertime ? 'text-red-400' : 'text-blue-300'}`}>
+             {remainingStr}
+           </span>
+        )}
+      </div>
+    );
+  }
+
+  // Full View (for Modal)
   return (
-    <div className="bg-black/20 rounded-lg p-3 flex flex-col gap-1">
-      <div className="flex justify-between items-center gap-2">
-        <span className="text-sm text-white/60">⏱️ เวลาที่เล่น</span>
-        <span className="font-mono font-bold text-xl text-emerald-400 animate-pulse">
+    <div className="bg-surface border border-white/10 rounded-xl p-4 flex flex-col gap-2 shadow-inner">
+      <div className="flex justify-between items-center gap-4">
+        <span className="text-sm text-muted opacity-80">⏱️ เวลาที่เล่น</span>
+        <span className="font-mono font-bold text-2xl text-emerald-400 animate-pulse tabular-nums tracking-wider text-shadow-sm">
           {timeStr}
         </span>
       </div>
       
       {remainingStr && (
-        <div className="flex justify-between items-center border-t border-white/10 pt-1 mt-1">
-           <span className="text-xs text-white/40">เหลือเวลา</span>
+        <div className="flex justify-between items-center border-t border-white/10 pt-2 mt-1">
+           <span className="text-xs text-muted">เวลาที่เหลือ</span>
            <span className={`font-mono text-sm font-bold ${isOvertime ? 'text-red-400' : 'text-blue-300'}`}>
              {remainingStr}
            </span>

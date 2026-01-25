@@ -37,139 +37,203 @@ export function SessionsTab({ sessions, sessionStats }: SessionsTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-8 animate-page-in">
+      {/* 1. Header Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
          <StatsCard 
+           icon="📝"
            label="รอบการเล่นทั้งหมด" 
-           value={sessionStats.totalSessions} 
-           icon="📝" 
-           color="bg-purple-500/20 border-purple-500/30 text-purple-300" 
+           value={`${sessionStats.totalSessions}`}
+           subLabel="รวม Active และ History"
+           color="from-purple-500 to-indigo-600" 
          />
          <StatsCard 
+           icon="🟢"
            label="กำลังเล่น" 
-           value={sessionStats.activeSessions} 
-           icon="🟢" 
-           color="bg-emerald-500/20 border-emerald-500/30 text-emerald-300" 
+           value={`${sessionStats.activeSessions}`}
+           subLabel="เครื่องที่ใช้งานอยู่ณ ขณะนี้"
+           color="from-emerald-500 to-teal-500" 
+           alert={sessionStats.activeSessions > 0}
          />
          <StatsCard 
+           icon="🏁"
            label="เสร็จสิ้นแล้ว" 
-           value={sessionStats.completedSessions} 
-           icon="🏁" 
-           color="bg-blue-500/20 border-blue-500/30 text-blue-300" 
+           value={`${sessionStats.completedSessions}`}
+           subLabel="จบการทำงานวันนี้"
+           color="from-blue-500 to-cyan-500" 
          />
          <StatsCard 
+           icon="💰"
            label="รายได้รวม" 
            value={`฿${sessionStats.totalRevenue.toLocaleString()}`} 
-           icon="💰" 
-           color="bg-yellow-500/20 border-yellow-500/30 text-yellow-300" 
+           subLabel="รายได้จากทุก Session"
+           color="from-amber-400 to-orange-500" 
          />
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-white/10 pb-4">
-        <FilterButton 
-          active={filter === 'all'} 
-          onClick={() => handleFilterChange('all')}
-          label="ทั้งหมด"
-          count={sessions.length}
-        />
-        <FilterButton 
-          active={filter === 'active'} 
-          onClick={() => handleFilterChange('active')}
-          label="กำลังเล่น"
-          count={sessions.filter(s => !s.endTime).length}
-          activeClass="bg-emerald-500 text-white"
-        />
-        <FilterButton 
-          active={filter === 'completed'} 
-          onClick={() => handleFilterChange('completed')}
-          label="ประวัติการเล่น"
-          count={sessions.filter(s => !!s.endTime).length}
-          activeClass="bg-blue-500 text-white"
-        />
-      </div>
+      {/* 2. Session List Section */}
+      <AnimatedCard className="p-6">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div>
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              📋 รายการเล่น ({filteredSessions.length})
+              {filter !== 'all' && <span className="text-sm font-normal text-muted bg-surface/50 px-2 py-1 rounded-full">{filter}</span>}
+            </h3>
+            <p className="text-sm text-muted">จัดการและตรวจสอบประวัติการใช้งานเครื่อง</p>
+          </div>
 
-      {/* Sessions List */}
-      {paginatedSessions.length === 0 ? (
-        <div className="text-center py-12 bg-white/5 rounded-xl border border-white/10">
-           <div className="text-4xl mb-4">📭</div>
-           <p className="text-white/40">ไม่พบข้อมูลการเล่น</p>
+          {/* Filter Tabs */}
+          <div className="flex bg-surface/50 p-1 rounded-xl border border-border">
+            <FilterButton 
+              active={filter === 'all'} 
+              onClick={() => handleFilterChange('all')}
+              label="ทั้งหมด"
+              count={sessions.length}
+            />
+            <FilterButton 
+              active={filter === 'active'} 
+              onClick={() => handleFilterChange('active')}
+              label="กำลังเล่น"
+              count={sessions.filter(s => !s.endTime).length}
+              activeClass="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
+            />
+            <FilterButton 
+              active={filter === 'completed'} 
+              onClick={() => handleFilterChange('completed')}
+              label="จบแล้ว"
+              count={sessions.filter(s => !!s.endTime).length}
+              activeClass="bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md"
+            />
+          </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {paginatedSessions.map((session) => (
-            <AnimatedCard 
-              key={session.id} 
-              className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
-              onClick={() => setSelectedSession(session)}
-            >
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg ${
+
+        {/* Sessions List */}
+        {paginatedSessions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-muted py-16 opacity-60 bg-surface/30 rounded-2xl border border-dashed border-border">
+             <div className="text-6xl mb-4 bg-surface p-4 rounded-full">📭</div>
+             <p className="text-lg font-medium">ไม่พบข้อมูลการเล่น</p>
+             <p className="text-sm">ลองเปลี่ยนตัวกรอง หรือเริ่มใช้งานเครื่องใหม่</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {paginatedSessions.map((session) => (
+              <div 
+                key={session.id} 
+                className={`group flex flex-col md:flex-row items-center justify-between p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden
+                  ${!session.endTime 
+                    ? 'bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10' 
+                    : 'bg-surface hover:bg-surface/80 border-border hover:border-purple-500/30'
+                  }
+                `}
+                onClick={() => setSelectedSession(session)}
+              >
+                {!session.endTime && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />}
+                
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg shrink-0 ${
                      !session.endTime 
-                       ? 'bg-gradient-to-br from-emerald-500 to-green-600 animate-pulse text-white' 
-                       : 'bg-white/10 text-white/40'
+                       ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white animate-pulse-slow' 
+                       : 'bg-surface border border-border text-muted-foreground'
                    }`}>
                      {session.sourceType === 'manual' ? 'M' : 'B'}
                    </div>
                    <div>
-                     <p className="font-bold text-white text-lg">{session.customerName}</p>
-                     <p className="text-xs text-white/50 flex items-center gap-2">
-                       <span>{session.stationName || 'Unknown Station'}</span>
+                     <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground text-lg">{session.customerName}</p>
+                        {session.sourceType === 'booking' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">Booking</span>
+                        )}
+                     </div>
+                     <p className="text-xs text-muted flex items-center gap-2 mt-0.5">
+                       <span className="font-medium text-foreground/80">{session.stationName || 'Unknown Station'}</span>
                        <span>•</span>
-                       <span>{dayjs(session.startTime).format('D MMM HH:mm')}</span>
+                       <span>เริ่ม {dayjs(session.startTime).format('HH:mm')}</span>
+                       {session.endTime && <span>• จบ {dayjs(session.endTime).format('HH:mm')}</span>}
                      </p>
                    </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                   {!session.endTime ? (
-                     <div className="flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                       <span className="text-emerald-400 font-bold">กำลังเล่น</span>
-                     </div>
-                   ) : (
-                     <div className="flex items-center gap-2">
-                       <span className="text-white/60 text-sm">{session.durationMinutes} นาที</span>
-                       <span className="px-2 py-0.5 rounded-lg bg-white/10 text-white/60 text-xs">เสร็จสิ้น</span>
-                     </div>
-                   )}
+                <div className="flex items-center gap-6 mt-4 md:mt-0 w-full md:w-auto justify-between md:justify-end">
+                   <div className="text-right">
+                     {!session.endTime ? (
+                       <div className="flex flex-col items-end">
+                         <div className="flex items-center gap-1.5 mb-1">
+                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                           <span className="text-emerald-500 font-bold text-sm">กำลังเล่น</span>
+                         </div>
+                         <div>
+                            <SessionTimer startTime={session.startTime} estimatedEndTime={session.estimatedEndTime} compact={true} />
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="flex flex-col items-end">
+                         <div className="flex items-center gap-1.5">
+                           <span className="text-muted text-sm font-mono">{session.durationMinutes} นาที</span>
+                           <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-muted text-[10px]">เสร็จสิ้น</span>
+                         </div>
+                       </div>
+                     )}
+                   </div>
                    
-                   {!session.endTime && (
-                      <div className="scale-75 origin-right">
-                        <SessionTimer startTime={session.startTime} estimatedEndTime={session.estimatedEndTime} />
-                      </div>
-                   )}
+                   <div className="w-px h-8 bg-border hidden md:block" />
+
+                   <div className="flex flex-col items-end min-w-[80px]">
+                     {session.totalAmount > 0 ? (
+                       <>
+                         <span className="text-lg font-bold text-amber-500">฿{session.totalAmount}</span>
+                         <span className="text-[10px] text-muted">
+                           {session.paymentStatus === 'paid' ? 'ชำระแล้ว' : 'ยังไม่ชำระ'}
+                         </span>
+                       </>
+                     ) : (
+                       <span className="text-muted text-sm">-</span>
+                     )}
+                   </div>
                    
-                   {session.totalAmount > 0 && (
-                     <p className="text-yellow-400 font-bold">฿{session.totalAmount}</p>
-                   )}
+                   <div className="opacity-0 group-hover:opacity-100 transition-opacity -mr-2 text-muted">
+                     ›
+                   </div>
                 </div>
               </div>
-            </AnimatedCard>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Pagination (Simplified) */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 pt-4">
-           {Array.from({ length: totalPages }).map((_, i) => (
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 pt-6 mt-4 border-t border-border">
              <button
-               key={i}
-               onClick={() => setCurrentPage(i + 1)}
-               className={`w-8 h-8 rounded-lg ${
-                 currentPage === i + 1 
-                   ? 'bg-purple-500 text-white' 
-                   : 'bg-white/5 text-white/40 hover:bg-white/10'
-               }`}
+               disabled={currentPage === 1}
+               onClick={() => setCurrentPage(p => p - 1)}
+               className="px-3 py-1.5 rounded-lg text-sm bg-surface border border-border hover:bg-muted/10 disabled:opacity-50 transition-colors"
              >
-               {i + 1}
+               ก่อนหน้า
              </button>
-           ))}
-        </div>
-      )}
+             <div className="flex gap-1">
+               {Array.from({ length: totalPages }).map((_, i) => (
+                 <button
+                   key={i}
+                   onClick={() => setCurrentPage(i + 1)}
+                   className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                     currentPage === i + 1 
+                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
+                       : 'bg-surface border border-border hover:bg-muted/10 text-muted-foreground'
+                   }`}
+                 >
+                   {i + 1}
+                 </button>
+               ))}
+             </div>
+             <button
+               disabled={currentPage === totalPages}
+               onClick={() => setCurrentPage(p => p + 1)}
+               className="px-3 py-1.5 rounded-lg text-sm bg-surface border border-border hover:bg-muted/10 disabled:opacity-50 transition-colors"
+             >
+               ถัดไป
+             </button>
+          </div>
+        )}
+      </AnimatedCard>
 
       {/* Detail Modal */}
       {selectedSession && (
@@ -182,14 +246,42 @@ export function SessionsTab({ sessions, sessionStats }: SessionsTabProps) {
   );
 }
 
-function StatsCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
+// Reusable Stats Card Component (Matches Dashboard)
+function StatsCard({ icon, label, value, subLabel, color, alert }: { icon: string; label: string; value: string; subLabel: string; color: string; alert?: boolean }) {
   return (
-    <div className={`rounded-xl border p-4 ${color}`}>
-       <div className="flex items-center justify-between mb-2">
-         <span className="text-2xl">{icon}</span>
-       </div>
-       <p className="text-2xl font-bold">{value}</p>
-       <p className="text-xs opacity-70">{label}</p>
+    <div
+      className={`relative overflow-hidden rounded-2xl p-5 shadow-lg cursor-default transition-all duration-300 hover:translate-y-[-2px] hover:shadow-xl group
+        ${alert ? 'ring-2 ring-red-500/50 animate-pulse-slow' : ''}
+      `}
+    >
+      {/* Dynamic Background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-90`} />
+      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+      
+      {/* Decorative Circles */}
+      <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 blur-xl" />
+      <div className="absolute -left-6 -bottom-6 w-20 h-20 rounded-full bg-black/10 blur-xl" />
+
+      <div className="relative z-10 text-white">
+        <div className="flex justify-between items-start mb-2">
+          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-2xl shadow-inner">
+            {icon}
+          </div>
+          {alert && (
+            <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">
+              Active
+            </span>
+          )}
+        </div>
+        
+        <div className="mt-3">
+          <div className="text-3xl font-bold tracking-tight shadow-black/20 drop-shadow-sm">{value}</div>
+          <div className="text-sm font-medium opacity-90 mb-1">{label}</div>
+          <div className="text-xs opacity-70 font-light flex items-center gap-1">
+            {subLabel}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -199,7 +291,7 @@ function FilterButton({
   onClick, 
   label, 
   count, 
-  activeClass = 'bg-white text-black' 
+  activeClass = 'bg-white text-black shadow-md' 
 }: { 
   active: boolean; 
   onClick: () => void; 
@@ -213,11 +305,11 @@ function FilterButton({
       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
         active 
           ? activeClass 
-          : 'bg-white/5 text-white/60 hover:bg-white/10'
+          : 'text-muted-foreground hover:bg-muted/10 hover:text-foreground'
       }`}
     >
       {label}
-      <span className={`px-1.5 py-0.5 rounded-md text-xs ${active ? 'bg-black/20' : 'bg-white/10'}`}>
+      <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${active ? 'bg-black/10' : 'bg-muted/10'}`}>
         {count}
       </span>
     </button>
