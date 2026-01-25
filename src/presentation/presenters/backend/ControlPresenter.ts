@@ -69,16 +69,16 @@ export class ControlPresenter {
     // Filter active machines only
     const machines = allMachines.filter(m => m.isActive);
     
-    // Fetch today's bookings for all machines in parallel
-    const bookingsPromises = machines.map(m => 
-      this.bookingRepo.getByMachineAndDate(m.id, today)
-    );
+    // Fetch today's bookings for all machines in ONE call (Optimization)
+    const allBookingsPromise = this.bookingRepo.getByDate(today);
+
+    // Fetch schedules (still N calls unfortunately, unless optimized further)
     const schedulesPromises = machines.map(m =>
       this.bookingRepo.getDaySchedule(m.id, today, SHOP_TIMEZONE)
     );
 
-    const [allBookingsArrays, allSchedules] = await Promise.all([
-      Promise.all(bookingsPromises),
+    const [allBookingsToday, allSchedules] = await Promise.all([
+      allBookingsPromise,
       Promise.all(schedulesPromises)
     ]);
     
@@ -87,7 +87,9 @@ export class ControlPresenter {
     const slotsByMachine = new Map<string, BookingTimeSlot[]>();
     
     machines.forEach((machine, index) => {
-      bookingsByMachine.set(machine.id, allBookingsArrays[index]);
+      // Client-side filtering
+      const machineBookings = allBookingsToday.filter(b => b.machineId === machine.id);
+      bookingsByMachine.set(machine.id, machineBookings);
       slotsByMachine.set(machine.id, allSchedules[index].timeSlots);
     });
 
