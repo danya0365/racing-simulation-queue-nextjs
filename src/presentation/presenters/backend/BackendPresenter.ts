@@ -354,6 +354,18 @@ export class BackendPresenter {
     }
   }
 
+  /**
+   * Update session payment status
+   */
+  async updateSessionPayment(sessionId: string, status: 'paid' | 'unpaid' | 'partial'): Promise<Session> {
+    try {
+      return await this.sessionRepository.updatePaymentStatus(sessionId, status);
+    } catch (error) {
+      console.error('Error updating session payment:', error);
+      throw error;
+    }
+  }
+
   // ============================================================
   // MACHINE OPERATIONS
   // ============================================================

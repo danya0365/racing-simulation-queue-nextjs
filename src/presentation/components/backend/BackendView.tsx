@@ -177,6 +177,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             <SessionsTab 
               sessions={viewModel.sessions || []}
               sessionStats={viewModel.sessionStats}
+              onUpdatePayment={actions.updateSessionPayment}
             />
           )}
         </div>

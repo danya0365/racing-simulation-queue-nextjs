@@ -12,12 +12,31 @@ dayjs.extend(duration);
 interface SessionDetailModalProps {
   session: Session;
   onClose: () => void;
+  onUpdatePayment?: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => void;
 }
 
 export function SessionDetailModal({
   session,
   onClose,
+  onUpdatePayment,
 }: SessionDetailModalProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handlePaymentUpdate = async (status: 'paid' | 'unpaid') => {
+    if (!onUpdatePayment) return;
+    setIsUpdating(true);
+    try {
+       await onUpdatePayment(session.id, status);
+       // Wait a bit for effect
+       await new Promise(r => setTimeout(r, 500));
+       onClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <Portal>
       <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
@@ -82,10 +101,50 @@ export function SessionDetailModal({
               </div>
             )}
             
-            {session.totalAmount !== undefined && (
-              <div className="bg-emerald-500/20 p-4 rounded-xl border border-emerald-500/30 flex justify-between items-center">
-                <span className="text-emerald-300">ยอดรวม</span>
-                <span className="text-2xl font-bold text-white">฿{session.totalAmount}</span>
+            {/* Payment Section - Kept Functionality but Reverted Style */}
+            {session.totalAmount !== undefined && session.totalAmount > 0 && (
+              <div className={`p-4 rounded-xl border transition-all ${
+                session.paymentStatus === 'paid' 
+                  ? 'bg-emerald-500/20 border-emerald-500/30' 
+                  : 'bg-red-500/20 border-red-500/30'
+              }`}>
+                <div className="flex justify-between items-center mb-3">
+                  <span className={session.paymentStatus === 'paid' ? 'text-emerald-300' : 'text-red-300'}>
+                    ยอดชำระ
+                  </span>
+                  <span className="text-3xl font-bold text-white">฿{session.totalAmount}</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 pt-3 border-t border-white/10">
+                   <div className="flex items-center gap-2">
+                     <span className={`w-3 h-3 rounded-full ${session.paymentStatus === 'paid' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                     <span className="text-sm font-medium text-white/80">
+                       {session.paymentStatus === 'paid' ? 'ชำระเงินเรียบร้อย' : 'ยังไม่ชำระเงิน'}
+                     </span>
+                   </div>
+
+                   {onUpdatePayment && (
+                     session.paymentStatus === 'paid' ? (
+                       <button 
+                         onClick={() => handlePaymentUpdate('unpaid')}
+                         disabled={isUpdating}
+                         className="text-xs text-white/40 hover:text-white underline disabled:opacity-50"
+                       >
+                         ยกเลิกการชำระ
+                       </button>
+                     ) : (
+                       <GlowButton 
+                         color="green" 
+                         size="sm"
+                         onClick={() => handlePaymentUpdate('paid')}
+                         disabled={isUpdating}
+                         className="px-6"
+                       >
+                         {isUpdating ? 'บันทึก...' : '✅ รับเงิน'}
+                       </GlowButton>
+                     )
+                   )}
+                </div>
               </div>
             )}
           </div>
@@ -165,19 +224,19 @@ export function SessionTimer({
     );
   }
 
-  // Full View (for Modal)
+  // Full View (for Modal) - Reverted to bg-black/20
   return (
-    <div className="bg-surface border border-white/10 rounded-xl p-4 flex flex-col gap-2 shadow-inner">
-      <div className="flex justify-between items-center gap-4">
-        <span className="text-sm text-muted opacity-80">⏱️ เวลาที่เล่น</span>
-        <span className="font-mono font-bold text-2xl text-emerald-400 animate-pulse tabular-nums tracking-wider text-shadow-sm">
+    <div className="bg-black/20 rounded-lg p-3 flex flex-col gap-1">
+      <div className="flex justify-between items-center gap-2">
+        <span className="text-sm text-white/60">⏱️ เวลาที่เล่น</span>
+        <span className="font-mono font-bold text-xl text-emerald-400 animate-pulse">
           {timeStr}
         </span>
       </div>
       
       {remainingStr && (
-        <div className="flex justify-between items-center border-t border-white/10 pt-2 mt-1">
-           <span className="text-xs text-muted">เวลาที่เหลือ</span>
+        <div className="flex justify-between items-center border-t border-white/10 pt-1 mt-1">
+           <span className="text-xs text-white/40">เหลือเวลา</span>
            <span className={`font-mono text-sm font-bold ${isOvertime ? 'text-red-400' : 'text-blue-300'}`}>
              {remainingStr}
            </span>

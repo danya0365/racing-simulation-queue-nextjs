@@ -377,6 +377,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
         <SessionDetailModal
           session={state.sessionDetailModal.session}
           onClose={actions.closeSessionDetailModal}
+          onUpdatePayment={actions.updateSessionPayment}
         />
       )}
 

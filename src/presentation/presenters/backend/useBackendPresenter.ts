@@ -45,6 +45,7 @@ export interface BackendPresenterActions {
   updateMachine: (machineId: string, data: MachineUpdateData) => Promise<void>;
   deleteQueue: (queueId: string) => Promise<void>;
   resetMachineQueue: (machineId: string) => Promise<void>;
+  updateSessionPayment: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => Promise<void>;
   setError: (error: string | null) => void;
 }
 
@@ -244,6 +245,27 @@ export function useBackendPresenter(
   }, [refreshData, presenter]);
 
   /**
+   * Update session payment status
+   */
+  const updateSessionPayment = useCallback(async (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => {
+    setIsUpdating(true);
+    setError(null);
+
+    try {
+      await presenter.updateSessionPayment(sessionId, status);
+      await refreshData();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
+    }
+  }, [refreshData, presenter]);
+
+  /**
    * Delete/Cancel queue
    */
   const deleteQueue = useCallback(async (queueId: string) => {
@@ -384,6 +406,7 @@ export function useBackendPresenter(
       updateMachine,
       deleteQueue,
       resetMachineQueue,
+      updateSessionPayment,
       setError,
     },
   ];

@@ -202,6 +202,13 @@ export class ControlPresenter {
   }
 
   /**
+   * Update session payment status
+   */
+  async updateSessionPayment(sessionId: string, status: 'paid' | 'unpaid' | 'partial'): Promise<Session> {
+    return this.sessionRepo.updatePaymentStatus(sessionId, status);
+  }
+
+  /**
    * Get session history for a machine
    */
   async getMachineHistory(machineId: string): Promise<Session[]> {

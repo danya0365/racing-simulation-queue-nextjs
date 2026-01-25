@@ -9,9 +9,10 @@ import { useState } from 'react';
 interface SessionsTabProps {
   sessions: Session[];
   sessionStats: SessionStats;
+  onUpdatePayment: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => Promise<void>;
 }
 
-export function SessionsTab({ sessions, sessionStats }: SessionsTabProps) {
+export function SessionsTab({ sessions, sessionStats, onUpdatePayment }: SessionsTabProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -240,6 +241,7 @@ export function SessionsTab({ sessions, sessionStats }: SessionsTabProps) {
         <SessionDetailModal 
           session={selectedSession} 
           onClose={() => setSelectedSession(null)} 
+          onUpdatePayment={onUpdatePayment}
         />
       )}
     </div>
