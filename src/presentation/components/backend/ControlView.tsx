@@ -172,7 +172,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
             <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-md p-6">
               <h3 className="text-xl font-bold text-white mb-4">
-                ▶️ เริ่มเล่น (แบบระบุเอง)
+                ▶️ เริ่มเล่น (ผู้เล่นทั่วไป)
               </h3>
               <p className="text-white/60 mb-4">
                 เครื่อง: {viewModel.stations.find(s => s.machine.id === state.manualStartModal.machineId)?.machine.name}
@@ -561,7 +561,7 @@ function StationCard({
                 onClick={onStartManual}
                 disabled={isUpdating}
               >
-                ▶️ เริ่มเล่น (ระบุเอง)
+                ▶️ เริ่มเล่น (ผู้เล่นทั่วไป)
               </GlowButton>
               {waitingQueue.length > 0 && (
                 <GlowButton
@@ -733,7 +733,7 @@ function HistoryModal({
                         <span className="text-lg font-bold text-white block">{session.customerName}</span>
                         <div className="flex gap-2 mt-1">
                            <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full inline-block">
-                             {session.sourceType || 'manual'}
+                             {session.sourceType === 'manual' || !session.sourceType ? 'ผู้เล่นทั่วไป' : session.sourceType}
                            </span>
                            {session.notes && (
                               <span className="text-xs text-yellow-500/80 bg-yellow-500/10 px-2 py-0.5 rounded-full inline-block">

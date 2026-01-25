@@ -118,7 +118,9 @@ export function SessionDetailModal({
               )}
               <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
                 <span className="text-white/60">ประเภท</span>
-                <span className="text-emerald-400 capitalize">{session.sourceType || 'Manual'}</span>
+                <span className="text-emerald-400 capitalize">
+                  {session.sourceType === 'manual' || !session.sourceType ? 'ผู้เล่นทั่วไป' : session.sourceType}
+                </span>
               </div>
             </div>
 

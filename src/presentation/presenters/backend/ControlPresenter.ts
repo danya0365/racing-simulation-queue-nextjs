@@ -156,7 +156,7 @@ export class ControlPresenter {
     return this.sessionRepo.startSession({
       stationId: machineId,
       customerName,
-      notes: notes || 'Manual walk-in session',
+      notes: notes || '',
       estimatedDurationMinutes: estimatedDurationMinutes ?? 60,
     });
   }

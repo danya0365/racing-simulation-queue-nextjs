@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       bookingId: body.bookingId,
       queueId: body.walkInQueueId || body.queueId,
       notes: body.notes,
+      estimatedDurationMinutes: body.estimatedDurationMinutes,
     });
     
     return NextResponse.json(session, { status: 201 });

@@ -159,7 +159,7 @@ export function SessionsTab({
                      <div className="flex items-center gap-2">
                         <p className="font-bold text-foreground text-lg">{session.customerName}</p>
                         {session.sourceType === 'booking' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">Booking</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">จองล่วงหน้า</span>
                         )}
                      </div>
                      <p className="text-xs text-muted flex items-center gap-2 mt-0.5">
