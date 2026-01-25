@@ -1,5 +1,6 @@
 'use client';
 
+import { Session } from '@/src/application/repositories/ISessionRepository';
 import { WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
@@ -146,6 +147,8 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
                   actions.openEndSessionModal(station.activeSession.id);
                 }
               }}
+              onViewDetails={(session) => actions.openSessionDetailModal(session)}
+              onViewHistory={() => actions.openHistoryModal(station.machine.id)}
             />
           ))}
         </div>
@@ -301,6 +304,25 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           </div>
         </div>
       )}
+
+      {/* Session Detail Modal */}
+      {state.sessionDetailModal.isOpen && state.sessionDetailModal.session && (
+        <SessionDetailModal
+          session={state.sessionDetailModal.session}
+          onClose={actions.closeSessionDetailModal}
+        />
+      )}
+
+      {/* History Modal */}
+      {state.historyModal.isOpen && (
+        <HistoryModal
+          machineId={state.historyModal.machineId}
+          machineName={viewModel.stations.find(s => s.machine.id === state.historyModal.machineId)?.machine.name || ''}
+          sessions={state.historyModal.sessions}
+          onClose={actions.closeHistoryModal}
+          isLoading={state.isUpdating}
+        />
+      )}
     </div>
   );
 }
@@ -347,6 +369,8 @@ function StationCard({
   onSelectFromQueue,
   onCheckIn,
   onEndSession,
+  onViewDetails,
+  onViewHistory,
 }: {
   station: StationViewModel;
   currentTime: dayjs.Dayjs;
@@ -356,6 +380,8 @@ function StationCard({
   onSelectFromQueue: () => void;
   onCheckIn: () => void;
   onEndSession: () => void;
+  onViewDetails: (session: Session) => void;
+  onViewHistory: () => void;
 }) {
   const { machine, state: stationState, activeSession, reservedBooking } = station;
   
@@ -404,6 +430,16 @@ function StationCard({
           <span className={`px-2 py-1 rounded-full text-xs font-bold ${badgeColors[stationState]}`}>
             {stateLabels[stationState]}
           </span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewHistory();
+            }}
+            className="ml-2 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs"
+            title="ดูประวัติ"
+          >
+            🕒
+          </button>
         </div>
       </div>
 
@@ -463,9 +499,17 @@ function StationCard({
         {/* IN USE STATE */}
         {stationState === 'in_use' && activeSession && (
           <div className="space-y-3">
-            <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-3">
-              <p className="text-xs text-orange-400 mb-1">� ผู้เล่น</p>
-              <p className="text-lg font-bold text-white">{activeSession.customerName}</p>
+            <div 
+              className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-3 cursor-pointer hover:bg-orange-500/30 transition-colors"
+              onClick={() => onViewDetails(activeSession)}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs text-orange-400 mb-1">👤 ผู้เล่น (กดเพื่อดูรายละเอียด)</p>
+                  <p className="text-lg font-bold text-white">{activeSession.customerName}</p>
+                </div>
+                <span className="text-lg">ℹ️</span>
+              </div>
             </div>
             
             <SessionTimer startTime={activeSession.startTime} />
@@ -532,6 +576,178 @@ function SessionTimer({ startTime }: { startTime: string }) {
   );
 }
 
+function SessionDetailModal({
+  session,
+  onClose,
+}: {
+  session: Session;
+  onClose: () => void;
+}) {
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-lg p-6 relative">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 text-white/40 hover:text-white"
+          >
+            ✕
+          </button>
+          
+          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            📄 รายละเอียด Session
+          </h3>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                <p className="text-xs text-white/40 mb-1">ลูกค้า</p>
+                <p className="text-lg font-bold text-white">{session.customerName}</p>
+              </div>
+              <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                <p className="text-xs text-white/40 mb-1">เครื่อง</p>
+                <p className="text-lg font-bold text-white">{session.stationName || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-white/60">เริ่มเวลา</span>
+                <span className="text-white font-mono">{dayjs(session.startTime).format('HH:mm:ss')}</span>
+              </div>
+              {session.endTime && (
+                <div className="flex justify-between">
+                  <span className="text-white/60">สิ้นสุดเวลา</span>
+                  <span className="text-white font-mono">{dayjs(session.endTime).format('HH:mm:ss')}</span>
+                </div>
+              )}
+              {session.durationMinutes && (
+                <div className="flex justify-between">
+                  <span className="text-white/60">ระยะเวลา</span>
+                  <span className="text-white font-mono">{session.durationMinutes} นาที</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
+                <span className="text-white/60">ประเภท</span>
+                <span className="text-emerald-400 capitalize">{session.sourceType || 'Manual'}</span>
+              </div>
+            </div>
+
+            {session.notes && (
+              <div className="bg-yellow-500/10 p-3 rounded-xl border border-yellow-500/20">
+                <p className="text-xs text-yellow-500 mb-1">หมายเหตุ</p>
+                <p className="text-white/80 text-sm">{session.notes}</p>
+              </div>
+            )}
+            
+            {session.totalAmount !== undefined && (
+              <div className="bg-emerald-500/20 p-4 rounded-xl border border-emerald-500/30 flex justify-between items-center">
+                <span className="text-emerald-300">ยอดรวม</span>
+                <span className="text-2xl font-bold text-white">฿{session.totalAmount}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <GlowButton color="purple" className="w-full" onClick={onClose}>
+              ปิด
+            </GlowButton>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+function HistoryModal({
+  machineId,
+  machineName,
+  sessions,
+  onClose,
+  isLoading,
+}: {
+  machineId: string | null;
+  machineName: string;
+  sessions: Session[];
+  onClose: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-2xl p-6 max-h-[80vh] flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-white">
+                📜 ประวัติการใช้งาน
+              </h3>
+              <p className="text-white/60 text-sm mt-1">
+                เครื่อง: {machineName}
+              </p>
+            </div>
+            <button 
+              onClick={onClose}
+              className="text-white/40 hover:text-white text-xl w-8 h-8 flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-auto space-y-2 pr-2">
+            {isLoading && sessions.length === 0 ? (
+              <div className="text-center py-10 text-white/40">
+                กำลังโหลด...
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-10 text-white/40">
+                ไม่มีประวัติการใช้งาน
+              </div>
+            ) : (
+              sessions.map((session) => (
+                <div key={session.id} className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <span className="text-lg font-bold text-white block">{session.customerName}</span>
+                      <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full inline-block mt-1">
+                        {session.sourceType || 'manual'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                       <div className="text-emerald-400 font-bold">฿{session.totalAmount || 0}</div>
+                       <div className={`text-xs ${session.paymentStatus === 'paid' ? 'text-green-500' : 'text-red-500'}`}>
+                         {session.paymentStatus === 'paid' ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}
+                       </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-white/60 font-mono bg-black/20 p-2 rounded-lg">
+                    <div>
+                      <span className="opacity-50 mr-2">Start:</span>
+                      {dayjs(session.startTime).format('HH:mm')}
+                    </div>
+                    <div>
+                      <span className="opacity-50 mr-2">End:</span>
+                      {session.endTime ? dayjs(session.endTime).format('HH:mm') : '-'}
+                    </div>
+                    <div className="ml-auto">
+                      {session.durationMinutes ? `${session.durationMinutes} min` : 'On-going'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <GlowButton color="purple" className="w-full" onClick={onClose}>
+              ปิด
+            </GlowButton>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 function QueueSelectItem({
   queue,
   isUpdating,
@@ -567,3 +783,4 @@ function QueueSelectItem({
     </div>
   );
 }
+

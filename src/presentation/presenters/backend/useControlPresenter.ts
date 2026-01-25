@@ -1,6 +1,7 @@
 'use client';
 
 import { Booking } from '@/src/application/repositories/IBookingRepository';
+import { Session } from '@/src/application/repositories/ISessionRepository';
 import { WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ControlPresenter, ControlViewModel } from './ControlPresenter';
@@ -21,6 +22,8 @@ export interface ControlPresenterState {
   queueSelectModal: { isOpen: boolean; machineId: string | null };
   endSessionModal: { isOpen: boolean; sessionId: string | null };
   checkInModal: { isOpen: boolean; machineId: string | null; booking: Booking | null };
+  sessionDetailModal: { isOpen: boolean; session: Session | null };
+  historyModal: { isOpen: boolean; machineId: string | null; sessions: Session[] };
 }
 
 export interface ControlPresenterActions {
@@ -41,6 +44,10 @@ export interface ControlPresenterActions {
   closeEndSessionModal: () => void;
   openCheckInModal: (machineId: string, booking: Booking) => void;
   closeCheckInModal: () => void;
+  openSessionDetailModal: (session: Session) => void;
+  closeSessionDetailModal: () => void;
+  openHistoryModal: (machineId: string) => Promise<void>;
+  closeHistoryModal: () => void;
   
   setError: (error: string | null) => void;
 }
@@ -88,6 +95,15 @@ export function useControlPresenter(
     isOpen: false,
     machineId: null,
     booking: null,
+  });
+  const [sessionDetailModal, setSessionDetailModal] = useState<{ isOpen: boolean; session: Session | null }>({
+    isOpen: false,
+    session: null,
+  });
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; machineId: string | null; sessions: Session[] }>({
+    isOpen: false,
+    machineId: null,
+    sessions: [],
   });
 
   // ============================================================
@@ -269,6 +285,42 @@ export function useControlPresenter(
     setError(null);
   }, []);
 
+  const openSessionDetailModal = useCallback((session: Session) => {
+    setSessionDetailModal({ isOpen: true, session });
+    setError(null);
+  }, []);
+
+  const closeSessionDetailModal = useCallback(() => {
+    setSessionDetailModal({ isOpen: false, session: null });
+    setError(null);
+  }, []);
+
+  const openHistoryModal = useCallback(async (machineId: string) => {
+    setIsUpdating(true);
+    setError(null);
+    try {
+      const sessions = await presenter.getMachineHistory(machineId);
+      if (isMountedRef.current) {
+        setHistoryModal({ isOpen: true, machineId, sessions });
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error loading history:', err);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
+    }
+  }, [presenter]);
+
+  const closeHistoryModal = useCallback(() => {
+    setHistoryModal({ isOpen: false, machineId: null, sessions: [] });
+    setError(null);
+  }, []);
+
   // ============================================================
   // EFFECTS
   // ============================================================
@@ -313,6 +365,8 @@ export function useControlPresenter(
       queueSelectModal,
       endSessionModal,
       checkInModal,
+      sessionDetailModal,
+      historyModal,
     },
     {
       loadData,
@@ -328,6 +382,10 @@ export function useControlPresenter(
       closeEndSessionModal,
       openCheckInModal,
       closeCheckInModal,
+      openSessionDetailModal,
+      closeSessionDetailModal,
+      openHistoryModal,
+      closeHistoryModal,
       setError,
     },
   ];
