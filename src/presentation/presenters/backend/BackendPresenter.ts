@@ -148,10 +148,10 @@ export class BackendPresenter {
   /**
    * Get sessions data (History + Stats)
    */
-  async getSessionsData(): Promise<Partial<BackendViewModel>> {
+  async getSessionsData(limit: number = 20, page: number = 1): Promise<Partial<BackendViewModel>> {
     try {
       const [sessions, sessionStats] = await this.withTimeout(Promise.all([
-        this.sessionRepository.getAll(),
+        this.sessionRepository.getAll(limit, page),
         this.sessionRepository.getStats(),
       ]));
 

@@ -30,12 +30,17 @@ export interface BackendPresenterState {
   selectedMachine: Machine | null;
   activeTab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions';
   isUpdating: boolean;
+  pagination: {
+    page: number;
+    limit: number;
+  };
 }
 
 export interface BackendPresenterActions {
   loadData: () => Promise<void>;
   refreshData: () => Promise<void>;
   setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions') => void;
+  setPage: (page: number) => void;
   selectQueue: (queue: Queue | null) => void;
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
@@ -76,11 +81,13 @@ export function useBackendPresenter(
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions'>('dashboard');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 20; // Default limit
 
   /**
    * Load data from presenter with cancellation support
    */
-  const loadData = useCallback(async (tab: string = activeTab) => {
+  const loadData = useCallback(async (tab: string = activeTab, targetPage: number = page) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -99,7 +106,7 @@ export function useBackendPresenter(
         // Operational tabs need real-time data but not full daily bookings
         partialData = await presenter.getControlData();
       } else if (tab === 'sessions') {
-        partialData = await presenter.getSessionsData();
+        partialData = await presenter.getSessionsData(limit, targetPage);
       } else if (tab === 'customers' || tab === 'advanceBookings') {
         // These tabs handle their own data fetching
         setLoading(false);
@@ -147,12 +154,19 @@ export function useBackendPresenter(
    */
   const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions') => {
     setActiveTab(tab);
+    // Reset page when switching tabs
+    setPage(1);
     if (tab === 'customers' || tab === 'advanceBookings') {
       // Customers and advanceBookings tabs handle their own fetching
     } else {
-      loadData(tab); 
+      loadData(tab, 1); 
     }
   }, [loadData]); 
+
+  const handleSetPage = useCallback((newPage: number) => {
+    setPage(newPage);
+    loadData(activeTab, newPage);
+  }, [activeTab, loadData]); 
 
   /**
    * Update queue status (call customer or cancel)
@@ -363,14 +377,14 @@ export function useBackendPresenter(
       }
       
       intervalId = setInterval(() => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && activeTab !== 'sessions') {
           refreshData();
         }
       }, 5000);
     };
     
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && activeTab !== 'sessions') {
         refreshData();
         startPolling();
       } else {
@@ -414,11 +428,16 @@ export function useBackendPresenter(
       selectedMachine,
       activeTab,
       isUpdating,
+      pagination: {
+        page,
+        limit,
+      },
     },
     {
       loadData,
       refreshData,
       setActiveTab: handleSetActiveTab,
+      setPage: handleSetPage,
       selectQueue,
       selectMachine,
       updateQueueStatus,

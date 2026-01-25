@@ -36,8 +36,12 @@ export class ApiSessionRepository implements ISessionRepository {
     return res.json();
   }
 
-  async getAll(): Promise<Session[]> {
-    const res = await fetch(this.baseUrl);
+  async getAll(limit: number = 50, page: number = 1): Promise<Session[]> {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', limit.toString());
+    if (page) params.set('page', page.toString());
+
+    const res = await fetch(`${this.baseUrl}?${params.toString()}`);
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'ไม่สามารถโหลดข้อมูล sessions ได้');

@@ -9,18 +9,38 @@ import { useState } from 'react';
 interface SessionsTabProps {
   sessions: Session[];
   sessionStats: SessionStats;
+  totalSessions: number;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
   onUpdatePayment: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => Promise<void>;
   onUpdateAmount: (sessionId: string, amount: number) => Promise<void>;
 }
 
-export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateAmount }: SessionsTabProps) {
+export function SessionsTab({ 
+  sessions, 
+  sessionStats, 
+  totalSessions,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onUpdatePayment, 
+  onUpdateAmount 
+}: SessionsTabProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   
-  const itemsPerPage = 10;
-
-  // Filter logic
+  // Local filtering is tricky with server-side pagination.
+  // For now, we will filter the CURRENT PAGE data only if the user wants to filter.
+  // Ideally, filter should be server-side too. 
+  // Given current request is just pagination, let's keep local filter on the fetched chunk for now,
+  // OR we should accept that filter will only apply to loaded 20 items.
+  // Better approach: Server-side pagination usually implies Server-side filtering too.
+  // For this step, I will simplify and just show the sessions passed in (which are paginated from server).
+  // AND I will disable the filter buttons temporarily or make them trigger server reload (Phase 2).
+  // Actually, let's keep client-side filtering on the returned chunk for visual consistency,
+  // but warn/know it's only for the current page.
+  
   const filteredSessions = sessions.filter(session => {
     if (filter === 'all') return true;
     if (filter === 'active') return !session.endTime;
@@ -28,14 +48,10 @@ export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateA
     return true;
   });
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedSessions = filteredSessions.slice(startIndex, startIndex + itemsPerPage);
-
   const handleFilterChange = (newFilter: 'all' | 'active' | 'completed') => {
     setFilter(newFilter);
-    setCurrentPage(1);
+    // Resetting page to 1 here would need a server call if filtering was server-side.
+    // For now, we just filter what we have.
   };
 
   return (
@@ -110,7 +126,7 @@ export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateA
         </div>
 
         {/* Sessions List */}
-        {paginatedSessions.length === 0 ? (
+        {filteredSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-muted py-16 opacity-60 bg-surface/30 rounded-2xl border border-dashed border-border">
              <div className="text-6xl mb-4 bg-surface p-4 rounded-full">📭</div>
              <p className="text-lg font-medium">ไม่พบข้อมูลการเล่น</p>
@@ -118,7 +134,7 @@ export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateA
           </div>
         ) : (
           <div className="space-y-3">
-            {paginatedSessions.map((session) => (
+            {filteredSessions.map((session) => (
               <div 
                 key={session.id} 
                 className={`group flex flex-col md:flex-row items-center justify-between p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden
@@ -206,29 +222,45 @@ export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateA
           <div className="flex justify-center gap-2 pt-6 mt-4 border-t border-border">
              <button
                disabled={currentPage === 1}
-               onClick={() => setCurrentPage(p => p - 1)}
+               onClick={() => onPageChange(currentPage - 1)}
                className="px-3 py-1.5 rounded-lg text-sm bg-surface border border-border hover:bg-muted/10 disabled:opacity-50 transition-colors"
              >
                ก่อนหน้า
              </button>
              <div className="flex gap-1">
-               {Array.from({ length: totalPages }).map((_, i) => (
-                 <button
-                   key={i}
-                   onClick={() => setCurrentPage(i + 1)}
-                   className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
-                     currentPage === i + 1 
-                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
-                       : 'bg-surface border border-border hover:bg-muted/10 text-muted-foreground'
-                   }`}
-                 >
-                   {i + 1}
-                 </button>
-               ))}
+               {Array.from({ length: totalPages }).map((_, i) => {
+                 const page = i + 1;
+                 // Simple logic to show some pages
+                 if (
+                   page === 1 ||
+                   page === totalPages ||
+                   (page >= currentPage - 1 && page <= currentPage + 1)
+                 ) {
+                   return (
+                     <button
+                       key={i}
+                       onClick={() => onPageChange(page)}
+                       className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                         currentPage === page
+                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' 
+                           : 'bg-surface border border-border hover:bg-muted/10 text-muted-foreground'
+                       }`}
+                     >
+                       {page}
+                     </button>
+                   );
+                 } else if (
+                   page === currentPage - 2 ||
+                   page === currentPage + 2
+                 ) {
+                   return <span key={i} className="px-2 text-muted">...</span>;
+                 }
+                 return null;
+               })}
              </div>
              <button
                disabled={currentPage === totalPages}
-               onClick={() => setCurrentPage(p => p + 1)}
+               onClick={() => onPageChange(currentPage + 1)}
                className="px-3 py-1.5 rounded-lg text-sm bg-surface border border-border hover:bg-muted/10 disabled:opacity-50 transition-colors"
              >
                ถัดไป

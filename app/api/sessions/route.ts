@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
     } else if (startDate && endDate) {
       sessions = await repository.getByDateRange(startDate, endDate);
     } else {
-      sessions = await repository.getAll();
+      const limit = limitParams ? parseInt(limitParams) : undefined;
+      const page = pageParams ? parseInt(pageParams) : undefined;
+      sessions = await repository.getAll(limit, page);
     }
     
     return NextResponse.json(sessions);

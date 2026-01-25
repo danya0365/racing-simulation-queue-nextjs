@@ -56,14 +56,18 @@ export class SupabaseSessionRepository implements ISessionRepository {
     return this.mapToDomain(data);
   }
 
-  async getAll(): Promise<Session[]> {
+  async getAll(limit: number = 50, page: number = 1): Promise<Session[]> {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     const { data, error } = await this.supabase
       .from('sessions')
       .select(`
         *,
         machines:station_id (name)
       `)
-      .order('start_time', { ascending: false });
+      .order('start_time', { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error('Error fetching sessions:', error);

@@ -92,9 +92,9 @@ export interface ISessionRepository {
   getById(id: string): Promise<Session | null>;
 
   /**
-   * Get all sessions
+   * Get all sessions (with pagination)
    */
-  getAll(): Promise<Session[]>;
+  getAll(limit?: number, page?: number): Promise<Session[]>;
 
   /**
    * Get sessions by station ID

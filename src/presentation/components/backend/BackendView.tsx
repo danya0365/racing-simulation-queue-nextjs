@@ -177,6 +177,10 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
             <SessionsTab 
               sessions={viewModel.sessions || []}
               sessionStats={viewModel.sessionStats}
+              totalSessions={viewModel.sessionStats.totalSessions}
+              currentPage={state.pagination?.page || 1}
+              totalPages={Math.ceil((viewModel.sessionStats.totalSessions || 0) / (state.pagination?.limit || 20))}
+              onPageChange={actions.setPage}
               onUpdatePayment={actions.updateSessionPayment}
               onUpdateAmount={actions.updateSessionAmount}
             />
