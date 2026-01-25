@@ -14,6 +14,7 @@ import {
 
 export interface CustomersViewModel {
   customers: Customer[];
+  totalCount: number;
   stats: CustomerStats;
 }
 
@@ -39,11 +40,12 @@ export class CustomersPresenter {
   }
 
   /**
-   * Get all customers
+   * Get all customers (paginated)
    */
-  async getAllCustomers(): Promise<Customer[]> {
+  async getAllCustomers(limit: number = 20, page: number = 1, search?: string, filter?: string): Promise<{ customers: Customer[], total: number }> {
     try {
-      return await this.withTimeout(this.customerRepository.getAll());
+      const result = await this.withTimeout(this.customerRepository.getAll(limit, page, search, filter));
+      return { customers: result.data, total: result.total };
     } catch (error) {
       console.error('Error getting customers:', error);
       throw error;
@@ -63,11 +65,13 @@ export class CustomersPresenter {
   }
 
   /**
-   * Search customers
+   * Search customers (Deprecated: Use getAllCustomers with search param)
+   * Kept for backward compatibility if needed, but implementation updated
    */
   async searchCustomers(query: string): Promise<Customer[]> {
     try {
-      return await this.withTimeout(this.customerRepository.search(query));
+      const result = await this.getAllCustomers(100, 1, query);
+      return result.customers;
     } catch (error) {
       console.error('Error searching customers:', error);
       throw error;
@@ -120,12 +124,19 @@ export class CustomersPresenter {
   /**
    * Get view model
    */
-  async getViewModel(todayStr: string): Promise<CustomersViewModel> {
+  /**
+   * Get view model
+   */
+  async getViewModel(todayStr: string, limit: number = 20, page: number = 1, search?: string, filter?: string): Promise<CustomersViewModel> {
     // Methods are already wrapped with timeout
-    const [customers, stats] = await Promise.all([
-      this.getAllCustomers(),
+    const [customersResult, stats] = await Promise.all([
+      this.getAllCustomers(limit, page, search, filter),
       this.getStats(todayStr),
     ]);
-    return { customers, stats };
+    return { 
+      customers: customersResult.customers, 
+      totalCount: customersResult.total,
+      stats 
+    };
   }
 }

@@ -14,12 +14,9 @@ import { useState } from 'react';
 
 export function CustomersTab() {
   const [state, actions] = useCustomersPresenter();
-  const { viewModel, loading, searchQuery, isAddModalOpen } = state;
-  
-  // Filter and pagination state
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const { viewModel, loading, searchQuery, isAddModalOpen, activeFilter, currentPage, totalCount } = state;
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
+  
   const itemsPerPage = 10;
 
   const formatDate = (dateString: string) => {
@@ -46,66 +43,30 @@ export function CustomersTab() {
     );
   }
 
-  const allCustomers = viewModel?.customers || [];
+  // Use server-side paginated data
+  const paginatedCustomers = viewModel?.customers || [];
   const stats = viewModel?.stats;
 
-  // Calculate today date for "new today" filter
-  const today = dayjs().startOf('day');
-
-  // Filter customers based on active filter
-  const getFilteredCustomers = () => {
-    let filtered = allCustomers;
-    
-    // Apply search first
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.name.toLowerCase().includes(query) || 
-        c.phone.includes(query)
-      );
-    }
-    
-    // Apply filter
-    switch (activeFilter) {
-      case 'vip':
-        return filtered.filter(c => c.isVip);
-      case 'new':
-        return filtered.filter(c => {
-          return dayjs(c.createdAt).startOf('day').isSame(today);
-        });
-      case 'regular':
-        return filtered.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS);
-      default:
-        return filtered;
-    }
-  };
-
-  const filteredCustomers = getFilteredCustomers();
-  
   // Pagination
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedCustomers = filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  // Reset page when filter/search changes
+  // Handlers
   const handleFilterChange = (filter: string) => {
-    setActiveFilter(filter);
-    setCurrentPage(1);
+    actions.setFilter(filter);
   };
 
   const handleSearch = (query: string) => {
     actions.searchCustomers(query);
-    setCurrentPage(1);
   };
 
-  // Count by filter for badges
+  // Count by filter for badges (Use stats for accurate global counts if available, otherwise just show loaded count or undefined)
+  // Note: Stats returns GLOBAL counts, but might not match search results.
+  // We'll use stats for the badges as before.
   const filterCounts = {
-    all: allCustomers.length,
-    vip: allCustomers.filter(c => c.isVip).length,
-    new: allCustomers.filter(c => {
-      return dayjs(c.createdAt).startOf('day').isSame(today);
-    }).length,
-    regular: allCustomers.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS).length,
+    all: stats?.totalCustomers || 0,
+    vip: stats?.vipCustomers || 0,
+    new: stats?.newCustomersToday || 0,
+    regular: stats?.returningCustomers || 0,
   };
 
   const filterButtons = [
@@ -169,7 +130,7 @@ export function CustomersTab() {
       {/* Results info */}
       <div className="flex justify-between items-center text-sm text-muted">
         <span>
-          แสดง {paginatedCustomers.length} จาก {filteredCustomers.length} รายการ
+          แสดง {paginatedCustomers.length} จาก {totalCount} รายการ
           {activeFilter !== 'all' && ` (กรอง: ${filterButtons.find(b => b.key === activeFilter)?.label})`}
         </span>
         {totalPages > 1 && (
@@ -249,7 +210,7 @@ export function CustomersTab() {
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 pt-4">
           <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onClick={() => actions.setPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className="px-4 py-2 bg-surface border border-border rounded-lg text-foreground hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -272,7 +233,7 @@ export function CustomersTab() {
               return (
                 <button
                   key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
+                  onClick={() => actions.setPage(pageNum)}
                   className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
                     currentPage === pageNum
                       ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
@@ -287,7 +248,7 @@ export function CustomersTab() {
               <>
                 <span className="px-2 text-muted">...</span>
                 <button
-                  onClick={() => setCurrentPage(totalPages)}
+                  onClick={() => actions.setPage(totalPages)}
                   className="w-10 h-10 rounded-lg text-sm font-medium bg-surface border border-border text-muted hover:text-foreground"
                 >
                   {totalPages}
@@ -297,7 +258,7 @@ export function CustomersTab() {
           </div>
           
           <button
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onClick={() => actions.setPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
             className="px-4 py-2 bg-surface border border-border rounded-lg text-foreground hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed"
           >

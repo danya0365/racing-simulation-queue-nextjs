@@ -43,15 +43,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(customer);
     }
 
-    // Search
-    if (query) {
-      const customers = await repo.search(query);
-      return NextResponse.json(customers);
-    }
+    // Default: get all customers (paginated)
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get('page') || '1');
+    const search = searchParams.get('search') || searchParams.get('query') || undefined;
+    const filter = searchParams.get('filter') || undefined;
 
-    // Default: get all customers
-    const customers = await repo.getAll();
-    return NextResponse.json(customers);
+    const result = await repo.getAll(limit, page, search, filter);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json(

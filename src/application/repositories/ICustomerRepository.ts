@@ -39,11 +39,16 @@ export interface CustomerStats {
   returningCustomers: number;
 }
 
+export interface CustomerListResult {
+  data: Customer[];
+  total: number;
+}
+
 export interface ICustomerRepository {
   /**
-   * Get all customers
+   * Get all customers (paginated & filtered)
    */
-  getAll(): Promise<Customer[]>;
+  getAll(limit?: number, page?: number, search?: string, filter?: string): Promise<CustomerListResult>;
 
   /**
    * Get customer by ID
@@ -55,10 +60,7 @@ export interface ICustomerRepository {
    */
   getByPhone(phone: string): Promise<Customer | null>;
 
-  /**
-   * Search customers by name or phone
-   */
-  search(query: string): Promise<Customer[]>;
+
 
   /**
    * Create a new customer

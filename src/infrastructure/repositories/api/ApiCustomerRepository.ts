@@ -11,6 +11,7 @@
 import {
     CreateCustomerData,
     Customer,
+    CustomerListResult,
     CustomerStats,
     ICustomerRepository,
     UpdateCustomerData,
@@ -20,10 +21,18 @@ export class ApiCustomerRepository implements ICustomerRepository {
   private baseUrl = '/api/customers';
 
   /**
-   * Get all customers
+   * Get all customers (paginated & filtered)
    */
-  async getAll(): Promise<Customer[]> {
-    const res = await fetch(this.baseUrl);
+  async getAll(limit: number = 20, page: number = 1, search?: string, filter?: string): Promise<CustomerListResult> {
+    const params = new URLSearchParams({ 
+      limit: limit.toString(), 
+      page: page.toString() 
+    });
+    
+    if (search) params.append('search', search);
+    if (filter) params.append('filter', filter);
+
+    const res = await fetch(`${this.baseUrl}?${params}`);
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'ไม่สามารถโหลดข้อมูลลูกค้าได้');
@@ -56,17 +65,6 @@ export class ApiCustomerRepository implements ICustomerRepository {
     return res.json();
   }
 
-  /**
-   * Search customers by name or phone
-   */
-  async search(query: string): Promise<Customer[]> {
-    const res = await fetch(`${this.baseUrl}?query=${encodeURIComponent(query)}`);
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'ไม่สามารถค้นหาลูกค้าได้');
-    }
-    return res.json();
-  }
 
   /**
    * Create a new customer

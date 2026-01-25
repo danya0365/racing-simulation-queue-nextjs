@@ -11,6 +11,9 @@ export interface CustomersPresenterState {
   loading: boolean;
   error: string | null;
   searchQuery: string;
+  activeFilter: string;
+  currentPage: number;
+  totalCount: number;
   selectedCustomer: Customer | null;
   isDetailModalOpen: boolean;
   isAddModalOpen: boolean;
@@ -18,7 +21,9 @@ export interface CustomersPresenterState {
 
 export interface CustomersPresenterActions {
   loadData: () => Promise<void>;
-  searchCustomers: (query: string) => Promise<void>;
+  searchCustomers: (query: string) => void;
+  setFilter: (filter: string) => void;
+  setPage: (page: number) => void;
   createCustomer: (data: CreateCustomerData) => Promise<void>;
   updateCustomer: (id: string, data: UpdateCustomerData) => Promise<void>;
   toggleVipStatus: (customer: Customer) => Promise<void>;
@@ -54,10 +59,19 @@ export function useCustomersPresenter(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  const ITEMS_PER_PAGE = 10;
+
+  /**
+   * Load data from presenter
+   */
   /**
    * Load data from presenter
    */
@@ -67,9 +81,18 @@ export function useCustomersPresenter(
 
     try {
       const todayStr = getShopTodayString();
-      const vm = await presenter.getViewModel(todayStr);
+      // Pass pagination params
+      const vm = await presenter.getViewModel(
+        todayStr, 
+        ITEMS_PER_PAGE, 
+        currentPage, 
+        searchQuery, 
+        activeFilter === 'all' ? undefined : activeFilter
+      );
+      
       if (isMountedRef.current) {
         setViewModel(vm);
+        setTotalCount(vm.totalCount);
       }
     } catch (err) {
       if (isMountedRef.current) {
@@ -82,35 +105,29 @@ export function useCustomersPresenter(
         setLoading(false);
       }
     }
-  }, [presenter]);
+  }, [presenter, currentPage, searchQuery, activeFilter]);
+
+  // Trigger loadData when dependencies change
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   /**
    * Search customers
    */
-  const searchCustomers = useCallback(async (query: string) => {
+  const searchCustomers = useCallback((query: string) => {
     setSearchQuery(query);
-    setError(null);
+    setCurrentPage(1); // Reset to first page
+  }, []);
 
-    try {
-      if (query.trim()) {
-        const customers = await presenter.searchCustomers(query);
-        if (isMountedRef.current) {
-          setViewModel(prev => prev ? { ...prev, customers } : null);
-        }
-      } else {
-        const customers = await presenter.getAllCustomers();
-        if (isMountedRef.current) {
-          setViewModel(prev => prev ? { ...prev, customers } : null);
-        }
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMessage);
-        console.error('Error searching customers:', err);
-      }
-    }
-  }, [presenter]);
+  const setFilter = useCallback((filter: string) => {
+    setActiveFilter(filter);
+    setCurrentPage(1); // Reset to first page
+  }, []);
+
+  const setPage = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   /**
    * Create a new customer
@@ -219,11 +236,6 @@ export function useCustomersPresenter(
     setIsAddModalOpen(false);
   }, []);
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   // ✅ Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
@@ -238,6 +250,9 @@ export function useCustomersPresenter(
       loading,
       error,
       searchQuery,
+      activeFilter,
+      currentPage,
+      totalCount,
       selectedCustomer,
       isDetailModalOpen,
       isAddModalOpen,
@@ -245,6 +260,8 @@ export function useCustomersPresenter(
     {
       loadData,
       searchCustomers,
+      setFilter,
+      setPage,
       createCustomer,
       updateCustomer,
       toggleVipStatus,
