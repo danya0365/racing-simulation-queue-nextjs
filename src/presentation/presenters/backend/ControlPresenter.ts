@@ -6,7 +6,7 @@
  * ✅ Receives repositories via dependency injection (not Supabase directly)
  */
 
-import { Booking, IBookingRepository } from '@/src/application/repositories/IBookingRepository';
+import { Booking, BookingTimeSlot, IBookingRepository } from '@/src/application/repositories/IBookingRepository';
 import { IMachineRepository, Machine } from '@/src/application/repositories/IMachineRepository';
 import { ISessionRepository, Session } from '@/src/application/repositories/ISessionRepository';
 import { IWalkInQueueRepository, WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
@@ -25,6 +25,7 @@ export interface StationViewModel {
   activeSession: Session | null;
   reservedBooking: Booking | null;
   upcomingBookings: Booking[];
+  slots: BookingTimeSlot[];
 }
 
 export interface ControlViewModel {
@@ -71,12 +72,22 @@ export class ControlPresenter {
     const bookingsPromises = machines.map(m => 
       this.bookingRepo.getByMachineAndDate(m.id, today)
     );
-    const allBookingsArrays = await Promise.all(bookingsPromises);
+    const schedulesPromises = machines.map(m =>
+      this.bookingRepo.getDaySchedule(m.id, today, SHOP_TIMEZONE)
+    );
+
+    const [allBookingsArrays, allSchedules] = await Promise.all([
+      Promise.all(bookingsPromises),
+      Promise.all(schedulesPromises)
+    ]);
     
     // Build a map of machineId -> bookings
     const bookingsByMachine = new Map<string, Booking[]>();
+    const slotsByMachine = new Map<string, BookingTimeSlot[]>();
+    
     machines.forEach((machine, index) => {
       bookingsByMachine.set(machine.id, allBookingsArrays[index]);
+      slotsByMachine.set(machine.id, allSchedules[index].timeSlots);
     });
 
     // Build station view models
@@ -99,6 +110,7 @@ export class ControlPresenter {
         activeSession,
         reservedBooking,
         upcomingBookings,
+        slots: slotsByMachine.get(machine.id) || [],
       };
     });
 

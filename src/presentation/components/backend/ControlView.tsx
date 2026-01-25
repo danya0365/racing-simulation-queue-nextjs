@@ -602,6 +602,32 @@ function StationCard({
             </div>
           </div>
         )}
+        
+        {/* Schedule Slots Bar */}
+        <div className="pt-2 border-t border-white/10">
+           <div className="flex gap-[1px] h-2 w-full rounded-full overflow-hidden mb-1">
+             {station.slots.map((slot) => {
+               // Determine color based on status
+               let bgClass = 'bg-white/10'; // Default/Unknown
+               if (slot.status === 'passed') bgClass = 'bg-white/5';
+               else if (slot.status === 'booked') bgClass = 'bg-red-500';
+               else if (slot.status === 'available') bgClass = 'bg-emerald-500';
+               
+               return (
+                 <div 
+                   key={slot.id} 
+                   className={`flex-1 ${bgClass}`}
+                   title={`${slot.startTime} - ${slot.endTime} (${slot.status})`} 
+                 />
+               );
+             })}
+           </div>
+           <div className="flex justify-between text-[10px] text-white/30 font-mono">
+             <span>00:00</span>
+             <span>12:00</span>
+             <span>23:59</span>
+           </div>
+        </div>
       </div>
     </div>
   );
