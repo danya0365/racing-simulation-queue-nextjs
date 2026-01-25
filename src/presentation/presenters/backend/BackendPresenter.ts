@@ -28,6 +28,9 @@ export interface BackendViewModel {
   todayBookings: Booking[];
   /** Booking stats */
   bookingStats: BookingStats;
+  /** Next confirmed booking for each machine (Key: MachineID) */
+  nextBookingsMap?: Record<string, Booking>;
+  
   
   // Backward compatibility fields (deprecated, use walkInQueues instead)
   /** @deprecated Use walkInQueues instead */
@@ -207,6 +210,16 @@ export class BackendPresenter {
       sessionStats,
       todayBookings,
       bookingStats,
+      nextBookingsMap: todayBookings.reduce((acc, booking) => {
+        if (booking.status === 'confirmed' && !acc[booking.machineId]) {
+             // Basic logic: take the first confirmed one. 
+             // Since todayBookings is sorted by time, the first one found for a machine is the earliest.
+             // But map might overwrite? No, "if !acc[booking.machineId]" ensures we keep the first (earliest).
+             // Wait, reduce iterates start to end. if we want earliest, and list is sorted earliest first.
+             acc[booking.machineId] = booking;
+        }
+        return acc;
+      }, {} as Record<string, Booking>),
       // Backward compatibility
       activeQueues: data.walkInQueues || [],
       queues: data.walkInQueues || [],

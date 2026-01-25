@@ -14,7 +14,6 @@ import { useReactToPrint } from 'react-to-print';
 import { BookingsTab } from './BookingsTab';
 import { CustomersTab } from './CustomersTab';
 import { DashboardTab } from './DashboardTab';
-import { LiveControlTab } from './LiveControlTab';
 import { MachinesTab } from './MachinesTab';
 import { QueuesTab } from './QueuesTab';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
@@ -144,18 +143,6 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
         <div className="max-w-7xl mx-auto">
           {state.activeTab === 'dashboard' && (
             <DashboardTab viewModel={viewModel} />
-          )}
-          {state.activeTab === 'control' && (
-            <LiveControlTab
-              viewModel={viewModel}
-              isUpdating={state.isUpdating}
-              onUpdateQueueStatus={actions.updateQueueStatus}
-              onSeatCustomer={actions.seatCustomer}
-              onEndSession={actions.endSession}
-              onUpdateMachineStatus={actions.updateMachineStatus}
-              onResetQueue={actions.resetMachineQueue}
-              onRefresh={actions.refreshData}
-            />
           )}
           {state.activeTab === 'queues' && (
             <QueuesTab
