@@ -409,27 +409,54 @@ function StationCard({
 
       {/* Content */}
       <div className="p-3 space-y-2">
-        {/* AVAILABLE STATE */}
-        {stationState === 'available' && (
-          <div className="space-y-2">
-            <GlowButton
-              color="green"
-              className="w-full py-3"
-              onClick={onStartManual}
-              disabled={isUpdating}
-            >
-              ▶️ Start Manual
-            </GlowButton>
-            {waitingQueue.length > 0 && (
+        {/* NOT IN USE STATE (Available or Reserved) */}
+        {stationState !== 'in_use' && (
+          <div className="space-y-3">
+            {/* RESERVED INFO & CHECK-IN */}
+            {stationState === 'reserved' && reservedBooking && (
+              <div className="space-y-3 pb-3 border-b border-white/10">
+                <div className={`${isOverdue ? 'bg-red-500/20 border-red-500/30' : 'bg-yellow-500/20 border-yellow-500/30'} border rounded-xl p-3`}>
+                  <p className={`text-xs ${isOverdue ? 'text-red-400' : 'text-yellow-400'} mb-1`}>
+                    {isOverdue ? '⚠️ เลยเวลา' : '📅 จองไว้'}
+                  </p>
+                  <p className="text-lg font-bold text-white">{reservedBooking.customerName}</p>
+                  <p className="text-sm text-white/60">
+                    {reservedBooking.localStartTime} - {reservedBooking.localEndTime}
+                  </p>
+                </div>
+                
+                <GlowButton
+                  color={isOverdue ? 'red' : 'green'}
+                  className="w-full py-3"
+                  onClick={onCheckIn}
+                  disabled={isUpdating}
+                >
+                  ✅ Check-in
+                </GlowButton>
+              </div>
+            )}
+
+            {/* MANUAL & QUEUE ACTIONS (Always visible when not in use) */}
+            <div className="space-y-2">
               <GlowButton
-                color="purple"
+                color="green"
                 className="w-full py-3"
-                onClick={onSelectFromQueue}
+                onClick={onStartManual}
                 disabled={isUpdating}
               >
-                📋 เลือกจากคิว ({waitingQueue.length})
+                ▶️ Start Manual
               </GlowButton>
-            )}
+              {waitingQueue.length > 0 && (
+                <GlowButton
+                  color="purple"
+                  className="w-full py-3"
+                  onClick={onSelectFromQueue}
+                  disabled={isUpdating}
+                >
+                  📋 เลือกจากคิว ({waitingQueue.length})
+                </GlowButton>
+              )}
+            </div>
           </div>
         )}
 
@@ -437,7 +464,7 @@ function StationCard({
         {stationState === 'in_use' && activeSession && (
           <div className="space-y-3">
             <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-3">
-              <p className="text-xs text-orange-400 mb-1">👤 ผู้เล่น</p>
+              <p className="text-xs text-orange-400 mb-1">� ผู้เล่น</p>
               <p className="text-lg font-bold text-white">{activeSession.customerName}</p>
             </div>
             
@@ -450,30 +477,6 @@ function StationCard({
               disabled={isUpdating}
             >
               ⏹️ จบ Session
-            </GlowButton>
-          </div>
-        )}
-
-        {/* RESERVED STATE */}
-        {stationState === 'reserved' && reservedBooking && (
-          <div className="space-y-3">
-            <div className={`${isOverdue ? 'bg-red-500/20 border-red-500/30' : 'bg-yellow-500/20 border-yellow-500/30'} border rounded-xl p-3`}>
-              <p className={`text-xs ${isOverdue ? 'text-red-400' : 'text-yellow-400'} mb-1`}>
-                {isOverdue ? '⚠️ เลยเวลา' : '📅 จองไว้'}
-              </p>
-              <p className="text-lg font-bold text-white">{reservedBooking.customerName}</p>
-              <p className="text-sm text-white/60">
-                {reservedBooking.localStartTime} - {reservedBooking.localEndTime}
-              </p>
-            </div>
-            
-            <GlowButton
-              color={isOverdue ? 'red' : 'green'}
-              className="w-full py-3"
-              onClick={onCheckIn}
-              disabled={isUpdating}
-            >
-              ✅ Check-in
             </GlowButton>
           </div>
         )}
