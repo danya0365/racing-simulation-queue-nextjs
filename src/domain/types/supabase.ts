@@ -621,6 +621,7 @@ export type Database = {
           recorded_at: string
         }[]
       }
+      rpc_get_booking_stats: { Args: never; Returns: Json }
       rpc_get_bookings_by_machine_date: {
         Args: { p_customer_id?: string; p_date: string; p_machine_id: string }
         Returns: {

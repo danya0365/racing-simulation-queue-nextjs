@@ -11,15 +11,15 @@
  */
 
 import {
-    Booking,
-    BookingDaySchedule,
-    BookingLog,
-    BookingSlotStatus,
-    BookingStats,
-    BookingTimeSlot,
-    CreateBookingData,
-    IBookingRepository,
-    UpdateBookingData,
+  Booking,
+  BookingDaySchedule,
+  BookingLog,
+  BookingSlotStatus,
+  BookingStats,
+  BookingTimeSlot,
+  CreateBookingData,
+  IBookingRepository,
+  UpdateBookingData,
 } from '@/src/application/repositories/IBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 import { Database } from '@/src/domain/types/supabase';
@@ -357,10 +357,10 @@ export class SupabaseBookingRepository implements IBookingRepository {
 
   async getStats(): Promise<BookingStats> {
     const { data, error } = await this.client
-      .from('bookings')
-      .select('status');
+      .rpc('rpc_get_booking_stats');
 
     if (error || !data) {
+      console.error('Error fetching booking stats:', error);
       return {
         totalBookings: 0,
         pendingBookings: 0,
@@ -371,13 +371,16 @@ export class SupabaseBookingRepository implements IBookingRepository {
       };
     }
 
+    // Cast the JSON result to BookingStats (Supabase RPC returns JSON as any/object)
+    const stats = data as unknown as BookingStats;
+
     return {
-      totalBookings: data.length,
-      pendingBookings: data.filter(b => b.status === 'pending').length,
-      confirmedBookings: data.filter(b => b.status === 'confirmed').length,
-      seatedBookings: data.filter(b => b.status === 'seated').length,
-      cancelledBookings: data.filter(b => b.status === 'cancelled').length,
-      completedBookings: data.filter(b => b.status === 'completed').length,
+      totalBookings: stats.totalBookings || 0,
+      pendingBookings: stats.pendingBookings || 0,
+      confirmedBookings: stats.confirmedBookings || 0,
+      seatedBookings: stats.seatedBookings || 0,
+      cancelledBookings: stats.cancelledBookings || 0,
+      completedBookings: stats.completedBookings || 0,
     };
   }
 
