@@ -47,7 +47,6 @@ export interface WalkInQueueStats {
   calledCount: number;
   seatedToday: number;
   cancelledToday: number;
-  cancelledToday: number;
   averageWaitMinutes: number;
   totalHistoryCount?: number;
 }

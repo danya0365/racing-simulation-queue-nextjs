@@ -229,6 +229,41 @@ export class SupabaseBookingRepository implements IBookingRepository {
     }));
   }
 
+  async getByDate(date: string, customerId?: string): Promise<Booking[]> {
+    const { data, error } = await this.client
+      .rpc('rpc_get_bookings_by_date', {
+        p_date: date,
+        p_customer_id: customerId,
+      });
+
+    if (error) {
+      console.error('Error fetching bookings by date:', error);
+      return [];
+    }
+
+    // Reuse the same return type structure as rpc_get_bookings_by_machine_date
+    // Since we aligned the RPC output columns
+    return (data as RpcGetBookingsByMachineDateResult[]).map(row => ({
+      id: row.booking_id,
+      machineId: row.machine_id,
+      customerId: undefined,
+      isOwner: row.is_owner,
+      customerName: row.customer_name,
+      customerPhone: row.customer_phone || '',
+      startAt: row.start_at,
+      endAt: row.end_at,
+      durationMinutes: row.duration_minutes,
+      businessTimezone: row.business_timezone,
+      localDate: row.local_date,
+      localStartTime: row.local_start_time,
+      localEndTime: row.local_end_time,
+      isCrossMidnight: row.is_cross_midnight,
+      status: row.status as Booking['status'],
+      createdAt: row.created_at,
+      updatedAt: row.created_at,
+    }));
+  }
+
   async create(data: CreateBookingData): Promise<Booking> {
     const tz = data.timezone || SHOP_TIMEZONE;
     

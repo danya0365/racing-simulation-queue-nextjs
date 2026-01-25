@@ -106,6 +106,21 @@ export class ApiBookingRepository implements IBookingRepository {
   }
 
   /**
+   * Get all bookings for a specific date (across all machines)
+   */
+  async getByDate(date: string, customerId?: string): Promise<Booking[]> {
+    const params = new URLSearchParams({ date });
+    if (customerId) params.append('customerId', customerId);
+    
+    const res = await fetch(`${this.baseUrl}?${params}`);
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'ไม่สามารถโหลดข้อมูลการจองได้');
+    }
+    return res.json();
+  }
+
+  /**
    * Create a new booking
    */
   async create(data: CreateBookingData): Promise<Booking> {

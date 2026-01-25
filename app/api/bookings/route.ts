@@ -41,6 +41,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(bookings);
     }
 
+    // Get all bookings for a date (Dashboard optimization)
+    if (date && !machineId) {
+      const customerId = searchParams.get('customerId');
+      const bookings = await repo.getByDate(date, customerId || undefined);
+      return NextResponse.json(bookings);
+    }
+
     return NextResponse.json({ error: 'กรุณาระบุพารามิเตอร์ที่ต้องการ' }, { status: 400 });
   } catch (error) {
     console.error('Error in bookings API:', error);

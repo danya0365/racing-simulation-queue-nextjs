@@ -181,6 +181,11 @@ export interface IBookingRepository {
   getByMachineAndDate(machineId: string, date: string, customerId?: string): Promise<Booking[]>;
 
   /**
+   * Get all bookings for a specific date (across all machines)
+   */
+  getByDate(date: string, customerId?: string): Promise<Booking[]>;
+
+  /**
    * Create a new booking
    * Converts local date/time + timezone to TIMESTAMPTZ
    */

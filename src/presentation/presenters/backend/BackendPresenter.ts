@@ -216,16 +216,8 @@ export class BackendPresenter {
         // Get today's date in YYYY-MM-DD format
         const today = now.slice(0, 10);
         
-        // Fetch bookings for all machines for today
-        const machines = data.machines || [];
-        const allBookings: Booking[] = [];
-        
-        await Promise.all(
-          machines.map(async (machine) => {
-            const machineBookings = await this.bookingRepository!.getByMachineAndDate(machine.id, today);
-            allBookings.push(...machineBookings);
-          })
-        );
+        // Fetch all bookings for all machines for today in ONE query
+        const allBookings = await this.bookingRepository!.getByDate(today);
         
         todayBookings = allBookings.sort((a, b) => a.localStartTime.localeCompare(b.localStartTime));
         

@@ -622,6 +622,28 @@ export type Database = {
         }[]
       }
       rpc_get_booking_stats: { Args: never; Returns: Json }
+      rpc_get_bookings_by_date: {
+        Args: { p_customer_id?: string; p_date: string }
+        Returns: {
+          booking_id: string
+          business_timezone: string
+          created_at: string
+          customer_id: string
+          customer_name: string
+          customer_phone: string
+          duration_minutes: number
+          end_at: string
+          is_cross_midnight: boolean
+          is_owner: boolean
+          local_date: string
+          local_end_time: string
+          local_start_time: string
+          machine_id: string
+          machine_name: string
+          start_at: string
+          status: string
+        }[]
+      }
       rpc_get_bookings_by_machine_date: {
         Args: { p_customer_id?: string; p_date: string; p_machine_id: string }
         Returns: {
