@@ -178,11 +178,13 @@ BEGIN
           AND status IN ('waiting', 'called')
         FOR UPDATE;
 
-        IF v_queue_machine_id IS NULL THEN
+        -- Fix: Use FOUND to check if row exists, because v_queue_machine_id can be NULL (Any Machine)
+        IF NOT FOUND THEN
             RETURN json_build_object('success', false, 'error', 'ไม่พบ queue หรือ queue ไม่ได้อยู่ในสถานะรอหรือถูกเรียก');
         END IF;
 
         -- Queue can have NULL preferred_machine_id (any machine)
+        -- Only error if specific machine IS selected AND it doesn't match
         IF v_queue_machine_id IS NOT NULL AND v_queue_machine_id != p_station_id THEN
             RETURN json_build_object('success', false, 'error', 'Queue นี้เลือกเครื่องอื่น');
         END IF;
