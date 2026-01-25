@@ -100,7 +100,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
               </button>
             </Link>
             <h1 className="text-lg md:text-xl font-bold text-white">
-              🎮 Control
+              🎮 ควบคุมการเล่น
             </h1>
           </div>
 
@@ -172,7 +172,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
             <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-md p-6">
               <h3 className="text-xl font-bold text-white mb-4">
-                ▶️ เริ่ม Manual Session
+                ▶️ เริ่มเล่น (แบบระบุเอง)
               </h3>
               <p className="text-white/60 mb-4">
                 เครื่อง: {viewModel.stations.find(s => s.machine.id === state.manualStartModal.machineId)?.machine.name}
@@ -202,7 +202,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
                     </button>
                   ))}
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 min-w-[100px]">
-                     <span className="text-white/40 text-xs">Custom:</span>
+                     <span className="text-white/40 text-xs">กำหนดเอง:</span>
                      <input 
                         type="number"
                         className="w-full bg-transparent text-white text-sm py-2 focus:outline-none"
@@ -561,7 +561,7 @@ function StationCard({
                 onClick={onStartManual}
                 disabled={isUpdating}
               >
-                ▶️ Start Manual
+                ▶️ เริ่มเล่น (ระบุเอง)
               </GlowButton>
               {waitingQueue.length > 0 && (
                 <GlowButton

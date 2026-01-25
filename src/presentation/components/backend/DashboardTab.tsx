@@ -82,7 +82,7 @@ export function DashboardTab({ viewModel }: DashboardTabProps) {
 
         <StatsCard 
           icon="📈" 
-          label="Sessions วันนี้" 
+          label="จำนวนการเล่นวันนี้" 
           value={`${viewModel.sessionStats.totalSessions}`}
           subLabel="รวมทุกช่องทาง"
           color="from-emerald-500 to-green-600" 
@@ -129,7 +129,7 @@ export function DashboardTab({ viewModel }: DashboardTabProps) {
                       </div>
                       <div className="text-right">
                          <span className="text-xs font-bold text-red-500 bg-white/90 px-2 py-1 rounded-md">
-                           Waiting Check-in
+                           รอ Check-in
                          </span>
                       </div>
                     </div>
@@ -295,7 +295,7 @@ function StatsCard({ icon, label, value, subLabel, color, alert }: { icon: strin
           </div>
           {alert && (
             <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">
-              Critical
+              แจ้งเตือน
             </span>
           )}
         </div>

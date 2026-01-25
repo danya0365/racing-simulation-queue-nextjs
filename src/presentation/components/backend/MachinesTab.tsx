@@ -247,7 +247,7 @@ function EditMachineModal({ machine, onClose, onSave, isUpdating }: EditMachineM
 
           {/* Image URL */}
           <div>
-            <label className="block text-sm text-muted mb-1">URL รูปภาพ (optional)</label>
+            <label className="block text-sm text-muted mb-1">URL รูปภาพ (ไม่บังคับ)</label>
             <input
               type="url"
               value={formData.imageUrl}

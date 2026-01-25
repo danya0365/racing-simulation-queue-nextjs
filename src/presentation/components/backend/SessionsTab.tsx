@@ -62,7 +62,7 @@ export function SessionsTab({
            icon="📝"
            label="รอบการเล่นทั้งหมด" 
            value={`${sessionStats.totalSessions}`}
-           subLabel="รวม Active และ History"
+           subLabel="รวมที่กำลังเล่นและประวัติย้อนหลัง"
            color="from-purple-500 to-indigo-600" 
          />
          <StatsCard 
@@ -84,7 +84,7 @@ export function SessionsTab({
            icon="💰"
            label="รายได้รวม" 
            value={`฿${sessionStats.totalRevenue.toLocaleString()}`} 
-           subLabel="รายได้จากทุก Session"
+           subLabel="รายได้จากการเล่นทั้งหมด"
            color="from-amber-400 to-orange-500" 
          />
       </div>

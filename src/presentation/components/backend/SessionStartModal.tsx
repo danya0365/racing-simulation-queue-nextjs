@@ -53,7 +53,7 @@ export function SessionStartModal({
             {isBooking ? '📅' : '🚶'}
           </div>
           <h2 className="text-xl font-bold text-foreground">
-            {isBooking ? 'Check-in จองล่วงหน้า' : 'เริ่ม Session (Walk-in)'}
+            {isBooking ? 'Check-in จองล่วงหน้า' : 'เริ่มเล่น (Walk-in)'}
           </h2>
           <p className="text-sm text-muted">
             {machine.name} (เครื่อง {machine.position})
