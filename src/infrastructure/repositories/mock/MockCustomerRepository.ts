@@ -6,6 +6,7 @@
 import {
     CreateCustomerData,
     Customer,
+    CustomerListResult,
     CustomerStats,
     ICustomerRepository,
     UpdateCustomerData,
@@ -79,13 +80,41 @@ const mockCustomers: Customer[] = [
 export class MockCustomerRepository implements ICustomerRepository {
   private customers: Customer[] = [...mockCustomers];
 
-  async getAll(): Promise<Customer[]> {
+  async getAll(limit: number = 20, page: number = 1, search?: string, filter?: string): Promise<CustomerListResult> {
+    let filtered = [...this.customers];
+
+    // Search
+    if (search) {
+      const lowerQuery = search.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.name.toLowerCase().includes(lowerQuery) ||
+          c.phone.includes(search)
+      );
+    }
+
+    // Filter
+    const today = dayjs().startOf('day');
+    if (filter === 'vip') {
+      filtered = filtered.filter(c => c.isVip);
+    } else if (filter === 'new') {
+      filtered = filtered.filter(c => dayjs(c.createdAt).isAfter(today.subtract(1, 'minute'))); 
+    } else if (filter === 'regular') {
+      filtered = filtered.filter(c => c.visitCount >= CUSTOMER_CONFIG.REGULAR_CUSTOMER_MIN_VISITS);
+    }
+
     // Sort by last visit, most recent first
-    return [...this.customers].sort((a, b) => {
+    filtered.sort((a, b) => {
       if (!a.lastVisit) return 1;
       if (!b.lastVisit) return -1;
       return dayjs(b.lastVisit).unix() - dayjs(a.lastVisit).unix();
     });
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const data = filtered.slice(start, start + limit);
+
+    return { data, total };
   }
 
   async getById(id: string): Promise<Customer | null> {
@@ -98,15 +127,6 @@ export class MockCustomerRepository implements ICustomerRepository {
     return this.customers.find((c) => 
       c.phone.replace(/[-\s]/g, '') === normalizedPhone
     ) || null;
-  }
-
-  async search(query: string): Promise<Customer[]> {
-    const lowerQuery = query.toLowerCase();
-    return this.customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(lowerQuery) ||
-        c.phone.includes(query)
-    );
   }
 
   async create(data: CreateCustomerData): Promise<Customer> {
