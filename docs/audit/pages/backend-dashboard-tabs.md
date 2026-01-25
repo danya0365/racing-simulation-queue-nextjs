@@ -19,7 +19,7 @@
 | :--- | :--- | :--- | :--- |
 | `machineRepo.getStats()` | Table: `public.machines` | `SELECT status, is_active` | **ปลอดภัย** |
 | `walkInQueueRepo.getStats()`| RPC: `rpc_get_walk_in_queue_stats` | ดึงตัวเลขสรุปคิวประจำวัน | **ปลอดภัย** |
-| `sessionRepo.getStats()` | RPC: `rpc_get_session_stats` | ดึงสถิติรายได้และเวลาใช้งาน | **ปลอดภัย** |
+| `sessionRepo.getStats()` | RPC: `rpc_get_session_stats` | ดึงสถิติรายได้และเวลาที่เล่น | **ปลอดภัย** |
 | `bookingRepo.getStats()` | Table: `public.bookings` | `SELECT status` (ดึงทุกรายการ) | **ปลอดภัย** |
 
 ---

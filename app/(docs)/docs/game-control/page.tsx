@@ -85,7 +85,7 @@ export default function GameControlDocsPage() {
             </div>
             <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl p-3 text-center">
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">🏁</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">กำลังใช้งาน</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">กำลังเล่น</div>
             </div>
             <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3 text-center">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">📅</div>

@@ -30,8 +30,9 @@ export interface BackendViewModel {
   bookingStats: BookingStats;
   /** Next confirmed booking for each machine (Key: MachineID) */
   nextBookingsMap?: Record<string, Booking>;
-  
-  
+  /** List of all/history sessions (loaded on demand) */
+  sessions?: Session[];
+
   // Backward compatibility fields (deprecated, use walkInQueues instead)
   /** @deprecated Use walkInQueues instead */
   activeQueues?: WalkInQueue[];
@@ -141,6 +142,30 @@ export class BackendPresenter {
       };
     } catch (error) {
       console.error('Error getting control data:', error);
+      throw error;
+    }
+  }
+  /**
+   * Get sessions data (History + Stats)
+   */
+  async getSessionsData(): Promise<Partial<BackendViewModel>> {
+    try {
+      const [sessions, sessionStats] = await this.withTimeout(Promise.all([
+        this.sessionRepository.getAll(),
+        this.sessionRepository.getStats(),
+      ]));
+
+      // Sort sessions by start time desc (newest first)
+      const sortedSessions = sessions.sort((a, b) => 
+        new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      );
+
+      return {
+        sessions: sortedSessions,
+        sessionStats,
+      };
+    } catch (error) {
+      console.error('Error getting sessions data:', error);
       throw error;
     }
   }

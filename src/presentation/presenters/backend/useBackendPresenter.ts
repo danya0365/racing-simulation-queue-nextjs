@@ -28,14 +28,14 @@ export interface BackendPresenterState {
   error: string | null;
   selectedQueue: Queue | null;
   selectedMachine: Machine | null;
-  activeTab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings';
+  activeTab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions';
   isUpdating: boolean;
 }
 
 export interface BackendPresenterActions {
   loadData: () => Promise<void>;
   refreshData: () => Promise<void>;
-  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings') => void;
+  setActiveTab: (tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions') => void;
   selectQueue: (queue: Queue | null) => void;
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
@@ -72,7 +72,7 @@ export function useBackendPresenter(
   const [error, setError] = useState<string | null>(null);
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions'>('dashboard');
   const [isUpdating, setIsUpdating] = useState(false);
 
   /**
@@ -96,6 +96,8 @@ export function useBackendPresenter(
       } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
         // Operational tabs need real-time data but not full daily bookings
         partialData = await presenter.getControlData();
+      } else if (tab === 'sessions') {
+        partialData = await presenter.getSessionsData();
       } else if (tab === 'customers' || tab === 'advanceBookings') {
         // These tabs handle their own data fetching
         setLoading(false);
@@ -141,7 +143,7 @@ export function useBackendPresenter(
   /**
    * Set active tab and load its data
    */
-  const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings') => {
+  const handleSetActiveTab = useCallback((tab: 'dashboard' | 'queues' | 'machines' | 'customers' | 'advanceBookings' | 'sessions') => {
     setActiveTab(tab);
     if (tab === 'customers' || tab === 'advanceBookings') {
       // Customers and advanceBookings tabs handle their own fetching

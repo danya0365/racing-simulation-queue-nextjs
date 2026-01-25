@@ -704,7 +704,7 @@ function GameControlGuide() {
           <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
             <h4 className="font-bold text-purple-700 mb-2">สถิติด้านบน</h4>
             <ul className="space-y-1 text-sm text-gray-700">
-              <li>✔️ เครื่องว่าง | 🏁 กำลังใช้งาน | 📅 การจองวันนี้ | ⏰ Slots ว่าง</li>
+              <li>✔️ เครื่องว่าง | 🏁 กำลังเล่น | 📅 การจองวันนี้ | ⏰ Slots ว่าง</li>
             </ul>
           </div>
         </div>

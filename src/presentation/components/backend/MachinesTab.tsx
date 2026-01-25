@@ -36,7 +36,7 @@ export function MachinesTab({ machines, isUpdating, onUpdateStatus, onUpdateMach
       case 'available':
         return { label: 'ว่าง', color: 'bg-emerald-500', textColor: 'text-emerald-400' };
       case 'occupied':
-        return { label: 'กำลังใช้งาน', color: 'bg-orange-500', textColor: 'text-orange-400' };
+        return { label: 'กำลังเล่น', color: 'bg-orange-500', textColor: 'text-orange-400' };
       case 'maintenance':
         return { label: 'ซ่อมบำรุง', color: 'bg-gray-500', textColor: 'text-gray-400' };
       default:
@@ -266,7 +266,7 @@ function EditMachineModal({ machine, onClose, onSave, isUpdating }: EditMachineM
               className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-cyan-500 text-foreground"
             >
               <option value="available">✅ ว่าง</option>
-              <option value="occupied">🏁 กำลังใช้งาน</option>
+              <option value="occupied">🏁 กำลังเล่น</option>
               <option value="maintenance">🔧 ซ่อมบำรุง</option>
             </select>
           </div>

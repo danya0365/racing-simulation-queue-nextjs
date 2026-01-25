@@ -125,7 +125,7 @@ supabase db seed
 - 6 เครื่อง Racing Simulator (Racing Sim 1-6)
 
 **Customers:**
-- 10 ลูกค้าตัวอย่าง พร้อมประวัติการใช้งาน
+- 10 ลูกค้าตัวอย่าง พร้อมประวัติการเล่น
 
 **Historical Queues:**
 - ข้อมูลคิวย้อนหลัง 30 วัน (5-15 bookings ต่อวัน)

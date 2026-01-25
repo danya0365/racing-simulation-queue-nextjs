@@ -4,7 +4,7 @@ import type { WalkInStatus } from '@/src/application/repositories/IWalkInQueueRe
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import {
-  BackendSkeleton
+    BackendSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
@@ -17,6 +17,7 @@ import { DashboardTab } from './DashboardTab';
 import { MachinesTab } from './MachinesTab';
 import { QueuesTab } from './QueuesTab';
 import { QuickBookingQRCode } from './QuickBookingQRCode';
+import { SessionsTab } from './SessionsTab';
 
 // Type alias for backward compatibility - includes legacy 'playing' and 'completed' statuses
 type QueueStatus = WalkInStatus | 'playing' | 'completed' | 'cancelled';
@@ -135,6 +136,12 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           >
             📅 จองเวลา
           </TabButton>
+          <TabButton
+            active={state.activeTab === 'sessions'}
+            onClick={() => actions.setActiveTab('sessions')}
+          >
+            ⏱️ ประวัติการเล่น
+          </TabButton>
         </div>
       </section>
 
@@ -165,6 +172,12 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           )}
           {state.activeTab === 'advanceBookings' && (
             <BookingsTab />
+          )}
+          {state.activeTab === 'sessions' && (
+            <SessionsTab 
+              sessions={viewModel.sessions || []}
+              sessionStats={viewModel.sessionStats}
+            />
           )}
         </div>
       </section>
