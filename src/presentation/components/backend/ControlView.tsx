@@ -591,7 +591,7 @@ function StationCard({
         {/* Upcoming Bookings */}
         {station.upcomingBookings.length > 0 && (
           <div className="pt-2 border-t border-white/10">
-            <p className="text-xs text-white/40 mb-2">คิวถัดไป</p>
+            <p className="text-xs text-white/40 mb-2">การจองถัดไป</p>
             <div className="space-y-1">
               {station.upcomingBookings.map(b => (
                 <div key={b.id} className="flex justify-between text-sm text-white/60">
