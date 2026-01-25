@@ -26,6 +26,7 @@ export interface StationViewModel {
   reservedBooking: Booking | null;
   upcomingBookings: Booking[];
   slots: BookingTimeSlot[];
+  allBookings: Booking[];
 }
 
 export interface ControlViewModel {
@@ -111,6 +112,7 @@ export class ControlPresenter {
         reservedBooking,
         upcomingBookings,
         slots: slotsByMachine.get(machine.id) || [],
+        allBookings: machineBookings,
       };
     });
 

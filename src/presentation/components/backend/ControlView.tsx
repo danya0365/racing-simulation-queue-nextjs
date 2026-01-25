@@ -1,7 +1,9 @@
 'use client';
 
+import { Booking } from '@/src/application/repositories/IBookingRepository';
 import { Session } from '@/src/application/repositories/ISessionRepository';
 import { WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
+import { BookingDetailModal } from '@/src/presentation/components/backend/BookingDetailModal';
 import { ConfirmationModal } from '@/src/presentation/components/ui/ConfirmationModal';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import { Portal } from '@/src/presentation/components/ui/Portal';
@@ -33,6 +35,9 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
   // Manual start modal form state
   const [manualCustomerName, setManualCustomerName] = useState('');
   const [estimatedDuration, setEstimatedDuration] = useState<number>(60);
+  
+  // Booking detail modal state
+  const [detailModalBooking, setDetailModalBooking] = useState<Booking | null>(null);
 
   // Update current time every second
   useEffect(() => {
@@ -150,6 +155,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
               }}
               onViewDetails={(session) => actions.openSessionDetailModal(session)}
               onViewHistory={() => actions.openHistoryModal(station.machine.id)}
+              onViewBookingDetail={(booking) => setDetailModalBooking(booking)}
             />
           ))}
         </div>
@@ -383,6 +389,19 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           isLoading={state.isUpdating}
         />
       )}
+      {/* Booking Detail Modal (Read Only) */}
+      {detailModalBooking && (
+        <BookingDetailModal 
+          booking={detailModalBooking}
+          onClose={() => setDetailModalBooking(null)}
+          onCheckIn={() => {
+            setDetailModalBooking(null);
+            if (detailModalBooking.status === 'confirmed') {
+              actions.openCheckInModal(detailModalBooking.machineId, detailModalBooking);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -431,6 +450,7 @@ function StationCard({
   onEndSession,
   onViewDetails,
   onViewHistory,
+  onViewBookingDetail,
 }: {
   station: StationViewModel;
   currentTime: dayjs.Dayjs;
@@ -442,6 +462,7 @@ function StationCard({
   onEndSession: () => void;
   onViewDetails: (session: Session) => void;
   onViewHistory: () => void;
+  onViewBookingDetail: (booking: Booking) => void;
 }) {
   const { machine, state: stationState, activeSession, reservedBooking } = station;
   
@@ -616,8 +637,27 @@ function StationCard({
                return (
                  <div 
                    key={slot.id} 
-                   className={`flex-1 ${bgClass}`}
+                   className={`flex-1 ${bgClass} cursor-pointer hover:opacity-80 transition-opacity relative group`}
                    title={`${slot.startTime} - ${slot.endTime} (${slot.status})`} 
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     // If it's the active session, view session details
+                     if (activeSession && (
+                         activeSession.id === slot.bookingId || 
+                         (activeSession.bookingId && activeSession.bookingId === slot.bookingId)
+                       )) {
+                       onViewDetails(activeSession);
+                       return;
+                     }
+                     
+                     // Otherwise try to find the booking
+                     if (slot.bookingId && station.allBookings) {
+                       const booking = station.allBookings.find(b => b.id === slot.bookingId);
+                       if (booking) {
+                         onViewBookingDetail(booking);
+                       }
+                     }
+                   }}
                  />
                );
              })}
