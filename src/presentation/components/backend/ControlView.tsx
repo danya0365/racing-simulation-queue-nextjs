@@ -115,8 +115,8 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           </div>
         </div>
         
-        {/* Row 2: Compact Stats - Horizontal scroll on mobile */}
-        <div className="px-3 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+        {/* Row 2: Full Width Stats Grid */}
+        <div className="px-3 pb-2 grid grid-cols-2 md:grid-cols-4 gap-2">
           <MiniStat icon="🟢" value={viewModel.stats.availableCount} label="ว่าง" color="emerald" />
           <MiniStat icon="🔴" value={viewModel.stats.inUseCount} label="ใช้งาน" color="orange" />
           <MiniStat icon="🟡" value={viewModel.stats.reservedCount} label="จอง" color="yellow" />
@@ -321,17 +321,19 @@ function MiniStat({
   color: 'emerald' | 'orange' | 'yellow' | 'cyan';
 }) {
   const colorMap = {
-    emerald: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400',
-    orange: 'bg-orange-500/20 border-orange-500/40 text-orange-400',
-    yellow: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400',
-    cyan: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400',
+    emerald: 'bg-emerald-500/30 border-emerald-500/50 text-emerald-300',
+    orange: 'bg-orange-500/30 border-orange-500/50 text-orange-300',
+    yellow: 'bg-yellow-500/30 border-yellow-500/50 text-yellow-300',
+    cyan: 'bg-cyan-500/30 border-cyan-500/50 text-cyan-300',
   };
 
   return (
-    <div className={`${colorMap[color]} border rounded-lg px-3 py-1.5 flex items-center gap-2 flex-shrink-0`}>
-      <span className="text-base">{icon}</span>
-      <span className="text-lg font-bold">{value}</span>
-      <span className="text-xs text-white/60 hidden sm:inline">{label}</span>
+    <div className={`${colorMap[color]} border rounded-lg px-3 py-2 flex items-center gap-2 w-full`}>
+      <span className="text-lg">{icon}</span>
+      <div className="flex flex-col leading-tight">
+        <span className="text-xl font-bold">{value}</span>
+        <span className="text-[10px] text-white/70 uppercase tracking-wide">{label}</span>
+      </div>
     </div>
   );
 }
