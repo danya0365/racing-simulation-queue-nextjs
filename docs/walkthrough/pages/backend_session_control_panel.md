@@ -43,7 +43,7 @@ graph TD
 1. **Start Manual** - เริ่มเล่นแบบ walk-in
 2. **From Queue** - เลือกจากคิวที่รอ
 3. **Check-in** - สำหรับ booking ที่จอง
-4. **End Session** - จบ session
+4. **End Session** - จบการเล่น
 
 ---
 

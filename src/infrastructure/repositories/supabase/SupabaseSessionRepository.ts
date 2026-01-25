@@ -73,15 +73,21 @@ export class SupabaseSessionRepository implements ISessionRepository {
     return (data || []).map(this.mapToDomain);
   }
 
-  async getByStationId(stationId: string): Promise<Session[]> {
-    const { data, error } = await this.supabase
+  async getByStationId(stationId: string, limit: number = 30, page: number = 1): Promise<Session[]> {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = this.supabase
       .from('sessions')
       .select(`
         *,
         machines:station_id (name)
       `)
       .eq('station_id', stationId)
-      .order('start_time', { ascending: false });
+      .order('start_time', { ascending: false })
+      .range(from, to);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching sessions by station:', error);
@@ -253,7 +259,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
     }};
 
     if (!response.success) {
-      throw new Error(response.error || 'ไม่สามารถจบ session ได้');
+      throw new Error(response.error || 'ไม่สามารถจบการเล่นได้');
     }
 
     // Get updated session

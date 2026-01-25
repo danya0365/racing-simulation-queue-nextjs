@@ -19,11 +19,15 @@ export async function GET(request: NextRequest) {
     const stationId = searchParams.get('stationId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const limitParams = searchParams.get('limit');
+    const pageParams = searchParams.get('page');
     
     let sessions;
     
     if (stationId) {
-      sessions = await repository.getByStationId(stationId);
+      const limit = limitParams ? parseInt(limitParams) : undefined;
+      const page = pageParams ? parseInt(pageParams) : undefined;
+      sessions = await repository.getByStationId(stationId, limit, page);
     } else if (startDate && endDate) {
       sessions = await repository.getByDateRange(startDate, endDate);
     } else {

@@ -99,7 +99,7 @@ export interface ISessionRepository {
   /**
    * Get sessions by station ID
    */
-  getByStationId(stationId: string): Promise<Session[]>;
+  getByStationId(stationId: string, limit?: number, page?: number): Promise<Session[]>;
 
   /**
    * Get active (in-progress) session for a station

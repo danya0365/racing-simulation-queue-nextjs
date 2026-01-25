@@ -9,12 +9,12 @@
 'use client';
 
 import {
-    EndSessionData,
-    ISessionRepository,
-    PaymentStatus,
-    Session,
-    SessionStats,
-    StartSessionData,
+  EndSessionData,
+  ISessionRepository,
+  PaymentStatus,
+  Session,
+  SessionStats,
+  StartSessionData,
 } from '@/src/application/repositories/ISessionRepository';
 
 export class ApiSessionRepository implements ISessionRepository {
@@ -46,8 +46,12 @@ export class ApiSessionRepository implements ISessionRepository {
     return res.json();
   }
 
-  async getByStationId(stationId: string): Promise<Session[]> {
-    const res = await fetch(`${this.baseUrl}?stationId=${stationId}`);
+  async getByStationId(stationId: string, limit: number = 30, page: number = 1): Promise<Session[]> {
+    const params = new URLSearchParams({ stationId });
+    if (limit) params.set('limit', limit.toString());
+    if (page) params.set('page', page.toString());
+    
+    const res = await fetch(`${this.baseUrl}?${params.toString()}`);
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || 'ไม่สามารถโหลดข้อมูล sessions ได้');
@@ -126,7 +130,7 @@ export class ApiSessionRepository implements ISessionRepository {
     
     if (!res.ok) {
       const error = await res.json();
-      throw new Error(error.error || 'ไม่สามารถจบ session ได้');
+      throw new Error(error.error || 'ไม่สามารถจบการเล่นได้');
     }
     
     return res.json();

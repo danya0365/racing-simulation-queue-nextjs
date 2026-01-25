@@ -154,12 +154,12 @@ const defaultTestCases: TestCase[] = [
   {
     id: 'session-2',
     category: 'Sessions (พนักงาน)',
-    title: 'จบ Session',
-    description: 'ทดสอบการจบ session และคำนวณค่าใช้จ่าย',
+    title: 'จบการเล่น',
+    description: 'ทดสอบการจบการเล่นและคำนวณค่าใช้จ่าย',
     steps: [
       'เปิดหน้า /backend/control',
       'เลือกเครื่องที่มี session',
-      'กดปุ่ม "จบ Session"',
+      'กดปุ่ม "จบการเล่น"',
       'ตรวจสอบค่าใช้จ่าย',
     ],
     expectedResult: 'Session จบ คำนวณเวลาและค่าใช้จ่าย เครื่องว่าง',
@@ -171,7 +171,7 @@ const defaultTestCases: TestCase[] = [
     title: 'อัพเดทสถานะชำระเงิน',
     description: 'ทดสอบการบันทึกการชำระเงิน',
     steps: [
-      'จบ session',
+      'จบการเล่น',
       'กดปุ่มชำระเงิน',
       'เลือกสถานะ paid',
     ],

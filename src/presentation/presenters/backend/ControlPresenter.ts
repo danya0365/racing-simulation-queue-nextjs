@@ -219,9 +219,7 @@ export class ControlPresenter {
    * Get session history for a machine
    */
   async getMachineHistory(machineId: string): Promise<Session[]> {
-    const sessions = await this.sessionRepo.getByStationId(machineId);
-    // Sort by start time descending (newest first)
-    return sessions.sort((a, b) => b.startTime.localeCompare(a.startTime));
+    return this.sessionRepo.getByStationId(machineId, 30);
   }
 
   // ============================================================

@@ -46,7 +46,7 @@
 
 2.  **Concurrency Safety**:
     *   การใช้ `rpc_start_session` ช่วยป้องกันการเริ่มซ้อนครับ เพราะ Database จะ Lock Row หรือ Check Constraint ได้ดีกว่าทำเลเยอร์ Application
-    *   `rpc_end_session` ช่วยการันตีว่าจบ Session เดียวกันแน่นอน
+    *   `rpc_end_session` ช่วยการันตีว่าจบการเล่นเดียวกันแน่นอน
 
 ---
 

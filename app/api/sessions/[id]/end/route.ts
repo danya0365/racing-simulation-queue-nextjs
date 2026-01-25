@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   } catch (error) {
     console.error('Error ending session:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'ไม่สามารถจบ session ได้' },
+      { error: error instanceof Error ? error.message : 'ไม่สามารถจบการเล่นได้' },
       { status: 500 }
     );
   }

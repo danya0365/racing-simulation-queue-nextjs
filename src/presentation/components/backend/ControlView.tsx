@@ -604,7 +604,7 @@ function StationCard({
               onClick={onEndSession}
               disabled={isUpdating}
             >
-              ⏹️ จบ Session
+              ⏹️ จบการเล่น
             </GlowButton>
           </div>
         )}
@@ -688,17 +688,23 @@ function HistoryModal({
   onClose: () => void;
   isLoading: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Show only 5 items if not expanded
+  const displayedSessions = isExpanded ? sessions : sessions.slice(0, 5);
+  const hiddenCount = sessions.length - 5;
+
   return (
     <Portal>
       <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-2xl p-6 max-h-[80vh] flex flex-col">
-          <div className="flex justify-between items-center mb-6">
+        <div className={`bg-slate-800 rounded-2xl border border-white/20 w-full max-w-2xl p-6 flex flex-col transition-all duration-300 ${isExpanded ? 'h-[80vh]' : 'max-h-[80vh]'}`}>
+          <div className="flex justify-between items-center mb-6 shrink-0">
             <div>
               <h3 className="text-xl font-bold text-white">
                 📜 ประวัติการเล่น
               </h3>
               <p className="text-white/60 text-sm mt-1">
-                เครื่อง: {machineName}
+                เครื่อง: {machineName} (ล่าสุด {sessions.length} รายการ)
               </p>
             </div>
             <button 
@@ -709,7 +715,7 @@ function HistoryModal({
             </button>
           </div>
 
-          <div className="flex-1 overflow-auto space-y-2 pr-2">
+          <div className="flex-1 overflow-auto custom-scrollbar space-y-2 pr-2">
             {isLoading && sessions.length === 0 ? (
               <div className="text-center py-10 text-white/40">
                 กำลังโหลด...
@@ -719,41 +725,70 @@ function HistoryModal({
                 ไม่มีประวัติการเล่น
               </div>
             ) : (
-              sessions.map((session) => (
-                <div key={session.id} className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <span className="text-lg font-bold text-white block">{session.customerName}</span>
-                      <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full inline-block mt-1">
-                        {session.sourceType || 'manual'}
-                      </span>
+              <>
+                {displayedSessions.map((session) => (
+                  <div key={session.id} className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="text-lg font-bold text-white block">{session.customerName}</span>
+                        <div className="flex gap-2 mt-1">
+                           <span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded-full inline-block">
+                             {session.sourceType || 'manual'}
+                           </span>
+                           {session.notes && (
+                              <span className="text-xs text-yellow-500/80 bg-yellow-500/10 px-2 py-0.5 rounded-full inline-block">
+                                📝 มีโน้ต
+                              </span>
+                           )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                         <div className="text-emerald-400 font-bold">฿{session.totalAmount || 0}</div>
+                         <div className={`text-xs ${session.paymentStatus === 'paid' ? 'text-green-500' : 'text-red-500'}`}>
+                           {session.paymentStatus === 'paid' ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}
+                         </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                       <div className="text-emerald-400 font-bold">฿{session.totalAmount || 0}</div>
-                       <div className={`text-xs ${session.paymentStatus === 'paid' ? 'text-green-500' : 'text-red-500'}`}>
-                         {session.paymentStatus === 'paid' ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}
-                       </div>
+                    <div className="flex items-center gap-4 text-sm text-white/60 font-mono bg-black/20 p-2 rounded-lg">
+                      <div>
+                        <span className="opacity-50 mr-2">Start:</span>
+                        {dayjs(session.startTime).format('HH:mm')}
+                      </div>
+                      <div>
+                        <span className="opacity-50 mr-2">End:</span>
+                        {session.endTime ? dayjs(session.endTime).format('HH:mm') : '-'}
+                      </div>
+                      <div className="ml-auto">
+                        {session.durationMinutes ? `${session.durationMinutes} min` : 'On-going'}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-white/60 font-mono bg-black/20 p-2 rounded-lg">
-                    <div>
-                      <span className="opacity-50 mr-2">Start:</span>
-                      {dayjs(session.startTime).format('HH:mm')}
-                    </div>
-                    <div>
-                      <span className="opacity-50 mr-2">End:</span>
-                      {session.endTime ? dayjs(session.endTime).format('HH:mm') : '-'}
-                    </div>
-                    <div className="ml-auto">
-                      {session.durationMinutes ? `${session.durationMinutes} min` : 'On-going'}
-                    </div>
-                  </div>
-                </div>
-              ))
+                ))}
+
+                {/* Show Expand Button if there are hidden items */}
+                {!isExpanded && hiddenCount > 0 && (
+                  <button 
+                    onClick={() => setIsExpanded(true)}
+                    className="w-full py-3 rounded-xl border border-dashed border-white/20 text-white/40 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                  >
+                    👇 แสดงเพิ่มอีก {hiddenCount} รายการ
+                  </button>
+                )}
+                
+                {/* Show Collapse Button if expanded */}
+                {isExpanded && sessions.length > 5 && (
+                   <button 
+                     onClick={() => setIsExpanded(false)}
+                     className="w-full py-3 rounded-xl border border-dashed border-white/20 text-white/40 hover:text-white hover:bg-white/5 transition-all text-sm font-medium sticky bottom-0 bg-slate-800/90 backdrop-blur"
+                   >
+                     👆 ย่อรายการ
+                   </button>
+                )}
+              </>
             )}
           </div>
           
-          <div className="mt-4 pt-4 border-t border-white/10">
+          <div className="mt-4 pt-4 border-t border-white/10 shrink-0">
             <GlowButton color="purple" className="w-full" onClick={onClose}>
               ปิด
             </GlowButton>
@@ -818,7 +853,7 @@ function EndSessionModal({
       <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
         <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-sm p-6 relative">
           <h3 className="text-xl font-bold text-white mb-2">
-            ⏹️ จบ Session?
+            ⏹️ จบการเล่น?
           </h3>
           <p className="text-white/60 mb-6">
             ยืนยันการจบการทำงาน? ระบบจะคำนวณเงินให้อัตโนมัติ หรือคุณสามารถระบุยอดเงินเองได้
@@ -842,7 +877,6 @@ function EndSessionModal({
           <div className="flex gap-3">
             <GlowButton
               color="purple"
-              variant="outline"
               className="flex-1"
               onClick={onClose}
               disabled={isLoading}
@@ -856,7 +890,7 @@ function EndSessionModal({
                 const parsedAmount = amount ? parseFloat(amount) : undefined;
                 onConfirm(parsedAmount);
               }}
-              isLoading={isLoading}
+              disabled={isLoading}
             >
               จบการทำงาน
             </GlowButton>
