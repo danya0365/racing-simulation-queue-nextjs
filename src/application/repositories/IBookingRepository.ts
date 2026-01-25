@@ -125,14 +125,7 @@ export interface BookingStats {
   completedBookings: number;
 }
 
-/**
- * Log of a booking session action (START/STOP)
- */
-export interface BookingLog {
-  bookingId: string;
-  action: 'START' | 'STOP';
-  recordedAt: string;
-}
+
 
 // ============================================================
 // REPOSITORY INTERFACE
@@ -221,13 +214,5 @@ export interface IBookingRepository {
    */
   getStats(): Promise<BookingStats>;
 
-  /**
-   * Log a session action (START/STOP)
-   */
-  logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void>;
 
-  /**
-   * Get session logs for a list of bookings
-   */
-  getSessionLogs(bookingIds: string[]): Promise<BookingLog[]>;
 }

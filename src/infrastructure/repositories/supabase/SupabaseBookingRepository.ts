@@ -13,7 +13,7 @@
 import {
   Booking,
   BookingDaySchedule,
-  BookingLog,
+
   BookingSlotStatus,
   BookingStats,
   BookingTimeSlot,
@@ -34,7 +34,7 @@ type BookingRow = Database['public']['Tables']['bookings']['Row'];
 type RpcGetBookingsScheduleResult = Database['public']['Functions']['rpc_get_bookings_schedule']['Returns'][number];
 type RpcGetMyBookingsResult = Database['public']['Functions']['rpc_get_my_bookings']['Returns'][number];
 type RpcGetBookingsByMachineDateResult = Database['public']['Functions']['rpc_get_bookings_by_machine_date']['Returns'][number];
-type RpcGetBookingLogsResult = Database['public']['Functions']['rpc_get_booking_logs']['Returns'][number];
+
 
 // Operating hours configuration
 const OPENING_HOUR = OPERATING_HOURS.isOpen24Hours ? 0 : OPERATING_HOURS.open;
@@ -419,38 +419,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
     };
   }
 
-  async logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void> {
-    const { error } = await this.client
-      .rpc('rpc_log_booking', {
-        p_booking_id: bookingId,
-        p_action: action,
-      });
 
-    if (error) {
-      console.error('Error logging session:', error);
-      throw error;
-    }
-  }
-
-  async getSessionLogs(bookingIds: string[]): Promise<BookingLog[]> {
-    if (bookingIds.length === 0) return [];
-
-    const { data, error } = await this.client
-      .rpc('rpc_get_booking_logs', {
-        p_booking_ids: bookingIds,
-      });
-
-    if (error) {
-      console.error('Error fetching session logs:', error);
-      return [];
-    }
-
-    return data.map(log => ({
-      bookingId: log.booking_id,
-      action: log.action as 'START' | 'STOP',
-      recordedAt: log.recorded_at,
-    }));
-  }
 
   // ============================================================
   // PRIVATE METHODS

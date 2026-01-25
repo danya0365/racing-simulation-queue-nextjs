@@ -10,13 +10,13 @@
 'use client';
 
 import {
-    Booking,
-    BookingDaySchedule,
-    BookingLog,
-    BookingStats,
-    CreateBookingData,
-    IBookingRepository,
-    UpdateBookingData,
+  Booking,
+  BookingDaySchedule,
+
+  BookingStats,
+  CreateBookingData,
+  IBookingRepository,
+  UpdateBookingData,
 } from '@/src/application/repositories/IBookingRepository';
 
 export class ApiBookingRepository implements IBookingRepository {
@@ -204,32 +204,5 @@ export class ApiBookingRepository implements IBookingRepository {
     return res.json();
   }
 
-  /**
-   * Log a session action (START/STOP)
-   */
-  async logSession(bookingId: string, action: 'START' | 'STOP'): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/logs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId, action }),
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'ไม่สามารถบันทึกเซสชันได้');
-    }
-  }
 
-  /**
-   * Get session logs for a list of bookings
-   */
-  async getSessionLogs(bookingIds: string[]): Promise<BookingLog[]> {
-    if (bookingIds.length === 0) return [];
-    
-    const res = await fetch(`${this.baseUrl}/logs?ids=${bookingIds.join(',')}`);
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'ไม่สามารถโหลด logs ได้');
-    }
-    return res.json();
-  }
 }
