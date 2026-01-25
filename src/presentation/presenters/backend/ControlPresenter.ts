@@ -144,20 +144,13 @@ export class ControlPresenter {
   /**
    * Start session from walk-in queue
    */
-  async startFromQueue(machineId: string, queueId: string): Promise<Session> {
-    // First seat the customer (updates queue status)
-    const queue = await this.walkInRepo.seatCustomer({
-      queueId,
-      machineId,
+  async startFromQueue(machineId: string, queue: WalkInQueue): Promise<Session> {
+    return this.sessionRepo.startSession({
+      stationId: machineId,
+      customerName: queue.customerName,
+      queueId: queue.id,
+      notes: `Walk-in Queue #${queue.queueNumber}`,
     });
-    
-    // Session is automatically created by seatCustomer RPC
-    // Return the active session for this machine
-    const session = await this.sessionRepo.getActiveSession(machineId);
-    if (!session) {
-      throw new Error('Session not created after seating customer');
-    }
-    return session;
   }
 
   /**

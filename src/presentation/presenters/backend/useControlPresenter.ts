@@ -174,7 +174,7 @@ export function useControlPresenter(
     setError(null);
 
     try {
-      await presenter.startFromQueue(machineId, queue.id);
+      await presenter.startFromQueue(machineId, queue);
       if (isMountedRef.current) {
         setQueueSelectModal({ isOpen: false, machineId: null });
       }

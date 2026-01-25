@@ -39,7 +39,7 @@ export interface BackendPresenterActions {
   selectQueue: (queue: Queue | null) => void;
   selectMachine: (machine: Machine | null) => void;
   updateQueueStatus: (queueId: string, status: QueueStatus) => Promise<void>;
-  seatCustomer: (queueId: string, machineId: string) => Promise<void>;
+
   endSession: (sessionId: string, totalAmount?: number) => Promise<void>;
   updateMachineStatus: (machineId: string, status: MachineStatus) => Promise<void>;
   updateMachine: (machineId: string, data: MachineUpdateData) => Promise<void>;
@@ -176,26 +176,7 @@ export function useBackendPresenter(
     }
   }, [refreshData, presenter]);
 
-  /**
-   * Seat a customer (transition from queue to session)
-   */
-  const seatCustomer = useCallback(async (queueId: string, machineId: string) => {
-    setIsUpdating(true);
-    setError(null);
 
-    try {
-      await presenter.seatQueueCustomer(queueId, machineId);
-      await refreshData();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      if (isMountedRef.current) {
-        setIsUpdating(false);
-      }
-    }
-  }, [refreshData, presenter]);
 
   /**
    * End a session
@@ -395,7 +376,7 @@ export function useBackendPresenter(
       selectQueue,
       selectMachine,
       updateQueueStatus,
-      seatCustomer,
+
       endSession,
       updateMachineStatus,
       updateMachine,

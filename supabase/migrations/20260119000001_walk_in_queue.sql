@@ -312,70 +312,7 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- RPC FUNCTION: Seat customer (creates session)
--- ============================================================
 
-CREATE OR REPLACE FUNCTION public.rpc_seat_queue_customer(
-    p_queue_id UUID,
-    p_machine_id UUID
-)
-RETURNS JSON
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_queue RECORD;
-    v_customer RECORD;
-    v_machine RECORD;
-BEGIN
-    -- Check permission
-    IF NOT public.is_moderator_or_admin() THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่มีสิทธิ์ดำเนินการ');
-    END IF;
-    
-    -- Get queue with customer
-    SELECT wq.*, c.name as customer_name
-    INTO v_queue
-    FROM public.walk_in_queue wq
-    JOIN public.customers c ON c.id = wq.customer_id
-    WHERE wq.id = p_queue_id;
-    
-    IF v_queue IS NULL THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่พบคิวนี้');
-    END IF;
-    
-    IF v_queue.status NOT IN ('waiting', 'called') THEN
-        RETURN json_build_object('success', false, 'error', 'สถานะคิวไม่ถูกต้อง');
-    END IF;
-    
-    -- Check machine availability
-    SELECT * INTO v_machine FROM public.machines WHERE id = p_machine_id;
-    
-    IF v_machine IS NULL THEN
-        RETURN json_build_object('success', false, 'error', 'ไม่พบเครื่องนี้');
-    END IF;
-    
-    IF v_machine.status != 'available' THEN
-        RETURN json_build_object('success', false, 'error', 'เครื่องนี้ไม่ว่าง');
-    END IF;
-    
-    -- Update queue status to seated
-    UPDATE public.walk_in_queue
-    SET status = 'seated', seated_at = NOW(), updated_at = NOW()
-    WHERE id = p_queue_id;
-    
-    -- Update machine status to occupied
-    UPDATE public.machines
-    SET status = 'occupied', updated_at = NOW()
-    WHERE id = p_machine_id;
-    
-    RETURN json_build_object(
-        'success', true,
-        'message', 'ลูกค้าได้รับการจัดที่นั่งแล้ว'
-    );
-END;
-$$;
 
 -- ============================================================
 -- RPC FUNCTION: Cancel queue entry
@@ -560,7 +497,7 @@ GRANT ALL ON public.walk_in_queue TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_waiting_queue() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_join_walk_in_queue(TEXT, TEXT, INTEGER, TEXT, UUID, TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_call_queue_customer(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.rpc_seat_queue_customer(UUID, UUID) TO authenticated;
+
 GRANT EXECUTE ON FUNCTION public.rpc_cancel_walk_in_queue(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_my_walk_in_queue(UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_get_walk_in_queue_stats() TO anon, authenticated;

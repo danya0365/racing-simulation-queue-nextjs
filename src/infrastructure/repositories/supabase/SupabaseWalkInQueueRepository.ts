@@ -10,10 +10,9 @@
 import {
   IWalkInQueueRepository,
   JoinWalkInQueueData,
-  SeatCustomerData,
   WalkInQueue,
   WalkInQueueStats,
-  WalkInStatus,
+  WalkInStatus
 } from '@/src/application/repositories/IWalkInQueueRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -229,27 +228,7 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
     return updated;
   }
 
-  async seatCustomer(data: SeatCustomerData): Promise<WalkInQueue> {
-    const { data: result, error } = await this.supabase
-      .rpc('rpc_seat_queue_customer', {
-        p_queue_id: data.queueId,
-        p_machine_id: data.machineId,
-      });
 
-    if (error) throw error;
-
-    const response = result as { success: boolean; error?: string };
-    if (!response.success) {
-      throw new Error(response.error || 'ไม่สามารถจัดที่นั่งได้');
-    }
-
-    // Get updated queue
-    const updated = await this.getById(data.queueId);
-    if (!updated) {
-      throw new Error('ไม่พบคิวหลังอัปเดต');
-    }
-    return updated;
-  }
 
   async cancel(queueId: string, customerId: string): Promise<boolean> {
     const { data, error } = await this.supabase

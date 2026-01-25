@@ -9,11 +9,10 @@
 'use client';
 
 import {
-    IWalkInQueueRepository,
-    JoinWalkInQueueData,
-    SeatCustomerData,
-    WalkInQueue,
-    WalkInQueueStats
+  IWalkInQueueRepository,
+  JoinWalkInQueueData,
+  WalkInQueue,
+  WalkInQueueStats
 } from '@/src/application/repositories/IWalkInQueueRepository';
 
 export class ApiWalkInQueueRepository implements IWalkInQueueRepository {
@@ -107,20 +106,7 @@ export class ApiWalkInQueueRepository implements IWalkInQueueRepository {
     return res.json();
   }
 
-  async seatCustomer(data: SeatCustomerData): Promise<WalkInQueue> {
-    const res = await fetch(`${this.baseUrl}/${data.queueId}/seat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ machineId: data.machineId }),
-    });
-    
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'ไม่สามารถจัดที่นั่งได้');
-    }
-    
-    return res.json();
-  }
+
 
   async cancel(queueId: string, customerId?: string): Promise<boolean> {
     const res = await fetch(`${this.baseUrl}/${queueId}`, {

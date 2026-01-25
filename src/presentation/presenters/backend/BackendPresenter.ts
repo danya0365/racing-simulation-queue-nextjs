@@ -253,17 +253,7 @@ export class BackendPresenter {
     }
   }
 
-  /**
-   * Seat a customer (creates a session)
-   */
-  async seatQueueCustomer(queueId: string, machineId: string): Promise<WalkInQueue> {
-    try {
-      return await this.walkInQueueRepository.seatCustomer({ queueId, machineId });
-    } catch (error) {
-      console.error('Error seating queue customer:', error);
-      throw error;
-    }
-  }
+
 
   /**
    * Cancel a queue entry

@@ -63,13 +63,7 @@ export interface JoinWalkInQueueData {
   customerId: string; // For ownership verification (empty string if new/guest)
 }
 
-/**
- * Data for seating a customer
- */
-export interface SeatCustomerData {
-  queueId: string;
-  machineId: string;
-}
+
 
 // ============================================================
 // REPOSITORY INTERFACE
@@ -111,11 +105,7 @@ export interface IWalkInQueueRepository {
    */
   callCustomer(queueId: string): Promise<WalkInQueue>;
 
-  /**
-   * Seat a customer (status: waiting/called → seated)
-   * This should also start a session
-   */
-  seatCustomer(data: SeatCustomerData): Promise<WalkInQueue>;
+
 
   /**
    * Cancel a queue entry (status: waiting/called → cancelled)
