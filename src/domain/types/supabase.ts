@@ -530,24 +530,6 @@ export type Database = {
         Args: { p_session_id: string; p_total_amount?: number }
         Returns: Json
       }
-      rpc_get_active_and_recent_queues: {
-        Args: never
-        Returns: {
-          booking_time: string
-          created_at: string
-          customer_id: string
-          customer_name: string
-          customer_phone: string
-          duration: number
-          id: string
-          machine_id: string
-          machine_name: string
-          notes: string
-          queue_position: number
-          status: Database["public"]["Enums"]["queue_status"]
-          updated_at: string
-        }[]
-      }
       rpc_get_active_machines: {
         Args: never
         Returns: {
@@ -598,29 +580,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      rpc_get_backend_dashboard_stats: {
-        Args: never
-        Returns: {
-          available_machines: number
-          cancelled_queues: number
-          completed_queues: number
-          maintenance_machines: number
-          occupied_machines: number
-          playing_queues: number
-          total_machines: number
-          total_queues: number
-          waiting_queues: number
-        }[]
-      }
       rpc_get_backend_stats: { Args: never; Returns: Json }
-      rpc_get_booking_logs: {
-        Args: { p_booking_ids: string[] }
-        Returns: {
-          action: string
-          booking_id: string
-          recorded_at: string
-        }[]
-      }
       rpc_get_booking_stats: { Args: never; Returns: Json }
       rpc_get_bookings_by_date: {
         Args: { p_customer_id?: string; p_date: string }
@@ -707,23 +667,6 @@ export type Database = {
           total_price: number
         }[]
       }
-      rpc_get_my_queue_status: {
-        Args: { p_queue_ids: string[] }
-        Returns: {
-          booking_time: string
-          customer_id: string
-          customer_name: string
-          customer_phone: string
-          duration: number
-          estimated_wait_minutes: number
-          id: string
-          machine_id: string
-          machine_name: string
-          queue_ahead: number
-          queue_position: number
-          status: string
-        }[]
-      }
       rpc_get_my_walk_in_queue: {
         Args: { p_customer_id: string }
         Returns: {
@@ -799,10 +742,6 @@ export type Database = {
         }
         Returns: Json
       }
-      rpc_log_booking: {
-        Args: { p_action: string; p_booking_id: string }
-        Returns: Json
-      }
       rpc_start_session: {
         Args: {
           p_booking_id?: string
@@ -845,7 +784,6 @@ export type Database = {
       machine_status: "available" | "occupied" | "maintenance"
       payment_status: "unpaid" | "paid" | "partial"
       profile_role: "user" | "moderator" | "admin"
-      queue_status: "waiting" | "playing" | "completed" | "cancelled"
       walk_in_status: "waiting" | "called" | "seated" | "cancelled"
     }
     CompositeTypes: {
@@ -985,7 +923,6 @@ export const Constants = {
       machine_status: ["available", "occupied", "maintenance"],
       payment_status: ["unpaid", "paid", "partial"],
       profile_role: ["user", "moderator", "admin"],
-      queue_status: ["waiting", "playing", "completed", "cancelled"],
       walk_in_status: ["waiting", "called", "seated", "cancelled"],
     },
   },
