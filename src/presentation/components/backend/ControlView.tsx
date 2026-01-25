@@ -32,6 +32,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
   
   // Manual start modal form state
   const [manualCustomerName, setManualCustomerName] = useState('');
+  const [estimatedDuration, setEstimatedDuration] = useState<number>(60);
 
   // Update current time every second
   useEffect(() => {
@@ -177,12 +178,41 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
                 onChange={(e) => setManualCustomerName(e.target.value)}
                 autoFocus
               />
+              <div className="mb-6">
+                <label className="text-white/60 text-sm mb-2 block">เวลาเล่น (นาที)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[30, 60, 90, 120].map((mins) => (
+                    <button
+                      key={mins}
+                      onClick={() => setEstimatedDuration(mins)}
+                      className={`px-4 py-2 rounded-lg border text-sm transition-all ${
+                        estimatedDuration === mins
+                          ? 'bg-purple-500 border-purple-400 text-white font-bold'
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
+                    >
+                      {mins}
+                    </button>
+                  ))}
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 min-w-[100px]">
+                     <span className="text-white/40 text-xs">Custom:</span>
+                     <input 
+                        type="number"
+                        className="w-full bg-transparent text-white text-sm py-2 focus:outline-none"
+                        value={estimatedDuration}
+                        onChange={(e) => setEstimatedDuration(parseInt(e.target.value) || 0)}
+                     />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3">
                 <GlowButton
                   color="purple"
                   className="flex-1"
                   onClick={() => {
                     setManualCustomerName('');
+                    setEstimatedDuration(60);
                     actions.closeManualStartModal();
                   }}
                 >
@@ -191,14 +221,17 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
                 <GlowButton
                   color="green"
                   className="flex-1"
-                  disabled={!manualCustomerName.trim() || state.isUpdating}
+                  disabled={!manualCustomerName.trim() || state.isUpdating || estimatedDuration <= 0}
                   onClick={() => {
                     if (state.manualStartModal.machineId && manualCustomerName.trim()) {
                       actions.startManualSession(
                         state.manualStartModal.machineId,
-                        manualCustomerName.trim()
+                        manualCustomerName.trim(),
+                        undefined,
+                        estimatedDuration
                       );
                       setManualCustomerName('');
+                      setEstimatedDuration(60);
                     }
                   }}
                 >
@@ -224,19 +257,46 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
                   <p>ไม่มีคิวรออยู่</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {viewModel.waitingQueue.map((queue) => (
-                    <QueueSelectItem
-                      key={queue.id}
-                      queue={queue}
-                      isUpdating={state.isUpdating}
-                      onSelect={() => {
-                        if (state.queueSelectModal.machineId) {
-                          actions.startFromQueue(state.queueSelectModal.machineId, queue);
-                        }
-                      }}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  <div className="bg-slate-900/50 p-3 rounded-xl border border-white/10">
+                     <label className="text-white/60 text-xs mb-2 block">ตั้งเวลาเล่นสำหรับคิวนี้ (นาที)</label>
+                     <div className="flex flex-wrap gap-2">
+                        {[30, 60, 90, 120].map((mins) => (
+                          <button
+                            key={mins}
+                            onClick={() => setEstimatedDuration(mins)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs transition-all ${
+                              estimatedDuration === mins
+                                ? 'bg-purple-500 border-purple-400 text-white font-bold'
+                                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                            }`}
+                          >
+                            {mins}
+                          </button>
+                        ))}
+                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {viewModel.waitingQueue.map((queue) => (
+                      <QueueSelectItem
+                        key={queue.id}
+                        queue={queue}
+                        isUpdating={state.isUpdating}
+                        onSelect={() => {
+                          if (state.queueSelectModal.machineId) {
+                            actions.startFromQueue(
+                                state.queueSelectModal.machineId, 
+                                queue,
+                                estimatedDuration
+                            );
+                            // Reset duration for next time
+                            setTimeout(() => setEstimatedDuration(60), 500);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="mt-4">
@@ -512,7 +572,10 @@ function StationCard({
               </div>
             </div>
             
-            <SessionTimer startTime={activeSession.startTime} />
+            <SessionTimer 
+              startTime={activeSession.startTime} 
+              estimatedEndTime={activeSession.estimatedEndTime}
+            />
             
             <GlowButton
               color="red"
@@ -544,7 +607,7 @@ function StationCard({
   );
 }
 
-function SessionTimer({ startTime }: { startTime: string }) {
+function SessionTimer({ startTime, estimatedEndTime }: { startTime: string; estimatedEndTime?: string }) {
   const [now, setNow] = useState(dayjs());
 
   useEffect(() => {
@@ -565,13 +628,42 @@ function SessionTimer({ startTime }: { startTime: string }) {
   const timeStr = hours > 0
     ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     : `${mins}:${secs.toString().padStart(2, '0')}`;
+  
+  // Calculate remaining time if estimated end time is provided
+  let remainingStr = null;
+  let isOvertime = false;
+  
+  if (estimatedEndTime) {
+    const end = dayjs(estimatedEndTime);
+    const remainingMs = end.diff(now);
+    isOvertime = remainingMs < 0;
+    
+    const remainingDur = dayjs.duration(Math.abs(remainingMs));
+    const rHours = Math.floor(remainingDur.asHours());
+    const rMins = remainingDur.minutes();
+    
+    remainingStr = isOvertime 
+      ? `+${rHours > 0 ? rHours + ':' : ''}${rMins}m`
+      : `-${rHours > 0 ? rHours + ':' : ''}${rMins}m`;
+  }
 
   return (
-    <div className="bg-black/20 rounded-lg p-3 flex justify-between items-center">
-      <span className="text-sm text-white/60">⏱️ เวลาใช้งาน</span>
-      <span className="font-mono font-bold text-xl text-emerald-400 animate-pulse">
-        {timeStr}
-      </span>
+    <div className="bg-black/20 rounded-lg p-3 flex flex-col gap-1">
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-white/60">⏱️ เวลาใช้งาน</span>
+        <span className="font-mono font-bold text-xl text-emerald-400 animate-pulse">
+          {timeStr}
+        </span>
+      </div>
+      
+      {remainingStr && (
+        <div className="flex justify-between items-center border-t border-white/10 pt-1 mt-1">
+           <span className="text-xs text-white/40">เหลือเวลา</span>
+           <span className={`font-mono text-sm font-bold ${isOvertime ? 'text-red-400' : 'text-blue-300'}`}>
+             {remainingStr}
+           </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -628,7 +720,10 @@ function SessionDetailModal({
                 </>
               ) : (
                 <div className="mt-2 -mx-2">
-                  <SessionTimer startTime={session.startTime} />
+                  <SessionTimer 
+                    startTime={session.startTime} 
+                    estimatedEndTime={session.estimatedEndTime}
+                  />
                 </div>
               )}
               <div className="flex justify-between border-t border-white/10 pt-2 mt-2">

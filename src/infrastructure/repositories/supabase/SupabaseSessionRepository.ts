@@ -122,6 +122,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       customer_name: string;
       start_time: string;
       duration_minutes: number;
+      estimated_end_time: string;
       source_type: string;
       payment_status: string;
     }) => ({
@@ -130,6 +131,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       stationName: row.station_name,
       customerName: row.customer_name,
       startTime: row.start_time,
+      estimatedEndTime: row.estimated_end_time,
       durationMinutes: row.duration_minutes,
       sourceType: row.source_type as SessionSourceType,
       totalAmount: 0,
@@ -206,6 +208,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
         p_booking_id: data.bookingId,
         p_queue_id: data.queueId,
         p_notes: data.notes,
+        p_estimated_duration_minutes: data.estimatedDurationMinutes ?? 60, // Default 60 min
       });
 
     if (error) throw error;
@@ -349,6 +352,7 @@ export class SupabaseSessionRepository implements ISessionRepository {
       customerName: raw.customer_name,
       startTime: raw.start_time,
       endTime: raw.end_time || undefined,
+      estimatedEndTime: raw.estimated_end_time || undefined,
       durationMinutes,
       totalAmount: raw.total_amount || 0,
       paymentStatus: (raw.payment_status || 'unpaid') as PaymentStatus,

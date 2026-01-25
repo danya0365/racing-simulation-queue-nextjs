@@ -29,6 +29,7 @@ export interface Session {
   customerName: string;
   startTime: string;
   endTime?: string;
+  estimatedEndTime?: string;
   durationMinutes?: number;
   totalAmount: number;
   paymentStatus: PaymentStatus;
@@ -64,6 +65,12 @@ export interface StartSessionData {
   bookingId?: string;
   queueId?: string;
   notes?: string;
+  /**
+   * Estimated duration in minutes for walk-in/manual sessions.
+   * Used for slot availability calculation. Default: 60 minutes.
+   * Not needed for booking-based sessions (uses booking's end_at).
+   */
+  estimatedDurationMinutes?: number;
 }
 
 /**

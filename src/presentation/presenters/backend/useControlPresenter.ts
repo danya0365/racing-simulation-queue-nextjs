@@ -30,8 +30,8 @@ export interface ControlPresenterActions {
   loadData: () => Promise<void>;
   
   // Session actions
-  startManualSession: (machineId: string, customerName: string, notes?: string) => Promise<void>;
-  startFromQueue: (machineId: string, queue: WalkInQueue) => Promise<void>;
+  startManualSession: (machineId: string, customerName: string, notes?: string, estimatedDurationMinutes?: number) => Promise<void>;
+  startFromQueue: (machineId: string, queue: WalkInQueue, estimatedDurationMinutes?: number) => Promise<void>;
   startFromBooking: (machineId: string, booking: Booking) => Promise<void>;
   endSession: (sessionId: string, totalAmount?: number) => Promise<void>;
   
@@ -144,13 +144,14 @@ export function useControlPresenter(
   const startManualSession = useCallback(async (
     machineId: string,
     customerName: string,
-    notes?: string
+    notes?: string,
+    estimatedDurationMinutes?: number
   ) => {
     setIsUpdating(true);
     setError(null);
 
     try {
-      await presenter.startManualSession(machineId, customerName, notes);
+      await presenter.startManualSession(machineId, customerName, notes, estimatedDurationMinutes);
       if (isMountedRef.current) {
         setManualStartModal({ isOpen: false, machineId: null });
       }
@@ -169,12 +170,16 @@ export function useControlPresenter(
     }
   }, [loadData, presenter]);
 
-  const startFromQueue = useCallback(async (machineId: string, queue: WalkInQueue) => {
+  const startFromQueue = useCallback(async (
+    machineId: string, 
+    queue: WalkInQueue,
+    estimatedDurationMinutes?: number
+  ) => {
     setIsUpdating(true);
     setError(null);
 
     try {
-      await presenter.startFromQueue(machineId, queue);
+      await presenter.startFromQueue(machineId, queue, estimatedDurationMinutes);
       if (isMountedRef.current) {
         setQueueSelectModal({ isOpen: false, machineId: null });
       }

@@ -283,6 +283,7 @@ export type Database = {
           created_at: string | null
           customer_name: string
           end_time: string | null
+          estimated_end_time: string | null
           id: string
           notes: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
@@ -297,6 +298,7 @@ export type Database = {
           created_at?: string | null
           customer_name: string
           end_time?: string | null
+          estimated_end_time?: string | null
           id?: string
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -311,6 +313,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string
           end_time?: string | null
+          estimated_end_time?: string | null
           id?: string
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -563,6 +566,7 @@ export type Database = {
         Returns: {
           customer_name: string
           duration_minutes: number
+          estimated_end_time: string
           payment_status: string
           session_id: string
           source_type: string
@@ -776,14 +780,11 @@ export type Database = {
         Args: { p_action: string; p_booking_id: string }
         Returns: Json
       }
-      rpc_seat_queue_customer: {
-        Args: { p_machine_id: string; p_queue_id: string }
-        Returns: Json
-      }
       rpc_start_session: {
         Args: {
           p_booking_id?: string
           p_customer_name: string
+          p_estimated_duration_minutes?: number
           p_notes?: string
           p_queue_id?: string
           p_station_id: string

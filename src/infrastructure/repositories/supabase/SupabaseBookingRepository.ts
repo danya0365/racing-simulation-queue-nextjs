@@ -11,15 +11,15 @@
  */
 
 import {
-  Booking,
-  BookingDaySchedule,
-  BookingLog,
-  BookingSlotStatus,
-  BookingStats,
-  BookingTimeSlot,
-  CreateBookingData,
-  IBookingRepository,
-  UpdateBookingData,
+    Booking,
+    BookingDaySchedule,
+    BookingLog,
+    BookingSlotStatus,
+    BookingStats,
+    BookingTimeSlot,
+    CreateBookingData,
+    IBookingRepository,
+    UpdateBookingData,
 } from '@/src/application/repositories/IBookingRepository';
 import { OPERATING_HOURS } from '@/src/config/booking.config';
 import { Database } from '@/src/domain/types/supabase';
@@ -101,14 +101,23 @@ export class SupabaseBookingRepository implements IBookingRepository {
           slotEnd = bookingEndAt;
         }
 
+        // Align start time to nearest slot boundary (round down)
+        // This ensures sessions starting at uneven times (e.g., 14:15) correctly block the 14:00 and 14:30 slots
+        const startMinute = slotStart.minute();
+        const startRemainder = startMinute % SLOT_DURATION_MINUTES;
+        const alignedStart = slotStart.subtract(startRemainder, 'minute').startOf('minute');
+        
         // Mark all slots covered by this booking
-        let current = slotStart;
+        let current = alignedStart;
         while (current.isBefore(slotEnd)) {
           const timeKey = current.format('HH:mm');
-          bookedSlots.set(timeKey, { 
-            bookingId: booking.booking_id,
-            isCrossMidnight: booking.is_cross_midnight
-          });
+          // Only set if not already booked (or priority logic if needed, but simplistic is fine for now)
+          if (!bookedSlots.has(timeKey)) {
+            bookedSlots.set(timeKey, { 
+              bookingId: booking.booking_id,
+              isCrossMidnight: booking.is_cross_midnight
+            });
+          }
           current = current.add(SLOT_DURATION_MINUTES, 'minute');
         }
       });

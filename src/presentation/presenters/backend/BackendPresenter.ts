@@ -286,12 +286,18 @@ export class BackendPresenter {
   /**
    * Start a session (for walk-in customer)
    */
-  async startSession(stationId: string, customerName: string, queueId?: string): Promise<Session> {
+  async startSession(
+    stationId: string, 
+    customerName: string, 
+    queueId?: string,
+    estimatedDurationMinutes?: number
+  ): Promise<Session> {
     try {
       return await this.sessionRepository.startSession({
         stationId,
         customerName,
         queueId,
+        estimatedDurationMinutes,
       });
     } catch (error) {
       console.error('Error starting session:', error);

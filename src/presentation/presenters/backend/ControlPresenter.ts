@@ -133,23 +133,34 @@ export class ControlPresenter {
   /**
    * Start a manual session (walk-in without queue)
    */
-  async startManualSession(machineId: string, customerName: string, notes?: string): Promise<Session> {
+  async startManualSession(
+    machineId: string, 
+    customerName: string, 
+    notes?: string,
+    estimatedDurationMinutes?: number
+  ): Promise<Session> {
     return this.sessionRepo.startSession({
       stationId: machineId,
       customerName,
       notes: notes || 'Manual walk-in session',
+      estimatedDurationMinutes: estimatedDurationMinutes ?? 60,
     });
   }
 
   /**
    * Start session from walk-in queue
    */
-  async startFromQueue(machineId: string, queue: WalkInQueue): Promise<Session> {
+  async startFromQueue(
+    machineId: string, 
+    queue: WalkInQueue,
+    estimatedDurationMinutes?: number
+  ): Promise<Session> {
     return this.sessionRepo.startSession({
       stationId: machineId,
       customerName: queue.customerName,
       queueId: queue.id,
       notes: `Walk-in Queue #${queue.queueNumber}`,
+      estimatedDurationMinutes: estimatedDurationMinutes ?? 60,
     });
   }
 
@@ -162,6 +173,7 @@ export class ControlPresenter {
       customerName: booking.customerName,
       bookingId: booking.id,
       notes: `Check-in from booking (${booking.localStartTime} - ${booking.localEndTime})`,
+      estimatedDurationMinutes: booking.durationMinutes,
     });
   }
 
