@@ -51,7 +51,7 @@ export default function GameControlDocsPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-pink-600 dark:text-pink-400">2.</span>
-              หรือเข้า URL โดยตรง: <code className="px-2 py-1 bg-gray-200 dark:bg-white/10 rounded text-pink-700 dark:text-pink-300 text-sm">/backend/advance-control</code>
+              หรือเข้า URL โดยตรง: <code className="px-2 py-1 bg-gray-200 dark:bg-white/10 rounded text-pink-700 dark:text-pink-300 text-sm">/backend/control</code>
             </li>
           </ol>
 
@@ -235,7 +235,7 @@ export default function GameControlDocsPage() {
             <span className="text-2xl block mb-2">📊</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">Dashboard</span>
           </Link>
-          <Link href="/backend/advance-control" className="bg-white/50 dark:bg-pink-500/20 hover:bg-white dark:hover:bg-pink-500/30 border border-pink-300 dark:border-pink-500/30 rounded-xl p-4 text-center transition-all">
+          <Link href="/backend/control" className="bg-white/50 dark:bg-pink-500/20 hover:bg-white dark:hover:bg-pink-500/30 border border-pink-300 dark:border-pink-500/30 rounded-xl p-4 text-center transition-all">
             <span className="text-2xl block mb-2">🎛️</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">เปิดห้องควบคุม</span>
           </Link>

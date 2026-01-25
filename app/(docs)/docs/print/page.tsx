@@ -669,7 +669,7 @@ function GameControlGuide() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-pink-600">2.</span>
-              หรือเข้า URL โดยตรง: <code className="px-2 py-1 bg-gray-200 rounded text-pink-700 text-sm">/backend/advance-control</code>
+              หรือเข้า URL โดยตรง: <code className="px-2 py-1 bg-gray-200 rounded text-pink-700 text-sm">/backend/control</code>
             </li>
           </ol>
 

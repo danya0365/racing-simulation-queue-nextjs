@@ -226,15 +226,15 @@ const defaultTestCases: TestCase[] = [
   },
 
   // ============================================================
-  // ADVANCE BOOKING - STAFF FLOW
+  // BOOKING - STAFF FLOW
   // ============================================================
   {
     id: 'booking-staff-1',
-    category: 'Advance Booking (พนักงาน)',
+    category: 'Booking (พนักงาน)',
     title: 'ดูตารางจอง',
     description: 'ทดสอบหน้าแสดงตารางจอง',
     steps: [
-      'เปิดหน้า /backend/advance-control',
+      'เปิดหน้า /backend',
       'ดูตารางทุกเครื่อง',
       'เลือกวันที่ต่างๆ',
     ],
@@ -243,11 +243,11 @@ const defaultTestCases: TestCase[] = [
   },
   {
     id: 'booking-staff-2',
-    category: 'Advance Booking (พนักงาน)',
+    category: 'Booking (พนักงาน)',
     title: 'Check-in ลูกค้าจอง',
     description: 'ทดสอบการ check-in ลูกค้าที่จองมา',
     steps: [
-      'เปิดหน้า /backend/advance-control',
+      'เปิดหน้า /backend/control',
       'หา booking ที่ถึงเวลา',
       'กดปุ่ม check-in',
     ],

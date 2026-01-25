@@ -237,7 +237,7 @@ export default function AdminDocsPage() {
             <span className="text-2xl block mb-2">📊</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">Dashboard</span>
           </Link>
-          <Link href="/backend/advance-control" className="bg-white/50 dark:bg-pink-500/20 hover:bg-white dark:hover:bg-pink-500/30 border border-pink-300 dark:border-pink-500/30 rounded-xl p-4 text-center transition-all">
+          <Link href="/backend/control" className="bg-white/50 dark:bg-pink-500/20 hover:bg-white dark:hover:bg-pink-500/30 border border-pink-300 dark:border-pink-500/30 rounded-xl p-4 text-center transition-all">
             <span className="text-2xl block mb-2">🎛️</span>
             <span className="text-sm text-gray-700 dark:text-gray-300">ห้องควบคุม</span>
           </Link>

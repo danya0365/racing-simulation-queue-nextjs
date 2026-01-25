@@ -89,7 +89,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               <GlowButton color="cyan" onClick={() => handlePrintQR && handlePrintQR()}>
                 🖨️ Print QR
               </GlowButton>
-              <Link href="/backend/advance-control">
+              <Link href="/backend/control">
                 <GlowButton color="pink">
                   📅 ห้องควบคุม
                 </GlowButton>
