@@ -3,6 +3,8 @@
 import { Booking } from '@/src/application/repositories/IBookingRepository';
 import { Session } from '@/src/application/repositories/ISessionRepository';
 import { WalkInQueue } from '@/src/application/repositories/IWalkInQueueRepository';
+import { calculateSessionPrice } from '@/src/config/booking.config';
+import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ControlPresenter, ControlViewModel } from './ControlPresenter';
 import { createClientControlPresenter } from './ControlPresenterClientFactory';
@@ -229,7 +231,24 @@ export function useControlPresenter(
     setError(null);
 
     try {
-      await presenter.endSession(sessionId, totalAmount);
+      let finalAmount = totalAmount;
+
+      // Auto-calculate price if not provided
+      if (finalAmount === undefined && viewModel) {
+        // Find session in stations
+        const station = viewModel.stations.find(s => s.activeSession?.id === sessionId);
+        const session = station?.activeSession;
+        
+        if (session && session.startTime) {
+          const start = dayjs(session.startTime);
+          const now = dayjs();
+          const durationMinutes = now.diff(start, 'minute');
+          finalAmount = calculateSessionPrice(durationMinutes);
+          console.log(`Auto-calculated price for ${durationMinutes} mins: ${finalAmount}`);
+        }
+      }
+
+      await presenter.endSession(sessionId, finalAmount);
       if (isMountedRef.current) {
         setEndSessionModal({ isOpen: false, sessionId: null });
       }
@@ -246,7 +265,7 @@ export function useControlPresenter(
         setIsUpdating(false);
       }
     }
-  }, [loadData, presenter]);
+  }, [loadData, presenter, viewModel]);
 
   const updateSessionPayment = useCallback(async (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => {
     setIsUpdating(true);

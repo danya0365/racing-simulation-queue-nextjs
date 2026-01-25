@@ -109,6 +109,33 @@ export function formatPrice(durationMinutes: number): string {
 }
 
 /**
+ * Calculate price based on duration logic
+ * - Step pricing: Rounds up to the nearest configured tier
+ * - If exceeds max tier: Adds excess minutes * best rate
+ */
+export function calculateSessionPrice(durationMinutes: number): number {
+  if (durationMinutes <= 0) return 0;
+
+  // Sort options by time asc
+  const sorted = [...DURATION_OPTIONS].sort((a, b) => a.time - b.time);
+  
+  // 1. If exact match or lower than first tier
+  if (durationMinutes <= sorted[0].time) return sorted[0].price;
+
+  // 2. Find tier that covers this duration
+  const tier = sorted.find(opt => opt.time >= durationMinutes);
+  if (tier) return tier.price;
+
+  // 3. If exceeds max tier, use max tier + per minute logic
+  const maxTier = sorted[sorted.length - 1];
+  const extraMinutes = durationMinutes - maxTier.time;
+  // Use best rate (lowest pricePerMinute) for calculation
+  const bestRate = Math.min(...sorted.map(s => s.pricePerMinute));
+  
+  return maxTier.price + Math.ceil(extraMinutes * bestRate);
+}
+
+/**
  * Simple duration values for quick selection (in minutes)
  * Used in components that just need a list of numbers
  */
