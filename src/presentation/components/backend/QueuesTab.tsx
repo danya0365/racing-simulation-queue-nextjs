@@ -13,15 +13,27 @@ type QueueStatus = WalkInStatus | 'playing' | 'completed' | 'cancelled';
 interface QueuesTabProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   queues: any[];
+  queueStats?: any;
   isUpdating: boolean;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
   onUpdateStatus: (id: string, status: QueueStatus) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
 
-export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: QueuesTabProps) {
+export function QueuesTab({ 
+  queues, 
+  queueStats,
+  isUpdating, 
+  currentPage,
+  totalPages,
+  onPageChange,
+  onUpdateStatus, 
+  onDelete 
+}: QueuesTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
   const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat('th-TH', {
@@ -45,20 +57,15 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
     }
   };
 
-  // Filter queues by status
+  // Filter queues by status (Client-side filtering on the fetched page)
   const filteredQueues = statusFilter === 'all' 
     ? queues 
     : queues.filter(q => q.status === statusFilter);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredQueues.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedQueues = filteredQueues.slice(startIndex, startIndex + itemsPerPage);
-
   // Reset to page 1 when filter changes
   const handleFilterChange = (filter: string) => {
     setStatusFilter(filter);
-    setCurrentPage(1);
+    // onPageChange(1); // Optional: if we want to reset page on filter change, but filtering is client-side on chunk currently.
   };
 
   // Count by status for filter badges
@@ -113,7 +120,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
       </div>
 
       {/* Queue List */}
-      {paginatedQueues.length === 0 ? (
+      {filteredQueues.length === 0 ? (
         <AnimatedCard className="p-8 text-center">
           <div className="text-4xl mb-4">📋</div>
           <p className="text-muted">
@@ -122,7 +129,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
         </AnimatedCard>
       ) : (
         <div className="space-y-3">
-          {paginatedQueues.map((queue) => {
+          {filteredQueues.map((queue) => {
             const statusConfig = getStatusConfig(queue.status);
             return (
               <AnimatedCard key={queue.id} className="p-4">
@@ -182,7 +189,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
             className="px-3 py-2 rounded-lg bg-surface border border-border text-muted hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
@@ -204,7 +211,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
                   <span key={page} className="flex items-center gap-1">
                     {showEllipsis && <span className="px-2 text-muted">...</span>}
                     <button
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => onPageChange(page)}
                       className={`w-10 h-10 rounded-lg font-medium transition-all ${
                         currentPage === page
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
@@ -219,7 +226,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
           </div>
 
           <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="px-3 py-2 rounded-lg bg-surface border border-border text-muted hover:bg-muted-light disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
@@ -231,7 +238,7 @@ export function QueuesTab({ queues, isUpdating, onUpdateStatus, onDelete }: Queu
       {/* Summary Footer */}
       {filteredQueues.length > 0 && (
         <div className="text-center text-sm text-muted">
-          แสดง {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredQueues.length)} จาก {filteredQueues.length} รายการ
+          แสดงหน้า {currentPage}
         </div>
       )}
     </div>

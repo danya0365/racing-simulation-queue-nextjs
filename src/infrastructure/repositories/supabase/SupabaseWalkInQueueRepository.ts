@@ -56,7 +56,10 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
     return this.mapToDomain(data);
   }
 
-  async getAll(): Promise<WalkInQueue[]> {
+  async getAll(limit: number = 50, page: number = 1): Promise<WalkInQueue[]> {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     const { data, error } = await this.supabase
       .from('walk_in_queue')
       .select(`
@@ -64,7 +67,8 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
         customers:customer_id (name, phone),
         machines:preferred_machine_id (name)
       `)
-      .order('queue_number', { ascending: true });
+      .order('joined_at', { ascending: false }) // Newest first for history
+      .range(from, to);
 
     if (error) {
       console.error('Error fetching walk-in queue:', error);
@@ -284,7 +288,15 @@ export class SupabaseWalkInQueueRepository implements IWalkInQueueRepository {
       averageWaitMinutes: number;
     };
 
-    return stats;
+    // Get total count for pagination
+    const { count } = await this.supabase
+      .from('walk_in_queue')
+      .select('*', { count: 'exact', head: true });
+
+    return {
+      ...stats,
+      totalHistoryCount: count || 0,
+    };
   }
 
   // ============================================================

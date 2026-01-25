@@ -102,9 +102,11 @@ export function useBackendPresenter(
       if (tab === 'dashboard') {
         // Dashboard needs Everything (Machines, Queues, Sessions, Bookings Stats)
         partialData = await presenter.getViewModel(nowStr);
-      } else if (tab === 'control' || tab === 'machines' || tab === 'queues') {
+      } else if (tab === 'control' || tab === 'machines') {
         // Operational tabs need real-time data but not full daily bookings
         partialData = await presenter.getControlData();
+      } else if (tab === 'queues') {
+        partialData = await presenter.getQueuesData(limit, targetPage);
       } else if (tab === 'sessions') {
         partialData = await presenter.getSessionsData(limit, targetPage);
       } else if (tab === 'customers' || tab === 'advanceBookings') {
@@ -377,14 +379,14 @@ export function useBackendPresenter(
       }
       
       intervalId = setInterval(() => {
-        if (document.visibilityState === 'visible' && activeTab !== 'sessions') {
+        if (document.visibilityState === 'visible' && activeTab !== 'sessions' && activeTab !== 'queues') {
           refreshData();
         }
       }, 5000);
     };
     
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && activeTab !== 'sessions') {
+      if (document.visibilityState === 'visible' && activeTab !== 'sessions' && activeTab !== 'queues') {
         refreshData();
         startPolling();
       } else {

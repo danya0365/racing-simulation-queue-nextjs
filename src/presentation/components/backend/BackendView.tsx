@@ -4,7 +4,7 @@ import type { WalkInStatus } from '@/src/application/repositories/IWalkInQueueRe
 import { AnimatedButton } from '@/src/presentation/components/ui/AnimatedButton';
 import { GlowButton } from '@/src/presentation/components/ui/GlowButton';
 import {
-    BackendSkeleton
+  BackendSkeleton
 } from '@/src/presentation/components/ui/Skeleton';
 import { BackendViewModel } from '@/src/presentation/presenters/backend/BackendPresenter';
 import { useBackendPresenter } from '@/src/presentation/presenters/backend/useBackendPresenter';
@@ -154,7 +154,11 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
           {state.activeTab === 'queues' && (
             <QueuesTab
               queues={viewModel.walkInQueues || []}
+              queueStats={viewModel.walkInQueueStats}
               isUpdating={state.isUpdating}
+              currentPage={state.pagination?.page || 1}
+              totalPages={Math.ceil((viewModel.walkInQueueStats?.totalHistoryCount || 0) / (state.pagination?.limit || 20))}
+              onPageChange={actions.setPage}
               onUpdateStatus={actions.updateQueueStatus}
               onDelete={actions.deleteQueue}
             />

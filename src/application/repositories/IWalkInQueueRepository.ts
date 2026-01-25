@@ -47,7 +47,9 @@ export interface WalkInQueueStats {
   calledCount: number;
   seatedToday: number;
   cancelledToday: number;
+  cancelledToday: number;
   averageWaitMinutes: number;
+  totalHistoryCount?: number;
 }
 
 /**
@@ -76,9 +78,9 @@ export interface IWalkInQueueRepository {
   getById(id: string): Promise<WalkInQueue | null>;
 
   /**
-   * Get all queue entries
+   * Get all queue entries (paginated)
    */
-  getAll(): Promise<WalkInQueue[]>;
+  getAll(limit?: number, page?: number): Promise<WalkInQueue[]>;
 
   /**
    * Get all waiting queue entries (ordered by queue number)

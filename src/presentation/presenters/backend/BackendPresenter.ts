@@ -145,6 +145,30 @@ export class BackendPresenter {
       throw error;
     }
   }
+
+  /**
+   * Get queues data (History + Stats)
+   */
+  async getQueuesData(limit: number = 20, page: number = 1): Promise<Partial<BackendViewModel>> {
+    try {
+      const [queues, walkInQueueStats] = await this.withTimeout(Promise.all([
+        this.walkInQueueRepository.getAll(limit, page),
+        this.walkInQueueRepository.getStats(),
+      ]));
+
+      return {
+        walkInQueues: queues,
+        walkInQueueStats,
+        // Backward compatibility
+        activeQueues: queues,
+        queues: queues,
+        queueStats: walkInQueueStats,
+      };
+    } catch (error) {
+      console.error('Error getting queues data:', error);
+      throw error;
+    }
+  }
   /**
    * Get sessions data (History + Stats)
    */
