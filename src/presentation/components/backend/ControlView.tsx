@@ -615,16 +615,20 @@ function SessionDetailModal({
                 <span className="text-white/60">เริ่มเวลา</span>
                 <span className="text-white font-mono">{dayjs(session.startTime).format('HH:mm:ss')}</span>
               </div>
-              {session.endTime && (
-                <div className="flex justify-between">
-                  <span className="text-white/60">สิ้นสุดเวลา</span>
-                  <span className="text-white font-mono">{dayjs(session.endTime).format('HH:mm:ss')}</span>
-                </div>
-              )}
-              {session.durationMinutes && (
-                <div className="flex justify-between">
-                  <span className="text-white/60">ระยะเวลา</span>
-                  <span className="text-white font-mono">{session.durationMinutes} นาที</span>
+              {session.endTime ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-white/60">สิ้นสุดเวลา</span>
+                    <span className="text-white font-mono">{dayjs(session.endTime).format('HH:mm:ss')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/60">ระยะเวลา</span>
+                    <span className="text-white font-mono">{session.durationMinutes} นาที</span>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-2 -mx-2">
+                  <SessionTimer startTime={session.startTime} />
                 </div>
               )}
               <div className="flex justify-between border-t border-white/10 pt-2 mt-2">
