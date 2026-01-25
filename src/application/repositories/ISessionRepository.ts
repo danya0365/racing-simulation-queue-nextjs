@@ -135,6 +135,10 @@ export interface ISessionRepository {
    * Update payment status
    */
   updatePaymentStatus(sessionId: string, status: PaymentStatus): Promise<Session>;
+  /**
+   * Update the total amount for a session.
+   */
+  updateTotalAmount(sessionId: string, totalAmount: number): Promise<Session>;
 
   /**
    * Get session statistics

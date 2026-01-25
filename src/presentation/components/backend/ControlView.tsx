@@ -340,21 +340,18 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
       )}
 
       {/* End Session Modal */}
-      <ConfirmationModal
-        isOpen={state.endSessionModal.isOpen}
-        title="⏹️ จบ Session?"
-        description="ยืนยันว่าลูกค้าเล่นเสร็จแล้ว และต้องการปิด Session?"
-        confirmText="✅ ยืนยัน"
-        cancelText="ยกเลิก"
-        variant="warning"
-        onConfirm={() => {
-          if (state.endSessionModal.sessionId) {
-            actions.endSession(state.endSessionModal.sessionId);
-          }
-        }}
-        onClose={actions.closeEndSessionModal}
-        isLoading={state.isUpdating}
-      />
+      {state.endSessionModal.isOpen && state.endSessionModal.sessionId && (
+        <EndSessionModal
+          sessionId={state.endSessionModal.sessionId}
+          onClose={actions.closeEndSessionModal}
+          onConfirm={(amount) => {
+             if (state.endSessionModal.sessionId) {
+               actions.endSession(state.endSessionModal.sessionId, amount);
+             }
+          }}
+          isLoading={state.isUpdating}
+        />
+      )}
 
       {/* Error Toast */}
       {state.error && state.viewModel && (
@@ -378,6 +375,7 @@ export function ControlView({ initialViewModel }: ControlViewProps) {
           session={state.sessionDetailModal.session}
           onClose={actions.closeSessionDetailModal}
           onUpdatePayment={actions.updateSessionPayment}
+          onUpdateAmount={actions.updateSessionAmount}
         />
       )}
 
@@ -801,4 +799,72 @@ function QueueSelectItem({
     </div>
   );
 }
+
+function EndSessionModal({
+  sessionId,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  sessionId: string;
+  onClose: () => void;
+  onConfirm: (amount?: number) => void;
+  isLoading: boolean;
+}) {
+  const [amount, setAmount] = useState<string>('');
+
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-2xl border border-white/20 w-full max-w-sm p-6 relative">
+          <h3 className="text-xl font-bold text-white mb-2">
+            ⏹️ จบ Session?
+          </h3>
+          <p className="text-white/60 mb-6">
+            ยืนยันการจบการทำงาน? ระบบจะคำนวณเงินให้อัตโนมัติ หรือคุณสามารถระบุยอดเงินเองได้
+          </p>
+
+          <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
+            <label className="text-xs text-white/40 block mb-2">ระบุยอดเงิน (บาท) *เว้นว่างเพื่อคำนวณอัตโนมัติ</label>
+            <div className="flex items-center gap-2">
+              <span className="text-white/40 font-bold">฿</span>
+              <input
+                type="number"
+                placeholder="Auto"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="bg-transparent text-xl font-bold text-white placeholder-white/20 focus:outline-none w-full border-b border-white/10 focus:border-purple-500 transition-colors pb-1"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <GlowButton
+              color="purple"
+              variant="outline"
+              className="flex-1"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              ยกเลิก
+            </GlowButton>
+            <GlowButton
+              color="red"
+              className="flex-1"
+              onClick={() => {
+                const parsedAmount = amount ? parseFloat(amount) : undefined;
+                onConfirm(parsedAmount);
+              }}
+              isLoading={isLoading}
+            >
+              จบการทำงาน
+            </GlowButton>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
 

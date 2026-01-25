@@ -178,6 +178,7 @@ export function BackendView({ initialViewModel }: BackendViewProps) {
               sessions={viewModel.sessions || []}
               sessionStats={viewModel.sessionStats}
               onUpdatePayment={actions.updateSessionPayment}
+              onUpdateAmount={actions.updateSessionAmount}
             />
           )}
         </div>

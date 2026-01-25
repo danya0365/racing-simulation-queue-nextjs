@@ -147,6 +147,21 @@ export class ApiSessionRepository implements ISessionRepository {
     return res.json();
   }
 
+  async updateTotalAmount(sessionId: string, totalAmount: number): Promise<Session> {
+    const res = await fetch(`${this.baseUrl}/${sessionId}/amount`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ totalAmount }),
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || 'ไม่สามารถอัปเดตราคาได้');
+    }
+    
+    return res.json();
+  }
+
   // ============================================================
   // STATISTICS
   // ============================================================

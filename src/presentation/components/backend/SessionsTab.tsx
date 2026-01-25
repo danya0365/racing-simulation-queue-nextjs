@@ -10,9 +10,10 @@ interface SessionsTabProps {
   sessions: Session[];
   sessionStats: SessionStats;
   onUpdatePayment: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => Promise<void>;
+  onUpdateAmount: (sessionId: string, amount: number) => Promise<void>;
 }
 
-export function SessionsTab({ sessions, sessionStats, onUpdatePayment }: SessionsTabProps) {
+export function SessionsTab({ sessions, sessionStats, onUpdatePayment, onUpdateAmount }: SessionsTabProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -242,6 +243,7 @@ export function SessionsTab({ sessions, sessionStats, onUpdatePayment }: Session
           session={selectedSession} 
           onClose={() => setSelectedSession(null)} 
           onUpdatePayment={onUpdatePayment}
+          onUpdateAmount={onUpdateAmount}
         />
       )}
     </div>

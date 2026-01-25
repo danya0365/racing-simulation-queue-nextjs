@@ -23,7 +23,8 @@ RETURNS TABLE (
     status TEXT,
     customer_name TEXT,
     customer_phone TEXT,
-    is_owner BOOLEAN  -- Indicates if this is the caller's booking
+    is_owner BOOLEAN,  -- Indicates if this is the caller's booking
+    total_price DECIMAL
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -58,7 +59,8 @@ BEGIN
             WHEN p_customer_id IS NOT NULL AND b.customer_id = p_customer_id THEN c.phone
             ELSE NULL
         END AS customer_phone,
-        (p_customer_id IS NOT NULL AND b.customer_id = p_customer_id) AS is_owner
+        (p_customer_id IS NOT NULL AND b.customer_id = p_customer_id) AS is_owner,
+        b.total_price
     FROM public.bookings b
     JOIN public.customers c ON c.id = b.customer_id
     WHERE b.machine_id = p_machine_id
@@ -94,7 +96,8 @@ BEGIN
         'confirmed' AS status, -- Treat as confirmed booking
         s.customer_name,
         NULL AS customer_phone, -- No phone for sessions usually
-        FALSE AS is_owner
+        FALSE AS is_owner,
+        0 AS total_price
     FROM public.sessions s
     WHERE s.station_id = p_machine_id
       AND s.end_time IS NULL -- Active sessions only

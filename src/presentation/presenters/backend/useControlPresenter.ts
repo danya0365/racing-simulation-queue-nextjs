@@ -35,6 +35,7 @@ export interface ControlPresenterActions {
   startFromBooking: (machineId: string, booking: Booking) => Promise<void>;
   endSession: (sessionId: string, totalAmount?: number) => Promise<void>;
   updateSessionPayment: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => Promise<void>;
+  updateSessionAmount: (sessionId: string, amount: number) => Promise<void>;
   
   // Modal actions
   openManualStartModal: (machineId: string) => void;
@@ -268,6 +269,27 @@ export function useControlPresenter(
     }
   }, [loadData, presenter]);
 
+  const updateSessionAmount = useCallback(async (sessionId: string, amount: number) => {
+    setIsUpdating(true);
+    setError(null);
+
+    try {
+      await presenter.updateSessionAmount(sessionId, amount);
+      await loadData();
+    } catch (err) {
+      if (isMountedRef.current) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Error updating session amount:', err);
+      }
+      throw err;
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdating(false);
+      }
+    }
+  }, [loadData, presenter]);
+
   // ============================================================
   // MODAL ACTIONS
   // ============================================================
@@ -402,6 +424,7 @@ export function useControlPresenter(
       startFromBooking,
       endSession,
       updateSessionPayment,
+      updateSessionAmount,
       openManualStartModal,
       closeManualStartModal,
       openQueueSelectModal,

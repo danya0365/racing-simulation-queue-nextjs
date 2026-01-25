@@ -791,6 +791,10 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_update_session_amount: {
+        Args: { p_session_id: string; p_total_amount: number }
+        Returns: Json
+      }
       rpc_update_session_payment: {
         Args: {
           p_payment_status: Database["public"]["Enums"]["payment_status"]

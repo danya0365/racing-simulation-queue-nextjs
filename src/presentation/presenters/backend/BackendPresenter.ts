@@ -366,6 +366,18 @@ export class BackendPresenter {
     }
   }
 
+  /**
+   * Update session total amount
+   */
+  async updateSessionAmount(sessionId: string, amount: number): Promise<Session> {
+    try {
+      return await this.sessionRepository.updateTotalAmount(sessionId, amount);
+    } catch (error) {
+      console.error('Error updating session amount:', error);
+      throw error;
+    }
+  }
+
   // ============================================================
   // MACHINE OPERATIONS
   // ============================================================

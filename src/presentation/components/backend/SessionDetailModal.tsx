@@ -13,14 +13,24 @@ interface SessionDetailModalProps {
   session: Session;
   onClose: () => void;
   onUpdatePayment?: (sessionId: string, status: 'paid' | 'unpaid' | 'partial') => void;
+  onUpdateAmount?: (sessionId: string, amount: number) => Promise<void>;
 }
 
 export function SessionDetailModal({
   session,
   onClose,
   onUpdatePayment,
+  onUpdateAmount,
 }: SessionDetailModalProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const [editAmount, setEditAmount] = useState<string>('');
+
+  useEffect(() => {
+    if (session.totalAmount !== undefined) {
+      setEditAmount(session.totalAmount.toString());
+    }
+  }, [session.totalAmount]);
 
   const handlePaymentUpdate = async (status: 'paid' | 'unpaid') => {
     if (!onUpdatePayment) return;
@@ -32,6 +42,24 @@ export function SessionDetailModal({
        onClose();
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleAmountUpdate = async () => {
+    if (!onUpdateAmount) return;
+    const amount = parseFloat(editAmount);
+    if (isNaN(amount) || amount < 0) return;
+
+    setIsUpdating(true);
+    try {
+      await onUpdateAmount(session.id, amount);
+      setIsEditingAmount(false);
+      // Optional: don't close, just update state
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update amount');
     } finally {
       setIsUpdating(false);
     }
@@ -101,8 +129,8 @@ export function SessionDetailModal({
               </div>
             )}
             
-            {/* Payment Section - Kept Functionality but Reverted Style */}
-            {session.totalAmount !== undefined && session.totalAmount > 0 && (
+            {/* Payment Section */}
+            {session.totalAmount !== undefined && (
               <div className={`p-4 rounded-xl border transition-all ${
                 session.paymentStatus === 'paid' 
                   ? 'bg-emerald-500/20 border-emerald-500/30' 
@@ -112,7 +140,47 @@ export function SessionDetailModal({
                   <span className={session.paymentStatus === 'paid' ? 'text-emerald-300' : 'text-red-300'}>
                     ยอดชำระ
                   </span>
-                  <span className="text-3xl font-bold text-white">฿{session.totalAmount}</span>
+                  
+                  {isEditingAmount ? (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="bg-black/30 border border-white/20 rounded px-2 py-1 text-white w-24 text-right font-bold focus:outline-none focus:border-purple-500"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={handleAmountUpdate}
+                        disabled={isUpdating}
+                        className="w-8 h-8 rounded bg-green-500/20 text-green-400 hover:bg-green-500/40 flex items-center justify-center"
+                      >
+                        ✓
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setIsEditingAmount(false);
+                          setEditAmount(session.totalAmount?.toString() || '0');
+                        }}
+                        className="w-8 h-8 rounded bg-white/10 text-white/60 hover:bg-white/20 flex items-center justify-center"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-bold text-white">฿{session.totalAmount}</span>
+                      {onUpdateAmount && session.paymentStatus !== 'paid' && (
+                        <button 
+                          onClick={() => setIsEditingAmount(true)}
+                          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                          title="แก้ไขราคา"
+                        >
+                          ✎
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t border-white/10">

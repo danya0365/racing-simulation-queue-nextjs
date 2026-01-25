@@ -8,13 +8,13 @@
  */
 
 import {
-    EndSessionData,
-    ISessionRepository,
-    PaymentStatus,
-    Session,
-    SessionSourceType,
-    SessionStats,
-    StartSessionData,
+  EndSessionData,
+  ISessionRepository,
+  PaymentStatus,
+  Session,
+  SessionSourceType,
+  SessionStats,
+  StartSessionData,
 } from '@/src/application/repositories/ISessionRepository';
 import { Database } from '@/src/domain/types/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -276,6 +276,28 @@ export class SupabaseSessionRepository implements ISessionRepository {
     const response = data as { success: boolean; error?: string };
     if (!response.success) {
       throw new Error(response.error || 'ไม่สามารถอัปเดตสถานะการชำระเงินได้');
+    }
+
+    // Get updated session
+    const updated = await this.getById(sessionId);
+    if (!updated) {
+      throw new Error('ไม่พบ session หลังอัปเดต');
+    }
+    return updated;
+  }
+
+  async updateTotalAmount(sessionId: string, totalAmount: number): Promise<Session> {
+    const { data, error } = await this.supabase
+      .rpc('rpc_update_session_amount', {
+        p_session_id: sessionId,
+        p_total_amount: totalAmount,
+      });
+
+    if (error) throw error;
+
+    const response = data as { success: boolean; error?: string };
+    if (!response.success) {
+      throw new Error(response.error || 'ไม่สามารถอัปเดตราคาได้');
     }
 
     // Get updated session

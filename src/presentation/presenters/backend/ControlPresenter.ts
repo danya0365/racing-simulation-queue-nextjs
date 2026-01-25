@@ -209,6 +209,13 @@ export class ControlPresenter {
   }
 
   /**
+   * Update session total amount
+   */
+  async updateSessionAmount(sessionId: string, amount: number): Promise<Session> {
+    return this.sessionRepo.updateTotalAmount(sessionId, amount);
+  }
+
+  /**
    * Get session history for a machine
    */
   async getMachineHistory(machineId: string): Promise<Session[]> {
